@@ -7,7 +7,8 @@ unexport VIRTUAL_ENV
 COMPOSE := docker compose -f infra/docker-compose.yml
 PY_TEST_UNIT := -m "not integration and not samples"
 
-.PHONY: install gen-schema check lint format-check format typecheck test schema-drift \
+.PHONY: install gen-schema gen-openapi check lint format-check format typecheck test \
+        schema-drift openapi-drift \
         up down logs test-stack e2e samples test-samples
 
 ## Setup ----------------------------------------------------------------------
@@ -22,8 +23,15 @@ gen-schema:
 schema-drift:
 	scripts/check-schema-drift.sh
 
+## API contract (FastAPI OpenAPI -> TS types for apps/web) ----------------------
+gen-openapi:
+	scripts/gen-openapi.sh
+
+openapi-drift:
+	scripts/check-openapi-drift.sh
+
 ## Hermetic checks: no Docker needed -------------------------------------------
-check: lint format-check typecheck test schema-drift
+check: lint format-check typecheck test schema-drift openapi-drift
 	@echo "make check: all green"
 
 lint:
@@ -57,8 +65,10 @@ down:
 logs:
 	$(COMPOSE) logs -f --tail=100
 
-# Integration tests + e2e against the running stack.
+# Integration tests + e2e against the running stack (sample media is generated if missing).
 test-stack: up
+	@test -f samples/generated/manifest.json || $(MAKE) samples
+	cd services/api && uv run alembic check
 	uv run pytest -m integration
 	pnpm test:e2e
 
@@ -74,4 +84,4 @@ samples:
 	$(WORKER_RUN) python -m lumacut_worker.samples /samples
 
 test-samples:
-	$(WORKER_RUN) python -m pytest -m samples /app/services/worker/tests/samples
+	$(WORKER_RUN) python -m pytest -m samples -n 3 --dist loadgroup /app/services/worker/tests/samples

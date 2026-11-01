@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 
+from lumacut_api.errors import install_error_handlers, use_error_shape_in_openapi
 from lumacut_api.health import HealthCheck
-from lumacut_api.logging import configure_logging
 from lumacut_api.resources import open_resources
-from lumacut_api.routes import health
+from lumacut_api.routes import assets, auth, events, health, uploads
 from lumacut_api.settings import Settings, get_settings
+from lumacut_core.logging import configure_logging
 
 log = structlog.get_logger()
 
@@ -36,7 +37,13 @@ def create_app(
         log.info("api.stopped")
 
     app = FastAPI(title="Lumacut API", version="0.0.0", lifespan=lifespan)
+    install_error_handlers(app)
     app.include_router(health.router)
+    app.include_router(auth.router)
+    app.include_router(uploads.router)
+    app.include_router(assets.router)
+    app.include_router(events.router)
+    use_error_shape_in_openapi(app)
     return app
 
 

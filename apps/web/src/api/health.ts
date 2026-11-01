@@ -1,16 +1,7 @@
-/** Client for GET /api/health (see services/api/lumacut_api/health.py). */
+/** Client for GET /api/health (types generated from the API's OpenAPI document). */
+import type { HealthReport } from "./client.ts";
 
-export type CheckStatus = "ok" | "error";
-
-export interface CheckResult {
-  status: CheckStatus;
-  detail: string | null;
-}
-
-export interface HealthReport {
-  status: "ok" | "degraded";
-  checks: Record<string, CheckResult>;
-}
+export type { HealthReport };
 
 export type HealthState =
   | { kind: "loading" }
@@ -26,7 +17,8 @@ function isHealthReport(value: unknown): value is HealthReport {
     (c: unknown) =>
       typeof c === "object" &&
       c !== null &&
-      ((c as CheckResult).status === "ok" || (c as CheckResult).status === "error"),
+      ((c as { status?: unknown }).status === "ok" ||
+        (c as { status?: unknown }).status === "error"),
   );
 }
 

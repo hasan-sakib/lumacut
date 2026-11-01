@@ -17,11 +17,13 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock .python-version ./
 COPY packages/schema/py/pyproject.toml packages/schema/py/pyproject.toml
+COPY services/core/pyproject.toml services/core/pyproject.toml
 COPY services/api/pyproject.toml services/api/pyproject.toml
 COPY services/worker/pyproject.toml services/worker/pyproject.toml
 RUN uv sync --frozen --no-dev --group test --package lumacut-worker --no-install-workspace
 
 COPY packages/schema/py packages/schema/py
+COPY services/core services/core
 COPY services/worker services/worker
 RUN uv sync --frozen --no-dev --group test --package lumacut-worker
 

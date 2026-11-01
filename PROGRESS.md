@@ -4,7 +4,7 @@
 | # | Milestone | State | Date |
 |---|---|---|---|
 | M0 | Scaffold: monorepo, Docker Compose, schema + JSON Schema + Pydantic gen, `make check`, sample media | done | 2026-11-01 |
-| M1 | Media pipeline + auth + asset library UI | not started | — |
+| M1 | Media pipeline + auth + asset library UI | done | 2026-11-01 |
 | M2 | Engine core: decode, cache, composite, nested comps, audio sync, frame-accurate seek | not started | — |
 | M3 | Action Registry + ops + palette + Pro timeline + inspector + undo/redo + autosave | not started | — |
 | M4a | Keyframes + graph editor + color pipeline + scopes + LUTs + effect system (~10 effects) | not started | — |
@@ -21,11 +21,13 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
-M0 is done (2026-11-01). Next step: plan M1 (media pipeline + auth + asset library UI) and wait for approval.
+M1 is done (2026-11-01). Next step: plan M2 (engine core: decode, cache, composite, nested comps, audio sync, frame-accurate seek) and wait for approval. M2 should port the barcode decoder (`services/worker/lumacut_worker/samples/barcode.py`) to TS for its seek test, decode the **proxies** made in M1, and add the minimal `render-page` + headless smoke test proposed in the pre-M0 review (risk 2).
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
-- Run `make check` (hermetic), `make test-stack` (integration + e2e, needs the stack), `make samples` and `make test-samples`.
+- Run `make check` (hermetic), `make test-stack` (integration + e2e, needs the stack), `make samples` and `make test-samples` (pipeline on every sample; ~10+ min, runs 3 workers in the worker image).
+- After changing API routes or models: `make gen-openapi` (TS types for the web app). After changing `packages/schema`: `make gen-schema`. Both are drift-checked in `make check`.
+- First run of e2e on a new machine: `pnpm --filter @lumacut/web exec playwright install chromium`.
 - The Makefile and scripts unset `VIRTUAL_ENV`, so a virtualenv from another project in your shell is ignored. When calling `uv run` by hand, `unset VIRTUAL_ENV` first.
 - The full pre-M0 review (ambiguities #1–38, risks, version checks) is in `docs/pre-m0-review.md`.
 
@@ -100,6 +102,52 @@ Getting started in a new session:
 - **Metadata:** timestamps are `IsoUtcDateTime` strings (metadata only, never used for rendering). The project `Asset` holds only what editing needs; storage, proxies and status live in the backend asset record.
 - **Schema is structural only.** Cross-reference and overlap invariants belong to `applyOp` (M3), which keeps TS↔Python parity exact.
 
+**2026-11-01 — M1 (media pipeline, auth, asset library)**
+- **Shared Python package `services/core` (`lumacut_core`):** settings, logging, ids, DB models (SQLAlchemy 2 async), storage helpers (S3 client, key layout, presign, streaming multipart `upload_file`), the asset state event and `CamelModel` (snake_case in Python, camelCase on the wire). The API owns migrations (`services/api/alembic`); `make test-stack` runs `alembic check`.
+- **Owner choices:** a minimal Action Registry now (`packages/actions`); images over 8192 px are downscaled in the normalized copy, the original is kept, and the UI shows "Downscaled from W×H".
+- **Auth:**
+  - `AuthProvider` protocol with `PasswordAuthProvider` (argon2id, timing-equalized for unknown emails).
+  - HS256 access JWT, 15 min, held in memory.
+  - Opaque refresh token rotated on every use, stored as a sha256, sent as an httpOnly `SameSite=Strict` cookie on `/api/auth`. Reusing a rotated token revokes the whole family.
+  - `LUMACUT_JWT_SECRET` must be ≥32 bytes, and the dev default is refused unless `LUMACUT_ENV=dev`.
+- **API conventions:**
+  - Every error is `{"error": {"code", "message", "fields"?}}`, and the OpenAPI document describes 422s with that shape.
+  - Mutating routes `commit()` explicitly before returning, so commits never race the response. Models use `eager_defaults`.
+  - Other users' assets return 404.
+- **Uploads:**
+  - Browser → presigned multipart directly to SeaweedFS, 16 MiB parts (`LUMACUT_UPLOAD_PART_SIZE_BYTES`), 20 GiB maximum.
+  - Storage is the source of truth (ListParts), so `complete` verifies every part is present and the sizes add up.
+  - Presigned URLs use `LUMACUT_S3_PUBLIC_ENDPOINT_URL`, because the signature covers the host.
+  - SeaweedFS already reflects the request origin and exposes `ETag` for CORS.
+- **Resume after refresh:** IndexedDB (idb-keyval) stores {assetId, name, size, lastModified, FileSystemFileHandle?}. Resume re-requests permission on the stored handle (Chrome/Edge native picker or drag-and-drop), otherwise asks the user to re-pick the file (size checked). Only missing parts are sent.
+- **Worker job (`lumacut_worker.jobs.media`):**
+  - Runs async code under `asyncio.run` (asyncpg + aiobotocore). The pipeline runs in a thread.
+  - Progress is throttled to 0.5 s and written to the DB row, then published on `lumacut:user:{id}:assets`.
+  - An RQ `on_failure` callback marks crashes and timeouts as failed.
+  - The RQ timeout is 15 min + 2 s/MiB of file size, because duration isn't known before the probe.
+- **Pipeline (`lumacut_worker.pipeline`, pure functions on local files):**
+  - **Frame rate:** the CFR rate is the stream's `r_frame_rate` when that is a standard rate (within 0.5%), which keeps phone VFR footage on its real 30 fps grid. Otherwise the average is snapped to the nearest of 23.976–60, capped at 60.
+  - **Proxy:** fits 1280×720 (portrait 720×1280), no upscaling, H.264 CRF 23, closed GOP `ceil(fps/2)`, BT.709 tags, AAC 48 kHz stereo, `+faststart`. Audio-only files get an AAC `.m4a`.
+  - **Master:** ≤1080p, CRF 18, 1 s GOP, AAC 256k. Audio-only files get FLAC 48 kHz.
+  - **Thumbnails:** a 480 px poster, plus sprite sheets (10×10 tiles, 90 px high, ≤200 tiles; tile i = first frame at or after i × interval) and `thumbs/index.json`.
+  - **Waveform:** audiowaveform JSON v2 at 100 peaks/s, computed from the proxy audio with numpy in chunks.
+  - **Images (Pillow):** EXIF orientation, ICC → sRGB, 16-bit greyscale scaled (not clipped), PNG when there is alpha else JPEG q95 4:4:4, `preview.webp` ≤2048, `thumb.webp` ≤480. Animated formats use their first frame.
+  - **Damaged files:** a source that transcodes shorter than its probed duration is reported as `corrupt_file` ("The file is damaged or incomplete…").
+- **SSE (`GET /api/events`, sse-starlette):**
+  - Authenticates with a short-lived DB session, so a stream never pins a pool connection.
+  - Subscribes before reading the snapshot of unfinished assets, so no update can slip between them.
+  - Events carry full state. The web client reads the stream over `fetch` (Bearer header) and reloads the list after a reconnect.
+- **API contract:** `scripts/gen-openapi.sh` exports FastAPI's OpenAPI document without a server, then openapi-typescript generates `apps/web/src/api/generated/schema.d.ts`. The web app uses openapi-fetch with single-flight refresh-and-retry on 401.
+- **Web:**
+  - react-router 8, zustand stores (`auth`, `assets`, `uploads`, `ui`) and radix-ui (Tooltip, Dialog, DropdownMenu).
+  - Every library command is an Action rendered by `ActionButton` (tooltip with name, description and shortcut, plus ARIA label), with shortcuts dispatched from the registry.
+  - Storage images are always `<img crossOrigin="anonymous">`, never CSS backgrounds, which COEP would block.
+  - Posters and sprite frames keep their aspect inside 16:9 cards.
+  - The stack status panel moved to the login page.
+- **Tests:**
+  - API integration tests are black-box over HTTP against the stack, with helpers in `services/api/tests/integration/api_testkit.py` on pytest's `pythonpath`.
+  - Container sample tests run with pytest-xdist `-n 3 --dist loadgroup`, one sample per group. 8 workers oversubscribed the 8 GB Docker VM (33 min against 7.5 min serial).
+
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
 - **Valkey (BSD-3) instead of Redis.** Redis 8 is RSAL/SSPL/AGPL. RQ and redis-py work unchanged.
@@ -115,17 +163,36 @@ Getting started in a new session:
   - New types the spec leaves undefined: `Asset`, `Marker`, `AiRunRecord`, `PlaceholderInfo`.
 - **Ops added to the SPEC §4 list (14):** `updateComposition, removeComposition, updateAsset, removeAsset, addMarker, updateMarker, removeMarker, setTrackProps, linkClips, unlinkClips, setPlaceholder, removeMask, addPaintStrokes, removePaintStrokes`. A test asserts the catalogue equals the spec list plus exactly these.
 - **`docs/` folder added**, holding the pre-M0 review.
+- **M1:**
+  - **"MinIO" in the M1 request means SeaweedFS** (the swap was approved before M0).
+  - **`Action.run` may return `void` / `Promise<void>`** as well as `Op | Op[]`, so app-level commands (upload, retry, log out) are Actions too.
+  - **The processing job timeout scales with file size, not duration**, because duration is unknown before the probe.
+  - **`assets.kind` is nullable** until known: it's guessed from the MIME type at upload and confirmed by the probe.
+  - **Plan file names differ:** `services/api/lumacut_api/resources.py` replaces the planned `db.py`/`storage.py`/`queue.py`.
 
 ## Known gaps
 - **Op payload shapes are provisional until M3** implements `applyOp`. `schemaVersion` stays 1 until projects are first persisted (M3); after that, every breaking schema change needs a migration in `packages/schema/src/migrations.ts`.
 - **Schemas not yet defined:** `Analysis` and `EditPlan` (M10), and the effect/transition definition schema (M4a).
-- **No OpenAPI → TS client generation yet.** The only endpoint is `GET /api/health`, whose client types are hand-written in `apps/web/src/api/health.ts`. Generation arrives in M1 with the first real endpoints.
-- **Not created yet:** `packages/ops`, `engine`, `effects`, `actions`, `ui-kit` and `apps/render-page`. Each arrives in its milestone (no empty stubs).
-- **No auth, users or assets tables:** Alembic is configured but has zero revisions (M1).
+- **Not created yet:** `packages/ops`, `engine`, `effects`, `ui-kit` and `apps/render-page`. Each arrives in its milestone (no empty stubs). `packages/actions` exists in minimal form; M3 adds the palette, menus and project ops.
 - **No CI pipeline** (no git remote). Checks run locally via `make check` / `make test-stack` / `make test-samples`.
 - **Engine determinism lint rules** (`Date.now`, `Math.random` banned in render paths) are added with the engine in M2.
 - **Dev-only infra:** the web container serves the build with `vite preview`, images aren't hardened, and credentials are dev placeholders. A production deployment setup is outside v1 M0 scope.
 - **No speech or talking-head samples.** M10/M12 need licensed real footage (review #35).
+- **M1 gaps:**
+  - No sweep for abandoned multipart uploads; they stay "Upload paused" until resumed or deleted (M13).
+  - No login rate limiting, password reset or email verification.
+  - No HEIC input (libheif/x265 licensing).
+  - No storage quotas.
+  - No original-file download.
+  - Asset deletion is not yet guarded against use in projects (M3).
+  - The dev stack's SeaweedFS reflects any origin for CORS. Production must pin origins (`-s3.allowedOrigins` or bucket CORS).
+  - The SSE event payload type is hand-mirrored in `apps/web/src/stores/assets.ts` (`AssetStateEvent`), because SSE streams aren't part of the OpenAPI contract. Python integration tests check the fields.
+  - The asset list returns at most 500 newest (plus `total`); there is no cursor pagination yet.
+  - Deleting an asset while it processes stops the RQ job best-effort. If the job still finishes, it deletes its own renditions.
+  - The worker writes temp files to the container's `/tmp`; large uploads need enough container disk (no dedicated volume yet).
+  - Encoding the proxy and master for long 1080p sources on CPU can take tens of minutes. More worker replicas scale it, and GPU encoding isn't considered yet.
+  - The resume path that uses a stored FileSystemFileHandle can't be automated (native picker). e2e covers the re-pick path, and the handle path is a manual test.
+  - Web page components rely on e2e coverage. Unit tests cover the upload engine, SSE parser, stores, actions and components; overall web line coverage isn't gated.
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
@@ -174,6 +241,24 @@ Getting started in a new session:
 | httpx2 | 2.16.0 | BSD-3-Clause | dev (TestClient, integration tests) |
 | types-aiobotocore, types-aiobotocore-s3, botocore-stubs | 3.10.0 / 3.10.0 / 1.43.123 | MIT | dev (type stubs) |
 | uv_build | 0.10.x | MIT OR Apache-2.0 | build backend |
+
+
+**Added in M1**
+| Package | Version | License | Where |
+|---|---|---|---|
+| PyJWT | 2.15.1 | MIT | api |
+| argon2-cffi | 25.1.0 | MIT | api |
+| email-validator | 2.3.0 | Unlicense | api (pydantic `EmailStr`) |
+| sse-starlette | 3.6.0 | BSD-3-Clause | api |
+| numpy | 2.5.4 | BSD-3-Clause (+0BSD, MIT parts) | worker (waveform) |
+| Pillow | 13.0.0 | MIT-CMU | worker (images, sprite sheets) |
+| pytest-xdist | 3.8.0 | MIT | worker image `test` group |
+| react-router | 8.5.1 | MIT | apps/web |
+| zustand | 5.0.16 | MIT | apps/web |
+| radix-ui | 1.8.1 | MIT | apps/web |
+| openapi-fetch | 0.17.0 | MIT | apps/web |
+| openapi-typescript | 7.13.0 | MIT | apps/web (dev, codegen) |
+| idb-keyval | 6.3.0 | Apache-2.0 | apps/web |
 
 **Docker images and system packages**
 | Component | Version | License | Notes |

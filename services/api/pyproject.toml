@@ -5,6 +5,7 @@ description = "Lumacut backend API (FastAPI)."
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "lumacut-schema",
+  "lumacut-core",
   "fastapi",
   "uvicorn[standard]",
   "pydantic-settings",
@@ -15,6 +16,10 @@ dependencies = [
   "rq",
   "aiobotocore",
   "structlog",
+  "pyjwt>=2.15.1",
+  "argon2-cffi>=25.1.0",
+  "email-validator>=2.3.0",
+  "sse-starlette>=3.6.0",
 ]
 
 [build-system]
@@ -26,3 +31,4 @@ module-root = ""
 
 [tool.uv.sources]
 lumacut-schema = { workspace = true }
+lumacut-core = { workspace = true }

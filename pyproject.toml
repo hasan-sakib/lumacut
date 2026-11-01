@@ -3,7 +3,7 @@ name = "lumacut-dev"
 version = "0.0.0"
 description = "Lumacut Python workspace root (dev tooling only)."
 requires-python = ">=3.12,<3.13"
-dependencies = ["lumacut-schema", "lumacut-api", "lumacut-worker"]
+dependencies = ["lumacut-schema", "lumacut-core", "lumacut-api", "lumacut-worker"]
 
 [dependency-groups]
 dev = [
@@ -24,11 +24,12 @@ package = false
 
 [tool.uv.sources]
 lumacut-schema = { workspace = true }
+lumacut-core = { workspace = true }
 lumacut-api = { workspace = true }
 lumacut-worker = { workspace = true }
 
 [tool.uv.workspace]
-members = ["packages/schema/py", "services/api", "services/worker"]
+members = ["packages/schema/py", "services/core", "services/api", "services/worker"]
 
 [tool.ruff]
 target-version = "py312"
@@ -39,7 +40,7 @@ extend-exclude = ["node_modules", "samples/generated"]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ASYNC", "PTH", "N"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["lumacut_schema", "lumacut_api", "lumacut_worker"]
+known-first-party = ["lumacut_schema", "lumacut_core", "lumacut_api", "lumacut_worker"]
 
 [tool.ruff.lint.per-file-ignores]
 # Generated: field names must match the camelCase JSON keys; descriptions come from Zod.
@@ -49,7 +50,20 @@ known-first-party = ["lumacut_schema", "lumacut_api", "lumacut_worker"]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["packages/schema/py", "services/api", "services/worker"]
+files = [
+  "packages/schema/py",
+  "services/core",
+  "services/api",
+  "services/worker",
+]
+mypy_path = [
+  "packages/schema/py",
+  "services/core",
+  "services/api",
+  "services/worker",
+  "services/api/tests/integration",
+]
+explicit_package_bases = true
 exclude = ["node_modules/", "^\\.venv/"]
 
 [tool.pytest.ini_options]
@@ -57,7 +71,14 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "--strict-markers --import-mode=importlib"
 filterwarnings = ["error"]
-testpaths = ["packages/schema/py/tests", "services/api/tests", "services/worker/tests"]
+# Test helper modules with unique names (no `tests` packages, so test dirs never collide).
+pythonpath = ["services/api/tests/integration"]
+testpaths = [
+  "packages/schema/py/tests",
+  "services/core/tests",
+  "services/api/tests",
+  "services/worker/tests",
+]
 markers = [
   "integration: needs the running Docker stack (make test-stack)",
   "samples: needs ffmpeg and generated samples (make test-samples)",

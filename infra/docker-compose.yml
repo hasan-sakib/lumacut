@@ -3,9 +3,12 @@
 name: lumacut
 
 x-lumacut-env: &lumacut-env
+  LUMACUT_ENV: dev
   LUMACUT_DATABASE_URL: postgresql+asyncpg://lumacut:lumacut@postgres:5432/lumacut
   LUMACUT_REDIS_URL: redis://valkey:6379/0
   LUMACUT_S3_ENDPOINT_URL: http://seaweedfs:8333
+  # Browsers upload/download directly; presigned URLs must carry the host-reachable endpoint.
+  LUMACUT_S3_PUBLIC_ENDPOINT_URL: http://localhost:${LUMACUT_S3_PORT:-18333}
   LUMACUT_S3_ACCESS_KEY: lumacut
   LUMACUT_S3_SECRET_KEY: lumacut-dev-secret
   LUMACUT_S3_BUCKET: lumacut

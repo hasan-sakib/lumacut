@@ -1,0 +1,35 @@
+/** Small inline icon set (no icon-font dependency). Decorative: callers provide the label. */
+
+const PATHS: Record<string, string> = {
+  upload: "M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3",
+  search: "m21 21-4.3-4.3M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z",
+  grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+  trash: "M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3",
+  retry: "M4 4v6h6M20 20v-6h-6M5 15a7 7 0 0 0 12 3l3-4M19 9A7 7 0 0 0 7 6L4 10",
+  resume: "M8 5v14l11-7z",
+  cancel: "M6 6l12 12M18 6 6 18",
+  logout: "M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11",
+  more: "M5 12h.01M12 12h.01M19 12h.01",
+  video: "M4 6h11v12H4zM15 10l5-3v10l-5-3",
+  audio: "M9 18V6l10-2v12M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm10-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+  image: "M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9h.01",
+  file: "M6 3h8l4 4v14H6zM14 3v4h4",
+};
+
+export function Icon({ name, className = "h-4 w-4" }: { name: string; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d={PATHS[name] ?? PATHS.file} />
+    </svg>
+  );
+}

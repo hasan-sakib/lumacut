@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 
-from lumacut_worker.logging import configure_logging
+from lumacut_core.logging import configure_logging
 from lumacut_worker.samples.generate import generate
 
 

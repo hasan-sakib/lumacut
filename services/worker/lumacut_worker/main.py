@@ -7,7 +7,7 @@ import structlog
 from redis import Redis
 from rq import Worker
 
-from lumacut_worker.logging import configure_logging
+from lumacut_core.logging import configure_logging
 from lumacut_worker.media_tools import MediaToolsMissingError, media_tool_versions
 from lumacut_worker.settings import Settings
 

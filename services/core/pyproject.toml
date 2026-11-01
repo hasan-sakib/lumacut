@@ -1,0 +1,24 @@
+[project]
+name = "lumacut-core"
+version = "0.0.0"
+description = "Code shared by the Lumacut API and worker: settings, DB models, storage, events."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "lumacut-schema",
+  "pydantic-settings",
+  "sqlalchemy[asyncio]",
+  "asyncpg",
+  "redis",
+  "aiobotocore",
+  "structlog",
+]
+
+[build-system]
+requires = ["uv_build>=0.10,<0.11"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[tool.uv.sources]
+lumacut-schema = { workspace = true }

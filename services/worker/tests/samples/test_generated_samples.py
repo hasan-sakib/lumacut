@@ -22,6 +22,14 @@ from lumacut_worker.samples.generate import (
     sha256,
     video_command,
 )
+from lumacut_worker.samples.media_check import (
+    decode_gray_frame,
+    decode_mono_pcm,
+    keyframe_indices,
+    onset_s,
+    stream,
+    video_frame_times_us,
+)
 from lumacut_worker.samples.specs import (
     AUDIOS,
     IMAGES,
@@ -48,94 +56,6 @@ def manifest() -> dict[str, Any]:
     assert path.exists(), f"{path} not found: run `make samples` first"
     data: dict[str, Any] = json.loads(path.read_text())
     return data
-
-
-def ffprobe(path: Path, *args: str) -> dict[str, Any]:
-    out = subprocess.run(
-        ["ffprobe", "-v", "error", "-of", "json", *args, str(path)],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-    result: dict[str, Any] = json.loads(out)
-    return result
-
-
-def stream(path: Path, kind: str) -> dict[str, Any]:
-    streams = ffprobe(path, "-show_streams", "-count_packets")["streams"]
-    matches = [s for s in streams if s["codec_type"] == kind]
-    assert len(matches) == 1, f"{path.name}: expected one {kind} stream"
-    found: dict[str, Any] = matches[0]
-    return found
-
-
-def video_frame_times_us(path: Path) -> list[int]:
-    frames = ffprobe(path, "-select_streams", "v:0", "-show_entries", "packet=pts_time,flags")
-    pts = sorted(Fraction(p["pts_time"]) for p in frames["packets"])
-    return [round(t * 1_000_000) for t in pts]
-
-
-def keyframe_indices(path: Path) -> list[int]:
-    packets = ffprobe(path, "-select_streams", "v:0", "-show_entries", "packet=pts_time,flags")
-    ordered = sorted(packets["packets"], key=lambda p: Fraction(p["pts_time"]))
-    return [i for i, p in enumerate(ordered) if "K" in p["flags"]]
-
-
-def decode_gray_frame(path: Path, index: int, width: int, height: int) -> bytes:
-    raw = subprocess.run(
-        [
-            "ffmpeg",
-            "-v",
-            "error",
-            "-i",
-            str(path),
-            "-vf",
-            f"select=eq(n\\,{index})",
-            "-frames:v",
-            "1",
-            "-f",
-            "rawvideo",
-            "-pix_fmt",
-            "gray",
-            "-",
-        ],
-        capture_output=True,
-        check=True,
-    ).stdout
-    return raw
-
-
-def decode_mono_pcm(path: Path) -> list[int]:
-    raw = subprocess.run(
-        [
-            "ffmpeg",
-            "-v",
-            "error",
-            "-i",
-            str(path),
-            "-ac",
-            "1",
-            "-ar",
-            "48000",
-            "-f",
-            "s16le",
-            "-acodec",
-            "pcm_s16le",
-            "-",
-        ],
-        capture_output=True,
-        check=True,
-    ).stdout
-    return [int.from_bytes(raw[i : i + 2], "little", signed=True) for i in range(0, len(raw), 2)]
-
-
-def onset_s(samples: list[int], around_s: float, window_s: float = 0.1) -> float:
-    lo = max(0, int((around_s - window_s) * 48000))
-    hi = int((around_s + window_s) * 48000)
-    for i in range(lo, min(hi, len(samples))):
-        if abs(samples[i]) > 3000:
-            return i / 48000
-    raise AssertionError(f"no onset found near {around_s}s")
 
 
 # --- manifest -----------------------------------------------------------------------------
@@ -201,7 +121,7 @@ def test_barcode_matches_frame_number(spec: VideoSpec) -> None:
         k = spec.vfr_drop_every
         source_numbers = [n for n in range(spec.source_frames) if n % k != k // 2]
     for index in sorted({0, 1, spec.frames // 2, spec.frames - 1}):
-        gray = decode_gray_frame(SAMPLES / spec.name, index, spec.width, spec.height)
+        gray = decode_gray_frame(SAMPLES / spec.name, index)
         decoded = barcode.decode_frame(gray, spec.width, spec.height)
         assert decoded == source_numbers[index], (spec.name, index)
 

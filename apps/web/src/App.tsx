@@ -1,41 +1,63 @@
-import { useEffect, useState } from "react";
-import { fetchHealth, type HealthState } from "./api/health.ts";
-import { HealthStatus } from "./components/HealthStatus.tsx";
+import { Tooltip } from "radix-ui";
+import { useEffect, type ReactNode } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { AuthPage } from "./pages/AuthPage.tsx";
+import { LibraryPage } from "./pages/LibraryPage.tsx";
+import { useAuthStore } from "./stores/auth.ts";
 
-export const HEALTH_POLL_MS = 3000;
+function RequireAuth({ children }: { children: ReactNode }) {
+  const status = useAuthStore((s) => s.status);
+  if (status === "unknown") return <p className="p-10 text-neutral-400">Loading…</p>;
+  return status === "authenticated" ? children : <Navigate to="/login" replace />;
+}
 
-function useHealth(pollMs: number): HealthState {
-  const [state, setState] = useState<HealthState>({ kind: "loading" });
-  useEffect(() => {
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const poll = async () => {
-      const next = await fetchHealth(controller.signal);
-      if (controller.signal.aborted) return;
-      setState(next);
-      timer = setTimeout(() => void poll(), pollMs);
-    };
-    void poll();
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [pollMs]);
-  return state;
+function GuestOnly({ children }: { children: ReactNode }) {
+  const status = useAuthStore((s) => s.status);
+  return status === "authenticated" ? <Navigate to="/" replace /> : children;
+}
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <GuestOnly>
+            <AuthPage mode="login" />
+          </GuestOnly>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <GuestOnly>
+            <AuthPage mode="register" />
+          </GuestOnly>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <LibraryPage />
+          </RequireAuth>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export function App() {
-  const health = useHealth(HEALTH_POLL_MS);
+  const bootstrap = useAuthStore((s) => s.bootstrap);
+  useEffect(() => {
+    void bootstrap();
+  }, [bootstrap]);
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center gap-8 p-10">
-      <header className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Lumacut</h1>
-        <p className="text-neutral-400">Video, motion graphics and photo editing in one studio.</p>
-      </header>
-      <HealthStatus state={health} />
-      <p className="text-sm text-neutral-500" data-testid="isolation">
-        Cross-origin isolated: {window.crossOriginIsolated ? "yes" : "no"}
-      </p>
-    </main>
+    <Tooltip.Provider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </Tooltip.Provider>
   );
 }

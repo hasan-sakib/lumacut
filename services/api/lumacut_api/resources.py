@@ -1,4 +1,4 @@
-"""Connections to Postgres, Valkey and S3-compatible storage, owned by the app lifespan."""
+"""Connections owned by the app lifespan: Postgres, Valkey, the RQ queue and object storage."""
 
 from __future__ import annotations
 
@@ -9,16 +9,16 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import structlog
-from aiobotocore.session import get_session
-from botocore.exceptions import ClientError
 from redis import Redis
 from redis.asyncio import Redis as AsyncRedis
-from rq import Worker
+from rq import Queue, Worker
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from lumacut_api.health import HealthCheck
 from lumacut_api.settings import Settings
+from lumacut_core.db import create_engine, create_sessionmaker
+from lumacut_core.storage import ensure_bucket, open_s3
 
 if TYPE_CHECKING:
     # Type stubs are a dev-only dependency; never import them at runtime.
@@ -26,14 +26,19 @@ if TYPE_CHECKING:
 
 log = structlog.get_logger()
 
+MEDIA_QUEUE = "media"
+
 
 @dataclass(frozen=True)
 class Resources:
     settings: Settings
     engine: AsyncEngine
+    sessions: async_sessionmaker[AsyncSession]
     redis: AsyncRedis
     sync_redis: Redis
+    media_queue: Queue
     s3: S3Client
+    s3_public: S3Client  # presigning only: URLs must carry the browser-facing host
 
     def health_checks(self) -> dict[str, HealthCheck]:
         return {
@@ -59,19 +64,10 @@ class Resources:
             raise RuntimeError("no RQ worker is registered; start the `worker` service")
 
 
-async def ensure_bucket(s3: S3Client, bucket: str) -> None:
-    """Create the asset bucket if it does not exist yet (idempotent)."""
-    try:
-        await s3.head_bucket(Bucket=bucket)
-    except ClientError:
-        await s3.create_bucket(Bucket=bucket)
-        log.info("storage.bucket_created", bucket=bucket)
-
-
 @asynccontextmanager
 async def open_resources(settings: Settings) -> AsyncIterator[Resources]:
     async with AsyncExitStack() as stack:
-        engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+        engine = create_engine(settings.database_url)
         stack.push_async_callback(engine.dispose)
 
         redis = AsyncRedis.from_url(settings.redis_url)
@@ -79,15 +75,17 @@ async def open_resources(settings: Settings) -> AsyncIterator[Resources]:
         sync_redis = Redis.from_url(settings.redis_url)
         stack.callback(sync_redis.close)
 
-        s3 = await stack.enter_async_context(
-            get_session().create_client(
-                "s3",
-                endpoint_url=settings.s3_endpoint_url,
-                region_name=settings.s3_region,
-                aws_access_key_id=settings.s3_access_key,
-                aws_secret_access_key=settings.s3_secret_key,
-            )
-        )
+        s3 = await stack.enter_async_context(open_s3(settings))
+        s3_public = await stack.enter_async_context(open_s3(settings, public=True))
         await ensure_bucket(s3, settings.s3_bucket)
 
-        yield Resources(settings=settings, engine=engine, redis=redis, sync_redis=sync_redis, s3=s3)
+        yield Resources(
+            settings=settings,
+            engine=engine,
+            sessions=create_sessionmaker(engine),
+            redis=redis,
+            sync_redis=sync_redis,
+            media_queue=Queue(MEDIA_QUEUE, connection=sync_redis),
+            s3=s3,
+            s3_public=s3_public,
+        )
