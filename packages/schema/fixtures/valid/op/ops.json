@@ -1,0 +1,666 @@
+[
+  {
+    "name": "addComposition",
+    "value": {
+      "type": "addComposition",
+      "composition": {
+        "id": "c_new_comp",
+        "name": "c_new_comp",
+        "width": 1080,
+        "height": 1920,
+        "fps": {
+          "num": 30,
+          "den": 1
+        },
+        "durationUs": 20000000,
+        "background": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 1
+        },
+        "tracks": [],
+        "markers": []
+      }
+    }
+  },
+  {
+    "name": "removeComposition",
+    "value": {
+      "type": "removeComposition",
+      "compositionId": "c_new_comp"
+    }
+  },
+  {
+    "name": "updateComposition",
+    "value": {
+      "type": "updateComposition",
+      "compositionId": "c_main",
+      "props": {
+        "width": 1080,
+        "height": 1920,
+        "fps": {
+          "num": 25,
+          "den": 1
+        }
+      }
+    }
+  },
+  {
+    "name": "addTrack",
+    "value": {
+      "type": "addTrack",
+      "compositionId": "c_main",
+      "track": {
+        "id": "v9",
+        "name": "V9",
+        "kind": "visual",
+        "muted": false,
+        "locked": false,
+        "hidden": false,
+        "solo": false,
+        "clips": []
+      },
+      "index": 2
+    }
+  },
+  {
+    "name": "removeTrack",
+    "value": {
+      "type": "removeTrack",
+      "compositionId": "c_main",
+      "trackId": "v9"
+    }
+  },
+  {
+    "name": "reorderTrack",
+    "value": {
+      "type": "reorderTrack",
+      "compositionId": "c_main",
+      "trackId": "v2",
+      "toIndex": 0
+    }
+  },
+  {
+    "name": "setTrackProps",
+    "value": {
+      "type": "setTrackProps",
+      "trackId": "a1",
+      "props": {
+        "muted": true,
+        "name": "Voice"
+      }
+    }
+  },
+  {
+    "name": "addClip",
+    "value": {
+      "type": "addClip",
+      "trackId": "v1",
+      "clip": {
+        "id": "c_new",
+        "type": "solid",
+        "startUs": 20000000,
+        "inUs": 0,
+        "outUs": 2000000,
+        "speed": 1,
+        "reversed": false,
+        "transform": {
+          "x": 960,
+          "y": 540,
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "anchorX": 960,
+          "anchorY": 540,
+          "skew": 0
+        },
+        "opacity": 1,
+        "blendMode": "normal",
+        "crop": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "masks": [],
+        "color": {
+          "exposure": 0,
+          "contrast": 0,
+          "highlights": 0,
+          "shadows": 0,
+          "whites": 0,
+          "blacks": 0,
+          "temperature": 0,
+          "tint": 0,
+          "saturation": 0,
+          "vibrance": 0,
+          "lift": [0, 0, 0],
+          "gamma": [0, 0, 0],
+          "gain": [0, 0, 0],
+          "offset": [0, 0, 0]
+        },
+        "effects": [],
+        "motionBlur": {
+          "enabled": false,
+          "shutterAngle": 180,
+          "samples": 16
+        },
+        "keyframes": {},
+        "source": "user"
+      }
+    }
+  },
+  {
+    "name": "removeClip",
+    "value": {
+      "type": "removeClip",
+      "clipId": "c_new"
+    }
+  },
+  {
+    "name": "moveClip",
+    "value": {
+      "type": "moveClip",
+      "clipId": "c_v1",
+      "trackId": "v2",
+      "startUs": 1000000
+    }
+  },
+  {
+    "name": "trimClip",
+    "value": {
+      "type": "trimClip",
+      "clipId": "c_v1",
+      "edge": "end",
+      "toUs": 4000000
+    }
+  },
+  {
+    "name": "rippleTrim",
+    "value": {
+      "type": "rippleTrim",
+      "clipId": "c_v1",
+      "edge": "start",
+      "toUs": 500000
+    }
+  },
+  {
+    "name": "rollEdit",
+    "value": {
+      "type": "rollEdit",
+      "leftClipId": "c_v1",
+      "rightClipId": "c_v2",
+      "toUs": 5500000
+    }
+  },
+  {
+    "name": "slipClip",
+    "value": {
+      "type": "slipClip",
+      "clipId": "c_v2",
+      "deltaUs": -250000
+    }
+  },
+  {
+    "name": "slideClip",
+    "value": {
+      "type": "slideClip",
+      "clipId": "c_v2",
+      "deltaUs": 1000000
+    }
+  },
+  {
+    "name": "splitClip",
+    "value": {
+      "type": "splitClip",
+      "clipId": "c_v2",
+      "atUs": 7000000,
+      "newClipId": "c_v2b"
+    }
+  },
+  {
+    "name": "rippleDelete clips",
+    "value": {
+      "type": "rippleDelete",
+      "compositionId": "c_main",
+      "target": {
+        "kind": "clips",
+        "clipIds": ["c_freeze"]
+      }
+    }
+  },
+  {
+    "name": "rippleDelete range",
+    "value": {
+      "type": "rippleDelete",
+      "compositionId": "c_main",
+      "target": {
+        "kind": "range",
+        "startUs": 3000000,
+        "endUs": 3400000,
+        "trackIds": ["v1", "a1"]
+      }
+    }
+  },
+  {
+    "name": "setProps",
+    "value": {
+      "type": "setProps",
+      "clipId": "c_v1",
+      "props": {
+        "opacity": 0.5,
+        "blendMode": "overlay",
+        "transform": {
+          "x": 100,
+          "y": 540,
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "anchorX": 960,
+          "anchorY": 540,
+          "skew": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "setProps empty",
+    "value": {
+      "type": "setProps",
+      "clipId": "c_v1",
+      "props": {}
+    }
+  },
+  {
+    "name": "linkClips",
+    "value": {
+      "type": "linkClips",
+      "clipIds": ["c_v2", "c_music"],
+      "linkId": "l2"
+    }
+  },
+  {
+    "name": "unlinkClips",
+    "value": {
+      "type": "unlinkClips",
+      "clipIds": ["c_v1", "c_a1"]
+    }
+  },
+  {
+    "name": "setPlaceholder set",
+    "value": {
+      "type": "setPlaceholder",
+      "clipId": "c_v1",
+      "placeholder": {
+        "slotId": "hero",
+        "kind": "media",
+        "label": "Hero shot"
+      }
+    }
+  },
+  {
+    "name": "setPlaceholder clear",
+    "value": {
+      "type": "setPlaceholder",
+      "clipId": "c_v1"
+    }
+  },
+  {
+    "name": "precompose",
+    "value": {
+      "type": "precompose",
+      "compositionId": "c_main",
+      "clipIds": ["c_v1", "c_v2"],
+      "newCompositionId": "c_pre",
+      "newCompositionName": "Pre-comp 1",
+      "newClipId": "c_pre_clip"
+    }
+  },
+  {
+    "name": "addKeyframe",
+    "value": {
+      "type": "addKeyframe",
+      "clipId": "c_v1",
+      "path": "transform.scale",
+      "keyframe": {
+        "tUs": 0,
+        "value": [1, 1],
+        "interpolation": "linear"
+      }
+    }
+  },
+  {
+    "name": "updateKeyframe",
+    "value": {
+      "type": "updateKeyframe",
+      "clipId": "c_v1",
+      "path": "transform.scale",
+      "tUs": 0,
+      "keyframe": {
+        "tUs": 0,
+        "value": [1, 1],
+        "interpolation": "hold"
+      }
+    }
+  },
+  {
+    "name": "removeKeyframe",
+    "value": {
+      "type": "removeKeyframe",
+      "clipId": "c_v1",
+      "path": "transform.scale",
+      "tUs": 0
+    }
+  },
+  {
+    "name": "addMask",
+    "value": {
+      "type": "addMask",
+      "clipId": "c_v1",
+      "mask": {
+        "kind": "path",
+        "id": "m9",
+        "mode": "intersect",
+        "feather": 0,
+        "expansion": 4,
+        "opacity": 1,
+        "inverted": false,
+        "path": {
+          "closed": true,
+          "vertices": [
+            {
+              "point": [0, 0],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            },
+            {
+              "point": [100, 0],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            },
+            {
+              "point": [100, 100],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            },
+            {
+              "point": [0, 100],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            }
+          ]
+        }
+      },
+      "index": 0
+    }
+  },
+  {
+    "name": "updateMask",
+    "value": {
+      "type": "updateMask",
+      "clipId": "c_v1",
+      "maskId": "m9",
+      "mask": {
+        "kind": "path",
+        "id": "m9",
+        "mode": "intersect",
+        "feather": 6,
+        "expansion": 4,
+        "opacity": 1,
+        "inverted": false,
+        "path": {
+          "closed": true,
+          "vertices": [
+            {
+              "point": [0, 0],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            },
+            {
+              "point": [100, 0],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            },
+            {
+              "point": [100, 100],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            },
+            {
+              "point": [0, 100],
+              "inTangent": [0, 0],
+              "outTangent": [0, 0]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "removeMask",
+    "value": {
+      "type": "removeMask",
+      "clipId": "c_v1",
+      "maskId": "m9"
+    }
+  },
+  {
+    "name": "addEffect",
+    "value": {
+      "type": "addEffect",
+      "clipId": "c_v1",
+      "effect": {
+        "id": "fx9",
+        "effectId": "vignette",
+        "enabled": true,
+        "params": {
+          "amount": 0.4
+        }
+      }
+    }
+  },
+  {
+    "name": "updateEffect",
+    "value": {
+      "type": "updateEffect",
+      "clipId": "c_v1",
+      "effectId": "fx9",
+      "props": {
+        "enabled": false,
+        "params": {
+          "amount": 0.6
+        }
+      }
+    }
+  },
+  {
+    "name": "removeEffect",
+    "value": {
+      "type": "removeEffect",
+      "clipId": "c_v1",
+      "effectId": "fx9"
+    }
+  },
+  {
+    "name": "reorderEffect",
+    "value": {
+      "type": "reorderEffect",
+      "clipId": "c_v2",
+      "effectId": "fx1",
+      "toIndex": 0
+    }
+  },
+  {
+    "name": "setTransition set",
+    "value": {
+      "type": "setTransition",
+      "clipId": "c_v2",
+      "transition": {
+        "id": "tr2",
+        "transitionId": "dipToBlack",
+        "durationUs": 300000,
+        "alignment": "end",
+        "params": {
+          "holdUs": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "setTransition clear",
+    "value": {
+      "type": "setTransition",
+      "clipId": "c_v2"
+    }
+  },
+  {
+    "name": "addPaintStrokes",
+    "value": {
+      "type": "addPaintStrokes",
+      "clipId": "c_paint",
+      "strokes": [
+        {
+          "id": "st9",
+          "tool": "brush",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "size": 8,
+          "hardness": 1,
+          "opacity": 1,
+          "points": [0, 0, 1, 10, 10, 1]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removePaintStrokes",
+    "value": {
+      "type": "removePaintStrokes",
+      "clipId": "c_paint",
+      "strokeIds": ["st9"]
+    }
+  },
+  {
+    "name": "addAsset",
+    "value": {
+      "type": "addAsset",
+      "asset": {
+        "id": "a_photo",
+        "kind": "image",
+        "name": "photo.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 9400000,
+        "source": "user",
+        "image": {
+          "width": 6000,
+          "height": 4000
+        }
+      }
+    }
+  },
+  {
+    "name": "removeAsset",
+    "value": {
+      "type": "removeAsset",
+      "assetId": "a_photo"
+    }
+  },
+  {
+    "name": "updateAsset",
+    "value": {
+      "type": "updateAsset",
+      "assetId": "a_video",
+      "props": {
+        "name": "Interview take 2"
+      }
+    }
+  },
+  {
+    "name": "addMarker",
+    "value": {
+      "type": "addMarker",
+      "compositionId": "c_main",
+      "marker": {
+        "id": "mk2",
+        "tUs": 1000000,
+        "durationUs": 500000,
+        "label": "Intro",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        }
+      }
+    }
+  },
+  {
+    "name": "updateMarker",
+    "value": {
+      "type": "updateMarker",
+      "compositionId": "c_main",
+      "marker": {
+        "id": "mk2",
+        "tUs": 1000000,
+        "durationUs": 500000,
+        "label": "Intro!",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        }
+      }
+    }
+  },
+  {
+    "name": "removeMarker",
+    "value": {
+      "type": "removeMarker",
+      "compositionId": "c_main",
+      "markerId": "mk2"
+    }
+  },
+  {
+    "name": "batch nested",
+    "value": {
+      "type": "batch",
+      "label": "Split and fade",
+      "ops": [
+        {
+          "type": "splitClip",
+          "clipId": "c_v2",
+          "atUs": 7000000,
+          "newClipId": "c_v2b"
+        },
+        {
+          "type": "batch",
+          "ops": [
+            {
+              "type": "addKeyframe",
+              "clipId": "c_v2b",
+              "path": "opacity",
+              "keyframe": {
+                "tUs": 0,
+                "value": 1,
+                "interpolation": "linear"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "batch empty",
+    "value": {
+      "type": "batch",
+      "ops": []
+    }
+  }
+]

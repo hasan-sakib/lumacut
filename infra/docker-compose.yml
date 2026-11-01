@@ -1,0 +1,126 @@
+# Lumacut development stack. Start with `make up` (waits until every service is healthy).
+# Licenses: PostgreSQL (PostgreSQL License), Valkey (BSD-3-Clause), SeaweedFS (Apache-2.0).
+name: lumacut
+
+x-lumacut-env: &lumacut-env
+  LUMACUT_DATABASE_URL: postgresql+asyncpg://lumacut:lumacut@postgres:5432/lumacut
+  LUMACUT_REDIS_URL: redis://valkey:6379/0
+  LUMACUT_S3_ENDPOINT_URL: http://seaweedfs:8333
+  LUMACUT_S3_ACCESS_KEY: lumacut
+  LUMACUT_S3_SECRET_KEY: lumacut-dev-secret
+  LUMACUT_S3_BUCKET: lumacut
+  LUMACUT_LOG_JSON: "true"
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: lumacut
+      POSTGRES_PASSWORD: lumacut
+      POSTGRES_DB: lumacut
+    ports:
+      - "${LUMACUT_PG_PORT:-15432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumacut -d lumacut"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  valkey:
+    image: valkey/valkey:9.1
+    ports:
+      - "${LUMACUT_VALKEY_PORT:-16379}:6379"
+    volumes:
+      - valkeydata:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.51
+    command: >-
+      server -dir=/data -ip=seaweedfs -ip.bind=0.0.0.0
+      -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - "${LUMACUT_S3_PORT:-18333}:8333"
+    volumes:
+      - seaweeddata:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8333/healthz"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  api:
+    build:
+      context: ..
+      dockerfile: services/api/Dockerfile
+    environment: *lumacut-env
+    ports:
+      - "${LUMACUT_API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+    healthcheck:
+      # Full readiness: 200 only when database, queue, storage and a worker are all ok.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  worker:
+    build:
+      context: ..
+      dockerfile: services/worker/Dockerfile
+    environment: *lumacut-env
+    volumes:
+      - ../samples/generated:/samples
+    depends_on:
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, sys, socket; from redis import Redis; from rq import Worker; r = Redis.from_url(os.environ['LUMACUT_REDIS_URL']); sys.exit(0 if any(w.name == 'lumacut-worker-' + socket.gethostname() for w in Worker.all(connection=r)) else 1)"
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "${LUMACUT_WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+volumes:
+  pgdata:
+  valkeydata:
+  seaweeddata:

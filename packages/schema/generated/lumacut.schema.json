@@ -1,0 +1,3471 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lumacut.dev/schema/lumacut.schema.json",
+  "title": "LumacutDocument",
+  "description": "GENERATED from packages/schema (Zod) by `make gen-schema`. Do not edit by hand.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/Project"
+    },
+    {
+      "$ref": "#/$defs/Op"
+    }
+  ],
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "TimeUs": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "DeltaUs": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "Rational": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "den": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "num",
+        "den"
+      ],
+      "additionalProperties": false
+    },
+    "Vec2": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "Rgb": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "Color": {
+      "type": "object",
+      "properties": {
+        "r": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "g": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "b": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "a": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "r",
+        "g",
+        "b",
+        "a"
+      ],
+      "additionalProperties": false
+    },
+    "BezierVertex": {
+      "type": "object",
+      "properties": {
+        "point": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "inTangent": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "outTangent": {
+          "$ref": "#/$defs/Vec2"
+        }
+      },
+      "required": [
+        "point",
+        "inTangent",
+        "outTangent"
+      ],
+      "additionalProperties": false
+    },
+    "BezierPath": {
+      "type": "object",
+      "properties": {
+        "closed": {
+          "type": "boolean"
+        },
+        "vertices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BezierVertex"
+          }
+        }
+      },
+      "required": [
+        "closed",
+        "vertices"
+      ],
+      "additionalProperties": false
+    },
+    "IsoUtcDateTime": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$"
+    },
+    "PropertyPath": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$"
+    },
+    "Origin": {
+      "type": "string",
+      "enum": [
+        "user",
+        "ai",
+        "template"
+      ]
+    },
+    "KeyframeValue": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/Vec2"
+        },
+        {
+          "$ref": "#/$defs/Color"
+        },
+        {
+          "$ref": "#/$defs/BezierPath"
+        }
+      ]
+    },
+    "Interpolation": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "bezier",
+        "hold"
+      ]
+    },
+    "Ease": {
+      "type": "object",
+      "properties": {
+        "influence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "speed": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "influence",
+        "speed"
+      ],
+      "additionalProperties": false
+    },
+    "SpatialTangents": {
+      "type": "object",
+      "properties": {
+        "in": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "out": {
+          "$ref": "#/$defs/Vec2"
+        }
+      },
+      "required": [
+        "in",
+        "out"
+      ],
+      "additionalProperties": false
+    },
+    "Keyframe": {
+      "type": "object",
+      "properties": {
+        "tUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "value": {
+          "$ref": "#/$defs/KeyframeValue"
+        },
+        "interpolation": {
+          "$ref": "#/$defs/Interpolation"
+        },
+        "easeIn": {
+          "$ref": "#/$defs/Ease"
+        },
+        "easeOut": {
+          "$ref": "#/$defs/Ease"
+        },
+        "spatialTangents": {
+          "$ref": "#/$defs/SpatialTangents"
+        }
+      },
+      "required": [
+        "tUs",
+        "value",
+        "interpolation"
+      ],
+      "additionalProperties": false
+    },
+    "KeyframeTracks": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/PropertyPath"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/Keyframe"
+        }
+      }
+    },
+    "MaskMode": {
+      "type": "string",
+      "enum": [
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    },
+    "PathMask": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "path"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "mode": {
+          "$ref": "#/$defs/MaskMode"
+        },
+        "feather": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expansion": {
+          "type": "number"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "path": {
+          "$ref": "#/$defs/BezierPath"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "mode",
+        "feather",
+        "expansion",
+        "opacity",
+        "inverted",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "RasterMask": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "raster"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "mode": {
+          "$ref": "#/$defs/MaskMode"
+        },
+        "feather": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expansion": {
+          "type": "number"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "assetId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "mode",
+        "feather",
+        "expansion",
+        "opacity",
+        "inverted",
+        "assetId"
+      ],
+      "additionalProperties": false
+    },
+    "Mask": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PathMask"
+        },
+        {
+          "$ref": "#/$defs/RasterMask"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind"
+      }
+    },
+    "RectItem": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "rect"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "size": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "position",
+        "size",
+        "roundness"
+      ],
+      "additionalProperties": false
+    },
+    "EllipseItem": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "ellipse"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "size": {
+          "$ref": "#/$defs/Vec2"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "position",
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "PolygonItem": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "polygon"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 9007199254740991
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rotation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "position",
+        "points",
+        "radius",
+        "roundness",
+        "rotation"
+      ],
+      "additionalProperties": false
+    },
+    "StarItem": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "star"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 9007199254740991
+        },
+        "innerRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "outerRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "innerRoundness": {
+          "type": "number",
+          "minimum": 0
+        },
+        "outerRoundness": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rotation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "position",
+        "points",
+        "innerRadius",
+        "outerRadius",
+        "innerRoundness",
+        "outerRoundness",
+        "rotation"
+      ],
+      "additionalProperties": false
+    },
+    "PathItem": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "path"
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "path": {
+          "$ref": "#/$defs/BezierPath"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "ShapeItem": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RectItem"
+        },
+        {
+          "$ref": "#/$defs/EllipseItem"
+        },
+        {
+          "$ref": "#/$defs/PolygonItem"
+        },
+        {
+          "$ref": "#/$defs/StarItem"
+        },
+        {
+          "$ref": "#/$defs/PathItem"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind"
+      }
+    },
+    "ShapeFill": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "rule": {
+          "type": "string",
+          "enum": [
+            "nonzero",
+            "evenodd"
+          ]
+        }
+      },
+      "required": [
+        "color",
+        "rule"
+      ],
+      "additionalProperties": false
+    },
+    "ShapeStroke": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cap": {
+          "type": "string",
+          "enum": [
+            "butt",
+            "round",
+            "square"
+          ]
+        },
+        "join": {
+          "type": "string",
+          "enum": [
+            "miter",
+            "round",
+            "bevel"
+          ]
+        },
+        "dash": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "required": [
+        "color",
+        "width",
+        "cap",
+        "join",
+        "dash"
+      ],
+      "additionalProperties": false
+    },
+    "TrimPaths": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "end": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "offset": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "offset"
+      ],
+      "additionalProperties": false
+    },
+    "ShapeData": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ShapeItem"
+          }
+        },
+        "fill": {
+          "$ref": "#/$defs/ShapeFill"
+        },
+        "stroke": {
+          "$ref": "#/$defs/ShapeStroke"
+        },
+        "trimPaths": {
+          "$ref": "#/$defs/TrimPaths"
+        },
+        "roundCorners": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "TextRun": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "fontFamily": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fontWeight": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 900
+        },
+        "fontSize": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "italic": {
+          "type": "boolean"
+        },
+        "underline": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text",
+        "fontFamily",
+        "fontWeight",
+        "fontSize",
+        "color",
+        "italic",
+        "underline"
+      ],
+      "additionalProperties": false
+    },
+    "TextStroke": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "color",
+        "width"
+      ],
+      "additionalProperties": false
+    },
+    "TextShadow": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "offset": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "color",
+        "offset",
+        "blur"
+      ],
+      "additionalProperties": false
+    },
+    "TextBackground": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "padding": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cornerRadius": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "color",
+        "padding",
+        "cornerRadius"
+      ],
+      "additionalProperties": false
+    },
+    "TextBox": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "RangeShape": {
+      "type": "string",
+      "enum": [
+        "square",
+        "rampUp",
+        "rampDown",
+        "triangle",
+        "round",
+        "smooth"
+      ]
+    },
+    "TextAnimatorRange": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "end": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "offset": {
+          "type": "number"
+        },
+        "shape": {
+          "$ref": "#/$defs/RangeShape"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "offset",
+        "shape"
+      ],
+      "additionalProperties": false
+    },
+    "TextAnimatorProps": {
+      "type": "object",
+      "properties": {
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "scale": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tracking": {
+          "type": "number"
+        },
+        "fillColor": {
+          "$ref": "#/$defs/Color"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TextAnimator": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "char",
+            "word",
+            "line"
+          ]
+        },
+        "range": {
+          "$ref": "#/$defs/TextAnimatorRange"
+        },
+        "props": {
+          "$ref": "#/$defs/TextAnimatorProps"
+        }
+      },
+      "required": [
+        "id",
+        "unit",
+        "range",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    "TextAlign": {
+      "type": "string",
+      "enum": [
+        "left",
+        "center",
+        "right",
+        "justify"
+      ]
+    },
+    "TextData": {
+      "type": "object",
+      "properties": {
+        "runs": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextRun"
+          }
+        },
+        "align": {
+          "$ref": "#/$defs/TextAlign"
+        },
+        "lineHeight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tracking": {
+          "type": "number"
+        },
+        "stroke": {
+          "$ref": "#/$defs/TextStroke"
+        },
+        "shadow": {
+          "$ref": "#/$defs/TextShadow"
+        },
+        "background": {
+          "$ref": "#/$defs/TextBackground"
+        },
+        "box": {
+          "$ref": "#/$defs/TextBox"
+        },
+        "animators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextAnimator"
+          }
+        }
+      },
+      "required": [
+        "runs",
+        "align",
+        "lineHeight",
+        "tracking",
+        "animators"
+      ],
+      "additionalProperties": false
+    },
+    "CurvePoints": {
+      "minItems": 2,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Vec2"
+      }
+    },
+    "Curves": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "$ref": "#/$defs/CurvePoints"
+        },
+        "r": {
+          "$ref": "#/$defs/CurvePoints"
+        },
+        "g": {
+          "$ref": "#/$defs/CurvePoints"
+        },
+        "b": {
+          "$ref": "#/$defs/CurvePoints"
+        },
+        "hueVsSat": {
+          "$ref": "#/$defs/CurvePoints"
+        },
+        "hueVsHue": {
+          "$ref": "#/$defs/CurvePoints"
+        },
+        "lumVsSat": {
+          "$ref": "#/$defs/CurvePoints"
+        }
+      },
+      "required": [
+        "master",
+        "r",
+        "g",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "HslBand": {
+      "type": "object",
+      "properties": {
+        "hue": {
+          "type": "number"
+        },
+        "saturation": {
+          "type": "number"
+        },
+        "luminance": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "hue",
+        "saturation",
+        "luminance"
+      ],
+      "additionalProperties": false
+    },
+    "HslAdjustments": {
+      "type": "object",
+      "properties": {
+        "red": {
+          "$ref": "#/$defs/HslBand"
+        },
+        "orange": {
+          "$ref": "#/$defs/HslBand"
+        },
+        "yellow": {
+          "$ref": "#/$defs/HslBand"
+        },
+        "green": {
+          "$ref": "#/$defs/HslBand"
+        },
+        "aqua": {
+          "$ref": "#/$defs/HslBand"
+        },
+        "blue": {
+          "$ref": "#/$defs/HslBand"
+        },
+        "purple": {
+          "$ref": "#/$defs/HslBand"
+        },
+        "magenta": {
+          "$ref": "#/$defs/HslBand"
+        }
+      },
+      "required": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "aqua",
+        "blue",
+        "purple",
+        "magenta"
+      ],
+      "additionalProperties": false
+    },
+    "LutRef": {
+      "type": "object",
+      "properties": {
+        "lutId": {
+          "$ref": "#/$defs/Id"
+        },
+        "intensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "lutId",
+        "intensity"
+      ],
+      "additionalProperties": false
+    },
+    "ColorSettings": {
+      "type": "object",
+      "properties": {
+        "exposure": {
+          "type": "number"
+        },
+        "contrast": {
+          "type": "number"
+        },
+        "highlights": {
+          "type": "number"
+        },
+        "shadows": {
+          "type": "number"
+        },
+        "whites": {
+          "type": "number"
+        },
+        "blacks": {
+          "type": "number"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "tint": {
+          "type": "number"
+        },
+        "saturation": {
+          "type": "number"
+        },
+        "vibrance": {
+          "type": "number"
+        },
+        "lift": {
+          "$ref": "#/$defs/Rgb"
+        },
+        "gamma": {
+          "$ref": "#/$defs/Rgb"
+        },
+        "gain": {
+          "$ref": "#/$defs/Rgb"
+        },
+        "offset": {
+          "$ref": "#/$defs/Rgb"
+        },
+        "curves": {
+          "$ref": "#/$defs/Curves"
+        },
+        "hsl": {
+          "$ref": "#/$defs/HslAdjustments"
+        },
+        "lut": {
+          "$ref": "#/$defs/LutRef"
+        }
+      },
+      "required": [
+        "exposure",
+        "contrast",
+        "highlights",
+        "shadows",
+        "whites",
+        "blacks",
+        "temperature",
+        "tint",
+        "saturation",
+        "vibrance",
+        "lift",
+        "gamma",
+        "gain",
+        "offset"
+      ],
+      "additionalProperties": false
+    },
+    "ParamValue": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Vec2"
+        },
+        {
+          "$ref": "#/$defs/Color"
+        }
+      ]
+    },
+    "ParamValues": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/ParamValue"
+      }
+    },
+    "EffectInstance": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "effectId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "params": {
+          "$ref": "#/$defs/ParamValues"
+        }
+      },
+      "required": [
+        "id",
+        "effectId",
+        "enabled",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "AudioEffectInstance": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "effectId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "params": {
+          "$ref": "#/$defs/ParamValues"
+        }
+      },
+      "required": [
+        "id",
+        "effectId",
+        "enabled",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "TransitionAlignment": {
+      "type": "string",
+      "enum": [
+        "center",
+        "start",
+        "end"
+      ]
+    },
+    "TransitionInstance": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "transitionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durationUs": {
+          "minimum": 1,
+          "$ref": "#/$defs/TimeUs"
+        },
+        "alignment": {
+          "$ref": "#/$defs/TransitionAlignment"
+        },
+        "params": {
+          "$ref": "#/$defs/ParamValues"
+        }
+      },
+      "required": [
+        "id",
+        "transitionId",
+        "durationUs",
+        "alignment",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "ClipType": {
+      "type": "string",
+      "enum": [
+        "media",
+        "text",
+        "shape",
+        "solid",
+        "adjustment",
+        "composition",
+        "caption",
+        "paint"
+      ]
+    },
+    "Transform": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "scaleX": {
+          "type": "number"
+        },
+        "scaleY": {
+          "type": "number"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "anchorX": {
+          "type": "number"
+        },
+        "anchorY": {
+          "type": "number"
+        },
+        "skew": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "scaleX",
+        "scaleY",
+        "rotation",
+        "anchorX",
+        "anchorY",
+        "skew"
+      ],
+      "additionalProperties": false
+    },
+    "Crop": {
+      "type": "object",
+      "properties": {
+        "left": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "top": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "right": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bottom": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ],
+      "additionalProperties": false
+    },
+    "BlendMode": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "darken",
+        "multiply",
+        "colorBurn",
+        "linearBurn",
+        "lighten",
+        "screen",
+        "colorDodge",
+        "add",
+        "overlay",
+        "softLight",
+        "hardLight",
+        "vividLight",
+        "linearLight",
+        "pinLight",
+        "hardMix",
+        "difference",
+        "exclusion",
+        "subtract",
+        "divide",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity"
+      ]
+    },
+    "TrackMatte": {
+      "type": "object",
+      "properties": {
+        "sourceClipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "alpha",
+            "alphaInverted",
+            "luma",
+            "lumaInverted"
+          ]
+        }
+      },
+      "required": [
+        "sourceClipId",
+        "mode"
+      ],
+      "additionalProperties": false
+    },
+    "ClipAudio": {
+      "type": "object",
+      "properties": {
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "pan": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "fadeInUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "fadeOutUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AudioEffectInstance"
+          }
+        }
+      },
+      "required": [
+        "volume",
+        "pan",
+        "fadeInUs",
+        "fadeOutUs",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "MotionBlur": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "shutterAngle": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 720
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      },
+      "required": [
+        "enabled",
+        "shutterAngle",
+        "samples"
+      ],
+      "additionalProperties": false
+    },
+    "CaptionWord": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "startUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "endUs": {
+          "$ref": "#/$defs/TimeUs"
+        }
+      },
+      "required": [
+        "text",
+        "startUs",
+        "endUs"
+      ],
+      "additionalProperties": false
+    },
+    "CaptionData": {
+      "type": "object",
+      "properties": {
+        "words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CaptionWord"
+          }
+        },
+        "styleId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "words"
+      ],
+      "additionalProperties": false
+    },
+    "PaintStroke": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "tool": {
+          "type": "string",
+          "enum": [
+            "brush",
+            "eraser"
+          ]
+        },
+        "color": {
+          "$ref": "#/$defs/Color"
+        },
+        "size": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "hardness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "tool",
+        "color",
+        "size",
+        "hardness",
+        "opacity",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "PaintData": {
+      "type": "object",
+      "properties": {
+        "strokes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PaintStroke"
+          }
+        }
+      },
+      "required": [
+        "strokes"
+      ],
+      "additionalProperties": false
+    },
+    "PlaceholderInfo": {
+      "type": "object",
+      "properties": {
+        "slotId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "media",
+            "text",
+            "color"
+          ]
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "slotId",
+        "kind",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "Clip": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "$ref": "#/$defs/ClipType"
+        },
+        "assetId": {
+          "$ref": "#/$defs/Id"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "startUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "inUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "outUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "speed": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reversed": {
+          "type": "boolean"
+        },
+        "freezeAtUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "transform": {
+          "$ref": "#/$defs/Transform"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blendMode": {
+          "$ref": "#/$defs/BlendMode"
+        },
+        "crop": {
+          "$ref": "#/$defs/Crop"
+        },
+        "masks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Mask"
+          }
+        },
+        "trackMatte": {
+          "$ref": "#/$defs/TrackMatte"
+        },
+        "color": {
+          "$ref": "#/$defs/ColorSettings"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EffectInstance"
+          }
+        },
+        "audio": {
+          "$ref": "#/$defs/ClipAudio"
+        },
+        "text": {
+          "$ref": "#/$defs/TextData"
+        },
+        "shape": {
+          "$ref": "#/$defs/ShapeData"
+        },
+        "paint": {
+          "$ref": "#/$defs/PaintData"
+        },
+        "caption": {
+          "$ref": "#/$defs/CaptionData"
+        },
+        "motionBlur": {
+          "$ref": "#/$defs/MotionBlur"
+        },
+        "keyframes": {
+          "$ref": "#/$defs/KeyframeTracks"
+        },
+        "transitionIn": {
+          "$ref": "#/$defs/TransitionInstance"
+        },
+        "linkId": {
+          "$ref": "#/$defs/Id"
+        },
+        "source": {
+          "$ref": "#/$defs/Origin"
+        },
+        "aiRunId": {
+          "$ref": "#/$defs/Id"
+        },
+        "placeholder": {
+          "$ref": "#/$defs/PlaceholderInfo"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "startUs",
+        "inUs",
+        "outUs",
+        "speed",
+        "reversed",
+        "transform",
+        "opacity",
+        "blendMode",
+        "crop",
+        "masks",
+        "color",
+        "effects",
+        "motionBlur",
+        "keyframes",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "Marker": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "tUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "durationUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "label": {
+          "type": "string"
+        },
+        "color": {
+          "$ref": "#/$defs/Color"
+        }
+      },
+      "required": [
+        "id",
+        "tUs",
+        "durationUs",
+        "label",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "TrackKind": {
+      "type": "string",
+      "enum": [
+        "visual",
+        "audio"
+      ]
+    },
+    "Track": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TrackKind"
+        },
+        "muted": {
+          "type": "boolean"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "solo": {
+          "type": "boolean"
+        },
+        "clips": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Clip"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "muted",
+        "locked",
+        "hidden",
+        "solo",
+        "clips"
+      ],
+      "additionalProperties": false
+    },
+    "Composition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "fps": {
+          "$ref": "#/$defs/Rational"
+        },
+        "durationUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "background": {
+          "$ref": "#/$defs/Color"
+        },
+        "tracks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Track"
+          }
+        },
+        "markers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Marker"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "width",
+        "height",
+        "fps",
+        "durationUs",
+        "background",
+        "tracks",
+        "markers"
+      ],
+      "additionalProperties": false
+    },
+    "AssetKind": {
+      "type": "string",
+      "enum": [
+        "video",
+        "audio",
+        "image",
+        "lut",
+        "font"
+      ]
+    },
+    "VideoStreamInfo": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "fps": {
+          "$ref": "#/$defs/Rational"
+        },
+        "durationUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "codec": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "fps",
+        "durationUs",
+        "codec"
+      ],
+      "additionalProperties": false
+    },
+    "AudioStreamInfo": {
+      "type": "object",
+      "properties": {
+        "sampleRate": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "durationUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "codec": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "sampleRate",
+        "channels",
+        "durationUs",
+        "codec"
+      ],
+      "additionalProperties": false
+    },
+    "ImageInfo": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "Asset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/AssetKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "source": {
+          "$ref": "#/$defs/Origin"
+        },
+        "aiRunId": {
+          "$ref": "#/$defs/Id"
+        },
+        "video": {
+          "$ref": "#/$defs/VideoStreamInfo"
+        },
+        "audio": {
+          "$ref": "#/$defs/AudioStreamInfo"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageInfo"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "mimeType",
+        "sizeBytes",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "AiRunRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "promptVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "createdAt": {
+          "$ref": "#/$defs/IsoUtcDateTime"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "proposed",
+            "applied",
+            "discarded"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "opCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "id",
+        "tool",
+        "createdAt",
+        "status",
+        "summary",
+        "opCount"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectMeta": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "$ref": "#/$defs/IsoUtcDateTime"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/IsoUtcDateTime"
+        },
+        "aiRuns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AiRunRecord"
+          }
+        },
+        "templateId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "createdAt",
+        "updatedAt",
+        "aiRuns"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectKind": {
+      "type": "string",
+      "enum": [
+        "video",
+        "motion",
+        "photo"
+      ]
+    },
+    "Project": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ProjectKind"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Asset"
+          }
+        },
+        "compositions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Composition"
+          }
+        },
+        "mainCompositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "meta": {
+          "$ref": "#/$defs/ProjectMeta"
+        }
+      },
+      "required": [
+        "id",
+        "schemaVersion",
+        "name",
+        "kind",
+        "assets",
+        "compositions",
+        "mainCompositionId",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "ClipEdge": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end"
+      ]
+    },
+    "CompositionPatch": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "fps": {
+          "$ref": "#/$defs/Rational"
+        },
+        "durationUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "background": {
+          "$ref": "#/$defs/Color"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TrackPatch": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "muted": {
+          "type": "boolean"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "solo": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ClipPatch": {
+      "type": "object",
+      "properties": {
+        "assetId": {
+          "$ref": "#/$defs/Id"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "startUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "inUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "outUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "speed": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reversed": {
+          "type": "boolean"
+        },
+        "freezeAtUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "transform": {
+          "$ref": "#/$defs/Transform"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blendMode": {
+          "$ref": "#/$defs/BlendMode"
+        },
+        "crop": {
+          "$ref": "#/$defs/Crop"
+        },
+        "masks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Mask"
+          }
+        },
+        "trackMatte": {
+          "$ref": "#/$defs/TrackMatte"
+        },
+        "color": {
+          "$ref": "#/$defs/ColorSettings"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EffectInstance"
+          }
+        },
+        "audio": {
+          "$ref": "#/$defs/ClipAudio"
+        },
+        "text": {
+          "$ref": "#/$defs/TextData"
+        },
+        "shape": {
+          "$ref": "#/$defs/ShapeData"
+        },
+        "paint": {
+          "$ref": "#/$defs/PaintData"
+        },
+        "caption": {
+          "$ref": "#/$defs/CaptionData"
+        },
+        "motionBlur": {
+          "$ref": "#/$defs/MotionBlur"
+        },
+        "keyframes": {
+          "$ref": "#/$defs/KeyframeTracks"
+        },
+        "transitionIn": {
+          "$ref": "#/$defs/TransitionInstance"
+        },
+        "linkId": {
+          "$ref": "#/$defs/Id"
+        },
+        "source": {
+          "$ref": "#/$defs/Origin"
+        },
+        "aiRunId": {
+          "$ref": "#/$defs/Id"
+        },
+        "placeholder": {
+          "$ref": "#/$defs/PlaceholderInfo"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AssetPatch": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "source": {
+          "$ref": "#/$defs/Origin"
+        },
+        "aiRunId": {
+          "$ref": "#/$defs/Id"
+        },
+        "video": {
+          "$ref": "#/$defs/VideoStreamInfo"
+        },
+        "audio": {
+          "$ref": "#/$defs/AudioStreamInfo"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageInfo"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectPatch": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "params": {
+          "$ref": "#/$defs/ParamValues"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RippleDeleteClips": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "clips"
+        },
+        "clipIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "clipIds"
+      ],
+      "additionalProperties": false
+    },
+    "RippleDeleteRange": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "range"
+        },
+        "startUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "endUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "trackIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "startUs",
+        "endUs",
+        "trackIds"
+      ],
+      "additionalProperties": false
+    },
+    "RippleDeleteTarget": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RippleDeleteClips"
+        },
+        {
+          "$ref": "#/$defs/RippleDeleteRange"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind"
+      }
+    },
+    "AddCompositionOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addComposition"
+        },
+        "composition": {
+          "$ref": "#/$defs/Composition"
+        }
+      },
+      "required": [
+        "type",
+        "composition"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveCompositionOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeComposition"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId"
+      ],
+      "additionalProperties": false
+    },
+    "UpdateCompositionOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "updateComposition"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "props": {
+          "$ref": "#/$defs/CompositionPatch"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    "AddTrackOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addTrack"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "track": {
+          "$ref": "#/$defs/Track"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "track",
+        "index"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveTrackOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeTrack"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "trackId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "trackId"
+      ],
+      "additionalProperties": false
+    },
+    "ReorderTrackOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "reorderTrack"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "trackId": {
+          "$ref": "#/$defs/Id"
+        },
+        "toIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "trackId",
+        "toIndex"
+      ],
+      "additionalProperties": false
+    },
+    "SetTrackPropsOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "setTrackProps"
+        },
+        "trackId": {
+          "$ref": "#/$defs/Id"
+        },
+        "props": {
+          "$ref": "#/$defs/TrackPatch"
+        }
+      },
+      "required": [
+        "type",
+        "trackId",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    "AddClipOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addClip"
+        },
+        "trackId": {
+          "$ref": "#/$defs/Id"
+        },
+        "clip": {
+          "$ref": "#/$defs/Clip"
+        }
+      },
+      "required": [
+        "type",
+        "trackId",
+        "clip"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveClipOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeClip"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "clipId"
+      ],
+      "additionalProperties": false
+    },
+    "MoveClipOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "moveClip"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "trackId": {
+          "$ref": "#/$defs/Id"
+        },
+        "startUs": {
+          "$ref": "#/$defs/TimeUs"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "trackId",
+        "startUs"
+      ],
+      "additionalProperties": false
+    },
+    "TrimClipOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "trimClip"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "edge": {
+          "$ref": "#/$defs/ClipEdge"
+        },
+        "toUs": {
+          "$ref": "#/$defs/TimeUs"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "edge",
+        "toUs"
+      ],
+      "additionalProperties": false
+    },
+    "RippleTrimOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "rippleTrim"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "edge": {
+          "$ref": "#/$defs/ClipEdge"
+        },
+        "toUs": {
+          "$ref": "#/$defs/TimeUs"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "edge",
+        "toUs"
+      ],
+      "additionalProperties": false
+    },
+    "RollEditOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "rollEdit"
+        },
+        "leftClipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "rightClipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "toUs": {
+          "$ref": "#/$defs/TimeUs"
+        }
+      },
+      "required": [
+        "type",
+        "leftClipId",
+        "rightClipId",
+        "toUs"
+      ],
+      "additionalProperties": false
+    },
+    "SlipClipOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "slipClip"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "deltaUs": {
+          "$ref": "#/$defs/DeltaUs"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "deltaUs"
+      ],
+      "additionalProperties": false
+    },
+    "SlideClipOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "slideClip"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "deltaUs": {
+          "$ref": "#/$defs/DeltaUs"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "deltaUs"
+      ],
+      "additionalProperties": false
+    },
+    "SplitClipOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "splitClip"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "atUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "newClipId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "atUs",
+        "newClipId"
+      ],
+      "additionalProperties": false
+    },
+    "RippleDeleteOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "rippleDelete"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "target": {
+          "$ref": "#/$defs/RippleDeleteTarget"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    "SetPropsOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "setProps"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "props": {
+          "$ref": "#/$defs/ClipPatch"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    "LinkClipsOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "linkClips"
+        },
+        "clipIds": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        },
+        "linkId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "clipIds",
+        "linkId"
+      ],
+      "additionalProperties": false
+    },
+    "UnlinkClipsOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "unlinkClips"
+        },
+        "clipIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "clipIds"
+      ],
+      "additionalProperties": false
+    },
+    "SetPlaceholderOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "setPlaceholder"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "placeholder": {
+          "$ref": "#/$defs/PlaceholderInfo"
+        }
+      },
+      "required": [
+        "type",
+        "clipId"
+      ],
+      "additionalProperties": false
+    },
+    "PrecomposeOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "precompose"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "clipIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        },
+        "newCompositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "newCompositionName": {
+          "type": "string"
+        },
+        "newClipId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "clipIds",
+        "newCompositionId",
+        "newCompositionName",
+        "newClipId"
+      ],
+      "additionalProperties": false
+    },
+    "AddKeyframeOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addKeyframe"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "path": {
+          "$ref": "#/$defs/PropertyPath"
+        },
+        "keyframe": {
+          "$ref": "#/$defs/Keyframe"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "path",
+        "keyframe"
+      ],
+      "additionalProperties": false
+    },
+    "UpdateKeyframeOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "updateKeyframe"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "path": {
+          "$ref": "#/$defs/PropertyPath"
+        },
+        "tUs": {
+          "$ref": "#/$defs/TimeUs"
+        },
+        "keyframe": {
+          "$ref": "#/$defs/Keyframe"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "path",
+        "tUs",
+        "keyframe"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveKeyframeOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeKeyframe"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "path": {
+          "$ref": "#/$defs/PropertyPath"
+        },
+        "tUs": {
+          "$ref": "#/$defs/TimeUs"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "path",
+        "tUs"
+      ],
+      "additionalProperties": false
+    },
+    "AddMaskOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addMask"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "mask": {
+          "$ref": "#/$defs/Mask"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "mask"
+      ],
+      "additionalProperties": false
+    },
+    "UpdateMaskOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "updateMask"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "maskId": {
+          "$ref": "#/$defs/Id"
+        },
+        "mask": {
+          "$ref": "#/$defs/Mask"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "maskId",
+        "mask"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveMaskOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeMask"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "maskId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "maskId"
+      ],
+      "additionalProperties": false
+    },
+    "AddEffectOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addEffect"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "effect": {
+          "$ref": "#/$defs/EffectInstance"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "effect"
+      ],
+      "additionalProperties": false
+    },
+    "UpdateEffectOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "updateEffect"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "effectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "props": {
+          "$ref": "#/$defs/EffectPatch"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "effectId",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveEffectOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeEffect"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "effectId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "effectId"
+      ],
+      "additionalProperties": false
+    },
+    "ReorderEffectOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "reorderEffect"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "effectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "toIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "effectId",
+        "toIndex"
+      ],
+      "additionalProperties": false
+    },
+    "SetTransitionOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "setTransition"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "transition": {
+          "$ref": "#/$defs/TransitionInstance"
+        }
+      },
+      "required": [
+        "type",
+        "clipId"
+      ],
+      "additionalProperties": false
+    },
+    "AddPaintStrokesOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addPaintStrokes"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "strokes": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PaintStroke"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "strokes"
+      ],
+      "additionalProperties": false
+    },
+    "RemovePaintStrokesOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removePaintStrokes"
+        },
+        "clipId": {
+          "$ref": "#/$defs/Id"
+        },
+        "strokeIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "clipId",
+        "strokeIds"
+      ],
+      "additionalProperties": false
+    },
+    "AddAssetOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addAsset"
+        },
+        "asset": {
+          "$ref": "#/$defs/Asset"
+        }
+      },
+      "required": [
+        "type",
+        "asset"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveAssetOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeAsset"
+        },
+        "assetId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "assetId"
+      ],
+      "additionalProperties": false
+    },
+    "UpdateAssetOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "updateAsset"
+        },
+        "assetId": {
+          "$ref": "#/$defs/Id"
+        },
+        "props": {
+          "$ref": "#/$defs/AssetPatch"
+        }
+      },
+      "required": [
+        "type",
+        "assetId",
+        "props"
+      ],
+      "additionalProperties": false
+    },
+    "AddMarkerOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "addMarker"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "marker": {
+          "$ref": "#/$defs/Marker"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "marker"
+      ],
+      "additionalProperties": false
+    },
+    "UpdateMarkerOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "updateMarker"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "marker": {
+          "$ref": "#/$defs/Marker"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "marker"
+      ],
+      "additionalProperties": false
+    },
+    "RemoveMarkerOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "removeMarker"
+        },
+        "compositionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "markerId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "compositionId",
+        "markerId"
+      ],
+      "additionalProperties": false
+    },
+    "BatchOp": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "batch"
+        },
+        "label": {
+          "type": "string"
+        },
+        "ops": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Op"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "ops"
+      ],
+      "additionalProperties": false
+    },
+    "Op": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AddCompositionOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveCompositionOp"
+        },
+        {
+          "$ref": "#/$defs/UpdateCompositionOp"
+        },
+        {
+          "$ref": "#/$defs/AddTrackOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveTrackOp"
+        },
+        {
+          "$ref": "#/$defs/ReorderTrackOp"
+        },
+        {
+          "$ref": "#/$defs/SetTrackPropsOp"
+        },
+        {
+          "$ref": "#/$defs/AddClipOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveClipOp"
+        },
+        {
+          "$ref": "#/$defs/MoveClipOp"
+        },
+        {
+          "$ref": "#/$defs/TrimClipOp"
+        },
+        {
+          "$ref": "#/$defs/RippleTrimOp"
+        },
+        {
+          "$ref": "#/$defs/RollEditOp"
+        },
+        {
+          "$ref": "#/$defs/SlipClipOp"
+        },
+        {
+          "$ref": "#/$defs/SlideClipOp"
+        },
+        {
+          "$ref": "#/$defs/SplitClipOp"
+        },
+        {
+          "$ref": "#/$defs/RippleDeleteOp"
+        },
+        {
+          "$ref": "#/$defs/SetPropsOp"
+        },
+        {
+          "$ref": "#/$defs/LinkClipsOp"
+        },
+        {
+          "$ref": "#/$defs/UnlinkClipsOp"
+        },
+        {
+          "$ref": "#/$defs/SetPlaceholderOp"
+        },
+        {
+          "$ref": "#/$defs/PrecomposeOp"
+        },
+        {
+          "$ref": "#/$defs/AddKeyframeOp"
+        },
+        {
+          "$ref": "#/$defs/UpdateKeyframeOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveKeyframeOp"
+        },
+        {
+          "$ref": "#/$defs/AddMaskOp"
+        },
+        {
+          "$ref": "#/$defs/UpdateMaskOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveMaskOp"
+        },
+        {
+          "$ref": "#/$defs/AddEffectOp"
+        },
+        {
+          "$ref": "#/$defs/UpdateEffectOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveEffectOp"
+        },
+        {
+          "$ref": "#/$defs/ReorderEffectOp"
+        },
+        {
+          "$ref": "#/$defs/SetTransitionOp"
+        },
+        {
+          "$ref": "#/$defs/AddPaintStrokesOp"
+        },
+        {
+          "$ref": "#/$defs/RemovePaintStrokesOp"
+        },
+        {
+          "$ref": "#/$defs/AddAssetOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveAssetOp"
+        },
+        {
+          "$ref": "#/$defs/UpdateAssetOp"
+        },
+        {
+          "$ref": "#/$defs/AddMarkerOp"
+        },
+        {
+          "$ref": "#/$defs/UpdateMarkerOp"
+        },
+        {
+          "$ref": "#/$defs/RemoveMarkerOp"
+        },
+        {
+          "$ref": "#/$defs/BatchOp"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "type"
+      }
+    }
+  }
+}

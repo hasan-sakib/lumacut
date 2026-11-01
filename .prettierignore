@@ -1,0 +1,8 @@
+**/*.md
+pnpm-lock.yaml
+**/generated/**
+**/coverage/**
+**/playwright-report/**
+**/test-results/**
+.venv/
+samples/generated/

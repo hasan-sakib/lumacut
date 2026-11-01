@@ -1,0 +1,4085 @@
+[
+  {
+    "name": "float startUs",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 1.5,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "unknown clip field",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  },
+                  "volume": 1
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "schemaVersion 2",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 2,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "id with a dot",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c.v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "color missing alpha",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "color channel above 1",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 2,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "fps den 0",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 0
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "negative keyframe time",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": -1,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "keyframe value boolean",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": true,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "keyframe interpolation unknown",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "cubic",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "keyframe path with spaces",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ],
+                    "transform x": []
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "datetime without T/Z",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01 12:00:00",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "mask kind unknown",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_t",
+                  "type": "text",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [
+                    {
+                      "kind": "vector",
+                      "id": "m1",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "path": {
+                        "closed": true,
+                        "vertices": [
+                          {
+                            "point": [0, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [0, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "raster",
+                      "id": "m2",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "assetId": "a_matte"
+                    }
+                  ],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "text": {
+                    "runs": [
+                      {
+                        "text": "Hi",
+                        "fontFamily": "Inter",
+                        "fontWeight": 700,
+                        "fontSize": 96,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "italic": false,
+                        "underline": false
+                      }
+                    ],
+                    "align": "center",
+                    "lineHeight": 1.2,
+                    "tracking": 0,
+                    "animators": []
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "raster mask missing assetId",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_t",
+                  "type": "text",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [
+                    {
+                      "kind": "path",
+                      "id": "m1",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "path": {
+                        "closed": true,
+                        "vertices": [
+                          {
+                            "point": [0, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [0, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "raster",
+                      "id": "m2",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false
+                    }
+                  ],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "text": {
+                    "runs": [
+                      {
+                        "text": "Hi",
+                        "fontFamily": "Inter",
+                        "fontWeight": 700,
+                        "fontSize": 96,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "italic": false,
+                        "underline": false
+                      }
+                    ],
+                    "align": "center",
+                    "lineHeight": 1.2,
+                    "tracking": 0,
+                    "animators": []
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "curve point with 3 numbers",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1],
+                        [1, 1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "numeric string width",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": "1920",
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "track missing clips",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "opacity above 1",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1.5,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "speed zero",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 0,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "text with no runs",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_t",
+                  "type": "text",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [
+                    {
+                      "kind": "path",
+                      "id": "m1",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "path": {
+                        "closed": true,
+                        "vertices": [
+                          {
+                            "point": [0, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [0, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "raster",
+                      "id": "m2",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "assetId": "a_matte"
+                    }
+                  ],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "text": {
+                    "runs": [],
+                    "align": "center",
+                    "lineHeight": 1.2,
+                    "tracking": 0,
+                    "animators": []
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "shape item extra field",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_s",
+                  "type": "shape",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "shape": {
+                    "items": [
+                      {
+                        "kind": "rect",
+                        "id": "s_rect",
+                        "position": [0, 0],
+                        "size": [10, 10],
+                        "roundness": 0,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        }
+                      },
+                      {
+                        "kind": "polygon",
+                        "id": "s_poly",
+                        "position": [0, 0],
+                        "points": 6,
+                        "radius": 40,
+                        "roundness": 0,
+                        "rotation": 0
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "polygon with 2 points",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_s",
+                  "type": "shape",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "shape": {
+                    "items": [
+                      {
+                        "kind": "rect",
+                        "id": "s_rect",
+                        "position": [0, 0],
+                        "size": [10, 10],
+                        "roundness": 0
+                      },
+                      {
+                        "kind": "polygon",
+                        "id": "s_poly",
+                        "position": [0, 0],
+                        "points": 2,
+                        "radius": 40,
+                        "roundness": 0,
+                        "rotation": 0
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "blend mode unknown",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "dissolve",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "null optional",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  },
+                  "trackMatte": null
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "effect param null",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": null
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "transition zero duration",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 0,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "project kind unknown",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "audio",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  }
+]

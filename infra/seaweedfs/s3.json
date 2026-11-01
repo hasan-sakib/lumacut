@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "lumacut",
+      "credentials": [{ "accessKey": "lumacut", "secretKey": "lumacut-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

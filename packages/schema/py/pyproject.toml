@@ -1,0 +1,13 @@
+[project]
+name = "lumacut-schema"
+version = "0.0.0"
+description = "Pydantic models generated from packages/schema (Zod). Never edit models.py by hand."
+requires-python = ">=3.12,<3.13"
+dependencies = ["pydantic>=2.14,<3"]
+
+[build-system]
+requires = ["uv_build>=0.10,<0.11"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""

@@ -1,0 +1,64 @@
+[project]
+name = "lumacut-dev"
+version = "0.0.0"
+description = "Lumacut Python workspace root (dev tooling only)."
+requires-python = ">=3.12,<3.13"
+dependencies = ["lumacut-schema", "lumacut-api", "lumacut-worker"]
+
+[dependency-groups]
+dev = [
+    "botocore-stubs>=1.43.123",
+    "datamodel-code-generator>=0.87.0",
+    "httpx2>=2.16.0",
+    "mypy>=2.4.1",
+    "pydantic>=2.14.2",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1",
+    "ruff>=0.17.3",
+    "types-aiobotocore>=3.10.0",
+    "types-aiobotocore-s3>=3.10.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+lumacut-schema = { workspace = true }
+lumacut-api = { workspace = true }
+lumacut-worker = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/schema/py", "services/api", "services/worker"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["node_modules", "samples/generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ASYNC", "PTH", "N"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lumacut_schema", "lumacut_api", "lumacut_worker"]
+
+[tool.ruff.lint.per-file-ignores]
+# Generated: field names must match the camelCase JSON keys; descriptions come from Zod.
+"packages/schema/py/lumacut_schema/models.py" = ["N815", "E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["packages/schema/py", "services/api", "services/worker"]
+exclude = ["node_modules/", "^\\.venv/"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--strict-markers --import-mode=importlib"
+filterwarnings = ["error"]
+testpaths = ["packages/schema/py/tests", "services/api/tests", "services/worker/tests"]
+markers = [
+  "integration: needs the running Docker stack (make test-stack)",
+  "samples: needs ffmpeg and generated samples (make test-samples)",
+]

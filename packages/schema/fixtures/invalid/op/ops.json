@@ -1,0 +1,174 @@
+[
+  {
+    "name": "unknown op type",
+    "value": {
+      "type": "explodeClip",
+      "clipId": "c_v1"
+    }
+  },
+  {
+    "name": "missing type",
+    "value": {
+      "clipId": "c_v1"
+    }
+  },
+  {
+    "name": "clipId is a number",
+    "value": {
+      "type": "removeClip",
+      "clipId": 5
+    }
+  },
+  {
+    "name": "moveClip missing startUs",
+    "value": {
+      "type": "moveClip",
+      "clipId": "c_v1",
+      "trackId": "v1"
+    }
+  },
+  {
+    "name": "slipClip float delta",
+    "value": {
+      "type": "slipClip",
+      "clipId": "c_v1",
+      "deltaUs": 0.5
+    }
+  },
+  {
+    "name": "extra field on op",
+    "value": {
+      "type": "removeClip",
+      "clipId": "c_v1",
+      "ripple": true
+    }
+  },
+  {
+    "name": "linkClips with one clip",
+    "value": {
+      "type": "linkClips",
+      "clipIds": ["c_v1"],
+      "linkId": "l9"
+    }
+  },
+  {
+    "name": "rippleDelete unknown target kind",
+    "value": {
+      "type": "rippleDelete",
+      "compositionId": "c_main",
+      "target": {
+        "kind": "gap",
+        "startUs": 0,
+        "endUs": 1
+      }
+    }
+  },
+  {
+    "name": "addKeyframe bad path",
+    "value": {
+      "type": "addKeyframe",
+      "clipId": "c_v1",
+      "path": "effects..x",
+      "keyframe": {
+        "tUs": 0,
+        "value": [1, 1],
+        "interpolation": "linear"
+      }
+    }
+  },
+  {
+    "name": "setProps cannot change id",
+    "value": {
+      "type": "setProps",
+      "clipId": "c_v1",
+      "props": {
+        "id": "other"
+      }
+    }
+  },
+  {
+    "name": "setProps cannot change type",
+    "value": {
+      "type": "setProps",
+      "clipId": "c_v1",
+      "props": {
+        "type": "text"
+      }
+    }
+  },
+  {
+    "name": "updateComposition unknown prop",
+    "value": {
+      "type": "updateComposition",
+      "compositionId": "c_main",
+      "props": {
+        "tracks": []
+      }
+    }
+  },
+  {
+    "name": "trimClip edge unknown",
+    "value": {
+      "type": "trimClip",
+      "clipId": "c_v1",
+      "edge": "middle",
+      "toUs": 0
+    }
+  },
+  {
+    "name": "batch with invalid nested op",
+    "value": {
+      "type": "batch",
+      "ops": [
+        {
+          "type": "removeClip",
+          "clipId": "c_v1"
+        },
+        {
+          "type": "batch",
+          "ops": [
+            {
+              "type": "removeClip"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "batch ops not a list",
+    "value": {
+      "type": "batch",
+      "ops": {
+        "type": "removeClip",
+        "clipId": "c_v1"
+      }
+    }
+  },
+  {
+    "name": "addPaintStrokes empty",
+    "value": {
+      "type": "addPaintStrokes",
+      "clipId": "c_paint",
+      "strokes": []
+    }
+  },
+  {
+    "name": "addTrack negative index",
+    "value": {
+      "type": "addTrack",
+      "compositionId": "c_main",
+      "track": {
+        "id": "v9",
+        "name": "V9",
+        "kind": "visual",
+        "muted": false,
+        "locked": false,
+        "hidden": false,
+        "solo": false,
+        "clips": []
+      },
+      "index": -1
+    }
+  }
+]

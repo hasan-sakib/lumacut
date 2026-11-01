@@ -1,0 +1,2357 @@
+[
+  {
+    "name": "video project: linked A/V, transitions, effects, full grade, captions, markers, AI run",
+    "value": {
+      "id": "p_video",
+      "schemaVersion": 1,
+      "name": "Interview cut",
+      "kind": "video",
+      "assets": [
+        {
+          "id": "a_video",
+          "kind": "video",
+          "name": "interview.mp4",
+          "mimeType": "video/mp4",
+          "sizeBytes": 104857600,
+          "source": "user",
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "fps": {
+              "num": 30000,
+              "den": 1001
+            },
+            "durationUs": 180000000,
+            "codec": "avc1.640028"
+          },
+          "audio": {
+            "sampleRate": 48000,
+            "channels": 2,
+            "durationUs": 180000000,
+            "codec": "mp4a.40.2"
+          }
+        },
+        {
+          "id": "a_music",
+          "kind": "audio",
+          "name": "music.wav",
+          "mimeType": "audio/wav",
+          "sizeBytes": 31752000,
+          "source": "user",
+          "audio": {
+            "sampleRate": 48000,
+            "channels": 2,
+            "durationUs": 165375000,
+            "codec": "pcm_s16le"
+          }
+        },
+        {
+          "id": "a_lut",
+          "kind": "lut",
+          "name": "teal.cube",
+          "mimeType": "text/plain",
+          "sizeBytes": 1062000,
+          "source": "user"
+        },
+        {
+          "id": "a_font",
+          "kind": "font",
+          "name": "Inter.woff2",
+          "mimeType": "font/woff2",
+          "sizeBytes": 98000,
+          "source": "template"
+        }
+      ],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30000,
+            "den": 1001
+          },
+          "durationUs": 20000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 2000000,
+                  "outUs": 7000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 4000000,
+                        "value": 1,
+                        "interpolation": "hold"
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "linkId": "l1"
+                },
+                {
+                  "id": "c_v2",
+                  "type": "media",
+                  "startUs": 5000000,
+                  "inUs": 30000000,
+                  "outUs": 40000000,
+                  "speed": 2,
+                  "reversed": true,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0.3,
+                    "contrast": 12,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": -8,
+                    "tint": 0,
+                    "saturation": 5,
+                    "vibrance": 0,
+                    "lift": [0.01, 0, -0.01],
+                    "gamma": [0, 0, 0],
+                    "gain": [0.02, 0.02, 0.05],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [0.25, 0.2],
+                        [0.75, 0.82],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0.04],
+                        [1, 0.97]
+                      ],
+                      "hueVsSat": [
+                        [0, 0],
+                        [1, 0]
+                      ],
+                      "hueVsHue": [
+                        [0, 0],
+                        [1, 0]
+                      ],
+                      "lumVsSat": [
+                        [0, 0],
+                        [1, 0]
+                      ]
+                    },
+                    "hsl": {
+                      "red": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "orange": {
+                        "hue": -4,
+                        "saturation": 10,
+                        "luminance": 6
+                      },
+                      "yellow": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "green": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "aqua": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "blue": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "purple": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "magenta": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      }
+                    },
+                    "lut": {
+                      "lutId": "a_lut",
+                      "intensity": 0.6
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12,
+                        "edgeMode": "clamp",
+                        "center": [0.5, 0.5],
+                        "tint": {
+                          "r": 0.95,
+                          "g": 0.42,
+                          "b": 0.12,
+                          "a": 1
+                        },
+                        "highQuality": true
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "effects.fx1.params.radius": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "linear"
+                      },
+                      {
+                        "tUs": 1000000,
+                        "value": 24,
+                        "interpolation": "linear"
+                      }
+                    ]
+                  },
+                  "source": "ai",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  },
+                  "aiRunId": "run_1"
+                },
+                {
+                  "id": "c_freeze",
+                  "type": "media",
+                  "startUs": 10000000,
+                  "inUs": 0,
+                  "outUs": 2000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "assetId": "a_video",
+                  "freezeAtUs": 45000000
+                }
+              ]
+            },
+            {
+              "id": "a1",
+              "name": "A1",
+              "kind": "audio",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_a1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 2000000,
+                  "outUs": 7000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "audio.volume": [
+                      {
+                        "tUs": 0,
+                        "value": 1,
+                        "interpolation": "linear"
+                      },
+                      {
+                        "tUs": 4000000,
+                        "value": 0.25,
+                        "interpolation": "linear"
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "linkId": "l1",
+                  "audio": {
+                    "volume": 1,
+                    "pan": 0,
+                    "fadeInUs": 100000,
+                    "fadeOutUs": 250000,
+                    "effects": [
+                      {
+                        "id": "afx1",
+                        "effectId": "eq",
+                        "enabled": true,
+                        "params": {
+                          "lowGainDb": -3,
+                          "highGainDb": 2
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "a2",
+              "name": "A2",
+              "kind": "audio",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": true,
+              "clips": [
+                {
+                  "id": "c_music",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 20000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "assetId": "a_music",
+                  "audio": {
+                    "volume": 0.5,
+                    "pan": -0.2,
+                    "fadeInUs": 0,
+                    "fadeOutUs": 2000000,
+                    "effects": []
+                  }
+                }
+              ]
+            },
+            {
+              "id": "v2",
+              "name": "V2",
+              "kind": "visual",
+              "muted": false,
+              "locked": true,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_cap",
+                  "type": "caption",
+                  "startUs": 2000000,
+                  "inUs": 0,
+                  "outUs": 1500000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "text": {
+                    "runs": [
+                      {
+                        "text": "Welcome to the show",
+                        "fontFamily": "Inter",
+                        "fontWeight": 700,
+                        "fontSize": 96,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "italic": false,
+                        "underline": false
+                      }
+                    ],
+                    "align": "center",
+                    "lineHeight": 1.2,
+                    "tracking": 0,
+                    "animators": [],
+                    "background": {
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1
+                      },
+                      "padding": 12,
+                      "cornerRadius": 8
+                    }
+                  },
+                  "caption": {
+                    "words": [
+                      {
+                        "text": "Welcome",
+                        "startUs": 0,
+                        "endUs": 400000
+                      },
+                      {
+                        "text": "to",
+                        "startUs": 400000,
+                        "endUs": 550000
+                      },
+                      {
+                        "text": "the",
+                        "startUs": 550000,
+                        "endUs": 700000
+                      },
+                      {
+                        "text": "show",
+                        "startUs": 700000,
+                        "endUs": 1200000
+                      }
+                    ],
+                    "styleId": "bold-pop"
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": [
+            {
+              "id": "mk1",
+              "tUs": 5000000,
+              "durationUs": 0,
+              "label": "Beat drop",
+              "color": {
+                "r": 0.95,
+                "g": 0.42,
+                "b": 0.12,
+                "a": 1
+              }
+            }
+          ]
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": [
+          {
+            "id": "run_1",
+            "tool": "autoEdit",
+            "provider": "anthropic",
+            "model": "claude-sonnet-5-5",
+            "promptVersion": "edit-plan@1",
+            "createdAt": "2026-11-01T12:10:00.000Z",
+            "status": "applied",
+            "summary": "Cut silences, added captions",
+            "opCount": 42
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "motion project: shapes, text animators, masks, matte, nested comp, motion blur, template",
+    "value": {
+      "id": "p_motion",
+      "schemaVersion": 1,
+      "name": "Lower third",
+      "kind": "motion",
+      "assets": [
+        {
+          "id": "a_matte",
+          "kind": "image",
+          "name": "subject-mask.png",
+          "mimeType": "image/png",
+          "sizeBytes": 220000,
+          "source": "ai",
+          "aiRunId": "run_1",
+          "image": {
+            "width": 6000,
+            "height": 4000
+          }
+        }
+      ],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 60,
+            "den": 1
+          },
+          "durationUs": 6000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "bg",
+              "name": "BG",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_solid",
+                  "type": "solid",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 6000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user"
+                }
+              ]
+            },
+            {
+              "id": "nest",
+              "name": "NEST",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_nested",
+                  "type": "composition",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 3000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0.1,
+                    "top": 0,
+                    "right": 0.1,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "compositionId": "c_inner"
+                }
+              ]
+            },
+            {
+              "id": "matte",
+              "name": "MATTE",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": true,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_shape",
+                  "type": "shape",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 6000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 0,
+                    "anchorY": 0,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": true,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "shape.trimPaths.end": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier"
+                      },
+                      {
+                        "tUs": 800000,
+                        "value": 1,
+                        "interpolation": "bezier"
+                      }
+                    ],
+                    "transform.position": [
+                      {
+                        "tUs": 0,
+                        "value": [200, 900],
+                        "interpolation": "bezier",
+                        "spatialTangents": {
+                          "in": [0, 0],
+                          "out": [150, -300]
+                        }
+                      },
+                      {
+                        "tUs": 1000000,
+                        "value": [960, 540],
+                        "interpolation": "bezier",
+                        "easeIn": {
+                          "influence": 80,
+                          "speed": 0
+                        },
+                        "spatialTangents": {
+                          "in": [-150, 0],
+                          "out": [0, 0]
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "shape": {
+                    "items": [
+                      {
+                        "kind": "rect",
+                        "id": "s_rect",
+                        "position": [0, 0],
+                        "size": [600, 120],
+                        "roundness": 16
+                      },
+                      {
+                        "kind": "ellipse",
+                        "id": "s_ell",
+                        "position": [700, 60],
+                        "size": [80, 80]
+                      },
+                      {
+                        "kind": "polygon",
+                        "id": "s_poly",
+                        "position": [820, 60],
+                        "points": 6,
+                        "radius": 40,
+                        "roundness": 0,
+                        "rotation": 0
+                      },
+                      {
+                        "kind": "star",
+                        "id": "s_star",
+                        "position": [920, 60],
+                        "points": 5,
+                        "innerRadius": 20,
+                        "outerRadius": 45,
+                        "innerRoundness": 0,
+                        "outerRoundness": 10,
+                        "rotation": 15
+                      },
+                      {
+                        "kind": "path",
+                        "id": "s_path",
+                        "path": {
+                          "closed": true,
+                          "vertices": [
+                            {
+                              "point": [0, 0],
+                              "inTangent": [-20, 10],
+                              "outTangent": [20, -10]
+                            },
+                            {
+                              "point": [120, 10],
+                              "inTangent": [-15, -15],
+                              "outTangent": [15, 15]
+                            },
+                            {
+                              "point": [60, 110],
+                              "inTangent": [20, 5],
+                              "outTangent": [-20, -5]
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "fill": {
+                      "color": {
+                        "r": 0.95,
+                        "g": 0.42,
+                        "b": 0.12,
+                        "a": 1
+                      },
+                      "rule": "nonzero"
+                    },
+                    "stroke": {
+                      "color": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1
+                      },
+                      "width": 4,
+                      "cap": "round",
+                      "join": "round",
+                      "dash": [12, 6]
+                    },
+                    "trimPaths": {
+                      "start": 0,
+                      "end": 1,
+                      "offset": 0
+                    },
+                    "roundCorners": 4
+                  }
+                }
+              ]
+            },
+            {
+              "id": "title",
+              "name": "TITLE",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_title",
+                  "type": "text",
+                  "startUs": 300000,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "screen",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [
+                    {
+                      "kind": "path",
+                      "id": "m1",
+                      "mode": "add",
+                      "feather": 10,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "path": {
+                        "closed": true,
+                        "vertices": [
+                          {
+                            "point": [0, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [0, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "raster",
+                      "id": "m2",
+                      "mode": "subtract",
+                      "feather": 0,
+                      "expansion": -2,
+                      "opacity": 0.8,
+                      "inverted": true,
+                      "assetId": "a_matte"
+                    }
+                  ],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "text.animators.an1.range.offset": [
+                      {
+                        "tUs": 0,
+                        "value": -1,
+                        "interpolation": "linear"
+                      },
+                      {
+                        "tUs": 700000,
+                        "value": 1,
+                        "interpolation": "linear"
+                      }
+                    ],
+                    "text.animators.an1.props.fillColor": [
+                      {
+                        "tUs": 0,
+                        "value": {
+                          "r": 0.95,
+                          "g": 0.42,
+                          "b": 0.12,
+                          "a": 1
+                        },
+                        "interpolation": "linear"
+                      },
+                      {
+                        "tUs": 700000,
+                        "value": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "interpolation": "linear"
+                      }
+                    ],
+                    "masks.m1.path": [
+                      {
+                        "tUs": 0,
+                        "value": {
+                          "closed": true,
+                          "vertices": [
+                            {
+                              "point": [0, 0],
+                              "inTangent": [0, 0],
+                              "outTangent": [0, 0]
+                            },
+                            {
+                              "point": [100, 0],
+                              "inTangent": [0, 0],
+                              "outTangent": [0, 0]
+                            },
+                            {
+                              "point": [100, 100],
+                              "inTangent": [0, 0],
+                              "outTangent": [0, 0]
+                            },
+                            {
+                              "point": [0, 100],
+                              "inTangent": [0, 0],
+                              "outTangent": [0, 0]
+                            }
+                          ]
+                        },
+                        "interpolation": "linear"
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": {
+                          "closed": true,
+                          "vertices": [
+                            {
+                              "point": [0, 0],
+                              "inTangent": [-20, 10],
+                              "outTangent": [20, -10]
+                            },
+                            {
+                              "point": [120, 10],
+                              "inTangent": [-15, -15],
+                              "outTangent": [15, 15]
+                            },
+                            {
+                              "point": [60, 110],
+                              "inTangent": [20, 5],
+                              "outTangent": [-20, -5]
+                            }
+                          ]
+                        },
+                        "interpolation": "linear"
+                      }
+                    ]
+                  },
+                  "source": "template",
+                  "text": {
+                    "runs": [
+                      {
+                        "text": "Jane Doe",
+                        "fontFamily": "Inter",
+                        "fontWeight": 800,
+                        "fontSize": 64,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "italic": false,
+                        "underline": false
+                      },
+                      {
+                        "text": " — Director",
+                        "fontFamily": "Inter",
+                        "fontWeight": 400,
+                        "fontSize": 40,
+                        "color": {
+                          "r": 0.95,
+                          "g": 0.42,
+                          "b": 0.12,
+                          "a": 1
+                        },
+                        "italic": true,
+                        "underline": true
+                      }
+                    ],
+                    "align": "center",
+                    "lineHeight": 1.2,
+                    "tracking": 50,
+                    "animators": [
+                      {
+                        "id": "an1",
+                        "unit": "char",
+                        "range": {
+                          "start": 0,
+                          "end": 1,
+                          "offset": 0,
+                          "shape": "rampUp"
+                        },
+                        "props": {
+                          "opacity": 0,
+                          "position": [0, 40],
+                          "scale": [0.5, 0.5],
+                          "rotation": -10,
+                          "blur": 6,
+                          "tracking": 20,
+                          "fillColor": {
+                            "r": 0.95,
+                            "g": 0.42,
+                            "b": 0.12,
+                            "a": 1
+                          }
+                        }
+                      }
+                    ],
+                    "stroke": {
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1
+                      },
+                      "width": 2
+                    },
+                    "shadow": {
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1
+                      },
+                      "offset": [4, 4],
+                      "blur": 8
+                    },
+                    "box": {
+                      "width": 900,
+                      "height": 200
+                    }
+                  },
+                  "trackMatte": {
+                    "sourceClipId": "c_shape",
+                    "mode": "alpha"
+                  },
+                  "placeholder": {
+                    "slotId": "name",
+                    "kind": "text",
+                    "label": "Person name"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "adj",
+              "name": "ADJ",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_adj",
+                  "type": "adjustment",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 6000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 0.7,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [
+                    {
+                      "id": "fx_glow",
+                      "effectId": "glow",
+                      "enabled": false,
+                      "params": {
+                        "threshold": 0.8,
+                        "radius": 30
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user"
+                }
+              ]
+            }
+          ],
+          "markers": []
+        },
+        {
+          "id": "c_inner",
+          "name": "c_inner",
+          "width": 1080,
+          "height": 1080,
+          "fps": {
+            "num": 60,
+            "den": 1
+          },
+          "durationUs": 3000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "t",
+              "name": "T",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_inner_solid",
+                  "type": "solid",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 3000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user"
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": [],
+        "templateId": "tpl_lower_third"
+      }
+    }
+  },
+  {
+    "name": "photo project: single frame, adjustment layer, paint strokes, raster mask",
+    "value": {
+      "id": "p_photo",
+      "schemaVersion": 1,
+      "name": "Portrait retouch",
+      "kind": "photo",
+      "assets": [
+        {
+          "id": "a_photo",
+          "kind": "image",
+          "name": "photo.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 9400000,
+          "source": "user",
+          "image": {
+            "width": 6000,
+            "height": 4000
+          }
+        },
+        {
+          "id": "a_matte",
+          "kind": "image",
+          "name": "subject-mask.png",
+          "mimeType": "image/png",
+          "sizeBytes": 220000,
+          "source": "ai",
+          "aiRunId": "run_1",
+          "image": {
+            "width": 6000,
+            "height": 4000
+          }
+        }
+      ],
+      "compositions": [
+        {
+          "id": "c_photo",
+          "name": "c_photo",
+          "width": 6000,
+          "height": 4000,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 0,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "l_photo",
+              "name": "L_PHOTO",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_img",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 33334,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 3000,
+                    "y": 2000,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 3000,
+                    "anchorY": 2000,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [
+                    {
+                      "kind": "raster",
+                      "id": "m_subject",
+                      "mode": "add",
+                      "feather": 2,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "assetId": "a_matte"
+                    }
+                  ],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "assetId": "a_photo"
+                }
+              ]
+            },
+            {
+              "id": "l_adjust",
+              "name": "L_ADJUST",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_grade",
+                  "type": "adjustment",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 33334,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0.3,
+                    "contrast": 12,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": -8,
+                    "tint": 0,
+                    "saturation": 5,
+                    "vibrance": 0,
+                    "lift": [0.01, 0, -0.01],
+                    "gamma": [0, 0, 0],
+                    "gain": [0.02, 0.02, 0.05],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [0.25, 0.2],
+                        [0.75, 0.82],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0.04],
+                        [1, 0.97]
+                      ],
+                      "hueVsSat": [
+                        [0, 0],
+                        [1, 0]
+                      ],
+                      "hueVsHue": [
+                        [0, 0],
+                        [1, 0]
+                      ],
+                      "lumVsSat": [
+                        [0, 0],
+                        [1, 0]
+                      ]
+                    },
+                    "hsl": {
+                      "red": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "orange": {
+                        "hue": -4,
+                        "saturation": 10,
+                        "luminance": 6
+                      },
+                      "yellow": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "green": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "aqua": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "blue": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "purple": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      },
+                      "magenta": {
+                        "hue": 0,
+                        "saturation": 0,
+                        "luminance": 0
+                      }
+                    },
+                    "lut": {
+                      "lutId": "a_lut",
+                      "intensity": 0.6
+                    }
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user"
+                }
+              ]
+            },
+            {
+              "id": "l_paint",
+              "name": "L_PAINT",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_paint",
+                  "type": "paint",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 33334,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "multiply",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "paint": {
+                    "strokes": [
+                      {
+                        "id": "st1",
+                        "tool": "brush",
+                        "color": {
+                          "r": 0.95,
+                          "g": 0.42,
+                          "b": 0.12,
+                          "a": 1
+                        },
+                        "size": 24,
+                        "hardness": 0.8,
+                        "opacity": 0.9,
+                        "points": [100, 100, 0.5, 140, 120, 0.7, 180, 160, 1]
+                      },
+                      {
+                        "id": "st2",
+                        "tool": "eraser",
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 1
+                        },
+                        "size": 40,
+                        "hardness": 0,
+                        "opacity": 1,
+                        "points": [150, 130, 1]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_photo",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "small media project (base of invalid cases)",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_v1",
+                  "type": "media",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0],
+                    "curves": {
+                      "master": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "r": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "g": [
+                        [0, 0],
+                        [1, 1]
+                      ],
+                      "b": [
+                        [0, 0],
+                        [1, 1]
+                      ]
+                    }
+                  },
+                  "effects": [
+                    {
+                      "id": "fx1",
+                      "effectId": "gaussianBlur",
+                      "enabled": true,
+                      "params": {
+                        "radius": 12
+                      }
+                    }
+                  ],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {
+                    "opacity": [
+                      {
+                        "tUs": 0,
+                        "value": 0,
+                        "interpolation": "bezier",
+                        "easeOut": {
+                          "influence": 33.3,
+                          "speed": 0
+                        }
+                      },
+                      {
+                        "tUs": 500000,
+                        "value": 1,
+                        "interpolation": "linear",
+                        "easeIn": {
+                          "influence": 75,
+                          "speed": 0
+                        }
+                      }
+                    ]
+                  },
+                  "source": "user",
+                  "assetId": "a_video",
+                  "transitionIn": {
+                    "id": "tr1",
+                    "transitionId": "crossDissolve",
+                    "durationUs": 500000,
+                    "alignment": "center",
+                    "params": {}
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "small text project (base of invalid cases)",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_t",
+                  "type": "text",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [
+                    {
+                      "kind": "path",
+                      "id": "m1",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "path": {
+                        "closed": true,
+                        "vertices": [
+                          {
+                            "point": [0, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 0],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [100, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          },
+                          {
+                            "point": [0, 100],
+                            "inTangent": [0, 0],
+                            "outTangent": [0, 0]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "raster",
+                      "id": "m2",
+                      "mode": "add",
+                      "feather": 0,
+                      "expansion": 0,
+                      "opacity": 1,
+                      "inverted": false,
+                      "assetId": "a_matte"
+                    }
+                  ],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "text": {
+                    "runs": [
+                      {
+                        "text": "Hi",
+                        "fontFamily": "Inter",
+                        "fontWeight": 700,
+                        "fontSize": 96,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "italic": false,
+                        "underline": false
+                      }
+                    ],
+                    "align": "center",
+                    "lineHeight": 1.2,
+                    "tracking": 0,
+                    "animators": []
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  },
+  {
+    "name": "small shape project (base of invalid cases)",
+    "value": {
+      "id": "p_small",
+      "schemaVersion": 1,
+      "name": "Small",
+      "kind": "video",
+      "assets": [],
+      "compositions": [
+        {
+          "id": "c_main",
+          "name": "c_main",
+          "width": 1920,
+          "height": 1080,
+          "fps": {
+            "num": 30,
+            "den": 1
+          },
+          "durationUs": 5000000,
+          "background": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "tracks": [
+            {
+              "id": "v1",
+              "name": "V1",
+              "kind": "visual",
+              "muted": false,
+              "locked": false,
+              "hidden": false,
+              "solo": false,
+              "clips": [
+                {
+                  "id": "c_s",
+                  "type": "shape",
+                  "startUs": 0,
+                  "inUs": 0,
+                  "outUs": 5000000,
+                  "speed": 1,
+                  "reversed": false,
+                  "transform": {
+                    "x": 960,
+                    "y": 540,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "rotation": 0,
+                    "anchorX": 960,
+                    "anchorY": 540,
+                    "skew": 0
+                  },
+                  "opacity": 1,
+                  "blendMode": "normal",
+                  "crop": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "masks": [],
+                  "color": {
+                    "exposure": 0,
+                    "contrast": 0,
+                    "highlights": 0,
+                    "shadows": 0,
+                    "whites": 0,
+                    "blacks": 0,
+                    "temperature": 0,
+                    "tint": 0,
+                    "saturation": 0,
+                    "vibrance": 0,
+                    "lift": [0, 0, 0],
+                    "gamma": [0, 0, 0],
+                    "gain": [0, 0, 0],
+                    "offset": [0, 0, 0]
+                  },
+                  "effects": [],
+                  "motionBlur": {
+                    "enabled": false,
+                    "shutterAngle": 180,
+                    "samples": 16
+                  },
+                  "keyframes": {},
+                  "source": "user",
+                  "shape": {
+                    "items": [
+                      {
+                        "kind": "rect",
+                        "id": "s_rect",
+                        "position": [0, 0],
+                        "size": [10, 10],
+                        "roundness": 0
+                      },
+                      {
+                        "kind": "polygon",
+                        "id": "s_poly",
+                        "position": [0, 0],
+                        "points": 6,
+                        "radius": 40,
+                        "roundness": 0,
+                        "rotation": 0
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "markers": []
+        }
+      ],
+      "mainCompositionId": "c_main",
+      "meta": {
+        "createdAt": "2026-11-01T12:00:00.000Z",
+        "updatedAt": "2026-11-01T12:30:00Z",
+        "aiRuns": []
+      }
+    }
+  }
+]

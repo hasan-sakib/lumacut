@@ -1,0 +1,77 @@
+# Lumacut developer commands. Requires: Node >= 24 (corepack), uv, Docker (for stack targets).
+# Note: macOS ships GNU make 3.81, so this file avoids make 4 features.
+
+SHELL := /bin/bash
+# uv must use the repo .venv even if another virtualenv is active in the caller's shell.
+unexport VIRTUAL_ENV
+COMPOSE := docker compose -f infra/docker-compose.yml
+PY_TEST_UNIT := -m "not integration and not samples"
+
+.PHONY: install gen-schema check lint format-check format typecheck test schema-drift \
+        up down logs test-stack e2e samples test-samples
+
+## Setup ----------------------------------------------------------------------
+install:
+	pnpm install --frozen-lockfile
+	uv sync --all-packages --frozen
+
+## Schema (packages/schema is the source of truth) ----------------------------
+gen-schema:
+	scripts/gen-schema.sh
+
+schema-drift:
+	scripts/check-schema-drift.sh
+
+## Hermetic checks: no Docker needed -------------------------------------------
+check: lint format-check typecheck test schema-drift
+	@echo "make check: all green"
+
+lint:
+	pnpm exec eslint --max-warnings 0 .
+	uv run ruff check .
+
+format-check:
+	pnpm exec prettier --check .
+	uv run ruff format --check .
+
+format:
+	pnpm exec prettier --write .
+	uv run ruff format .
+
+typecheck:
+	pnpm exec tsc -p tsconfig.json
+	pnpm -r --if-present typecheck
+	uv run mypy
+
+test:
+	pnpm exec vitest run --coverage
+	uv run pytest $(PY_TEST_UNIT)
+
+## Docker stack ------------------------------------------------------------------
+up:
+	$(COMPOSE) up -d --build --wait
+
+down:
+	$(COMPOSE) down
+
+logs:
+	$(COMPOSE) logs -f --tail=100
+
+# Integration tests + e2e against the running stack.
+test-stack: up
+	uv run pytest -m integration
+	pnpm test:e2e
+
+e2e:
+	pnpm test:e2e
+
+## Sample media (generated inside the worker image, which ships ffmpeg) ---------
+# The live worker source is mounted over the (editable) installed copy, so no rebuild is needed.
+WORKER_RUN := $(COMPOSE) run --rm --no-deps -v $(CURDIR)/services/worker:/app/services/worker worker
+
+samples:
+	mkdir -p samples/generated
+	$(WORKER_RUN) python -m lumacut_worker.samples /samples
+
+test-samples:
+	$(WORKER_RUN) python -m pytest -m samples /app/services/worker/tests/samples
