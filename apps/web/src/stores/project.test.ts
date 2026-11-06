@@ -200,6 +200,19 @@ describe("dispatch and history", () => {
   });
 });
 
+describe("composition duration", () => {
+  it("follows the content in the same undo step", () => {
+    expect(state().project?.compositions[0]?.durationUs).toBe(10 * SEC); // fixture value, content is 2 s
+    state().dispatch(trim(1));
+    expect(state().project?.compositions[0]?.durationUs).toBe(1 * SEC);
+    expect(state().undoStack).toHaveLength(1);
+    state().undo();
+    expect(state().project?.compositions[0]?.durationUs).toBe(10 * SEC);
+    state().redo();
+    expect(state().project?.compositions[0]?.durationUs).toBe(1 * SEC);
+  });
+});
+
 describe("autosave", () => {
   it("saves after the idle time, with the loaded version, then marks saved", async () => {
     state().dispatch(trim(1));

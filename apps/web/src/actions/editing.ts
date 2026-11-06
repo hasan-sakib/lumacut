@@ -5,7 +5,6 @@ import {
   createClip,
   createTrack,
   type Asset,
-  type Clip,
   type Composition,
   type Marker,
   type Op,
@@ -15,6 +14,9 @@ import {
   type TrackPatch,
 } from "@lumacut/schema";
 import * as z from "zod";
+import { lastFrameUs, skipTarget, stepTarget } from "../engine/transport.ts";
+import type { Tool } from "../stores/editor.ts";
+import { placedClips, splitOps, withLinked, type Placed } from "../timeline/clips.ts";
 
 /** Things an editing action can't do itself (ids, the history, the library). Supplied by the page. */
 export interface EditingServices {
@@ -27,6 +29,16 @@ export interface EditingServices {
   /** Opens the command palette / the keyboard shortcut list. */
   openPalette: () => void;
   showShortcuts: () => void;
+  /** The preview: start/stop playing, and jump to a time (moves the picture and the sound). */
+  playback: { togglePlay: () => void; seek: (us: number) => void };
+  /** Editor view state that isn't part of the document. */
+  editor: {
+    setTool: (tool: Tool) => void;
+    zoomBy: (factor: number) => void;
+    zoomFit: () => void;
+    toggleSnapping: () => void;
+    selectClips: (ids: string[]) => void;
+  };
 }
 
 /** What an editing action can see: the document, the selection, the playhead, the history. */
@@ -52,24 +64,6 @@ function activeComposition(ctx: EditingContext): Composition | undefined {
   return ctx.project?.compositions.find((c) => c.id === ctx.compositionId);
 }
 
-interface Placed {
-  clip: Clip;
-  track: Track;
-}
-
-function placedClips(comp: Composition): Placed[] {
-  return comp.tracks.flatMap((track) => track.clips.map((clip) => ({ clip, track })));
-}
-
-/** The ids plus every clip linked to one of them (a linked pair is edited as one). */
-function withLinked(comp: Composition, ids: readonly string[]): string[] {
-  const all = placedClips(comp);
-  const links = new Set(all.filter((p) => ids.includes(p.clip.id) && p.clip.linkId).map((p) => p.clip.linkId));
-  const out = new Set(ids.filter((id) => all.some((p) => p.clip.id === id)));
-  for (const p of all) if (p.clip.linkId !== undefined && links.has(p.clip.linkId)) out.add(p.clip.id);
-  return [...out];
-}
-
 function selectedWithLinked(ctx: EditingContext): string[] {
   const comp = activeComposition(ctx);
   return comp === undefined ? [] : withLinked(comp, ctx.selectedClipIds);
@@ -92,6 +86,10 @@ const hasSelection = (ctx: EditingContext): boolean => selectedWithLinked(ctx).l
 function selectedTrack(ctx: EditingContext): Track | undefined {
   return activeComposition(ctx)?.tracks.find((t) => t.id === ctx.selectedTrackId);
 }
+
+/** Duration of the active composition, or 0 (playback and stepping need something to play). */
+const duration = (ctx: EditingContext): number => activeComposition(ctx)?.durationUs ?? 0;
+const fpsOf = (ctx: EditingContext) => activeComposition(ctx)?.fps ?? { num: 30, den: 1 };
 
 // --- The palette itself ------------------------------------------------------------------------
 
@@ -168,22 +166,12 @@ editingActions.register({
   icon: "split",
   shortcut: "S",
   when: (ctx) => splitTargets(ctx).length > 0,
-  run: (ctx) => {
-    const ops: Op[] = [];
-    const secondHalves = new Map<string, string[]>();
-    for (const { clip } of splitTargets(ctx)) {
-      const newClipId = ctx.services.newId();
-      ops.push({ type: "splitClip", clipId: clip.id, atUs: ctx.playheadUs, newClipId });
-      if (clip.linkId !== undefined) {
-        secondHalves.set(clip.linkId, [...(secondHalves.get(clip.linkId) ?? []), newClipId]);
-      }
-    }
-    // The new halves of a linked pair stay linked to each other.
-    for (const members of secondHalves.values()) {
-      if (members.length >= 2) ops.push({ type: "linkClips", clipIds: members, linkId: ctx.services.newId() });
-    }
-    return ops;
-  },
+  run: (ctx) =>
+    splitOps(
+      splitTargets(ctx).map((p) => p.clip),
+      ctx.playheadUs,
+      ctx.services.newId,
+    ),
 });
 
 editingActions.register({
@@ -318,12 +306,15 @@ editingActions.register({
   run: (ctx): Op => ({ type: "removeTrack", compositionId: ctx.compositionId ?? "", trackId: ctx.selectedTrackId ?? "" }),
 });
 
+type TrackArgs = { trackId?: string } | undefined;
+
 function registerToggle(
   id: string,
   title: string,
   description: string,
   keywords: string[],
   prop: "muted" | "solo" | "locked" | "hidden",
+  icon: string,
 ): void {
   editingActions.register({
     id,
@@ -331,18 +322,23 @@ function registerToggle(
     description,
     keywords,
     category: "Track",
-    when: (ctx) => selectedTrack(ctx) !== undefined,
-    run: (ctx): Op => {
-      const track = selectedTrack(ctx);
-      return { type: "setTrackProps", trackId: ctx.selectedTrackId ?? "", props: { [prop]: !track?.[prop] } as TrackPatch };
+    icon,
+    // Track headers pass the track in `trackId`; elsewhere it acts on the selected track.
+    argsSchema: z.object({ trackId: z.string().optional() }).optional() as unknown as z.ZodType<TrackArgs>,
+    when: (ctx) => (activeComposition(ctx)?.tracks.length ?? 0) > 0,
+    run: (ctx, args): Op => {
+      const trackId = args?.trackId ?? ctx.selectedTrackId;
+      const track = activeComposition(ctx)?.tracks.find((t) => t.id === trackId);
+      if (track === undefined) throw new ActionError("Select a track first.");
+      return { type: "setTrackProps", trackId: track.id, props: { [prop]: !track[prop] } as TrackPatch };
     },
   });
 }
 
-registerToggle("track.toggleMute", "Mute / unmute track", "Silence the selected track, or turn its sound back on.", ["silence", "volume off"], "muted");
-registerToggle("track.toggleSolo", "Solo / unsolo track", "Hear only the selected track, or hear everything again.", ["isolate", "only this"], "solo");
-registerToggle("track.toggleLock", "Lock / unlock track", "Protect the selected track from edits, or allow edits again.", ["protect", "freeze", "unlock"], "locked");
-registerToggle("track.toggleHide", "Show / hide track", "Hide the selected track from the picture, or show it again.", ["visibility", "eye", "invisible"], "hidden");
+registerToggle("track.toggleMute", "Mute / unmute track", "Silence the selected track, or turn its sound back on.", ["silence", "volume off"], "muted", "mute");
+registerToggle("track.toggleSolo", "Solo / unsolo track", "Hear only the selected track, or hear everything again.", ["isolate", "only this"], "solo", "solo");
+registerToggle("track.toggleLock", "Lock / unlock track", "Protect the selected track from edits, or allow edits again.", ["protect", "freeze", "unlock"], "locked", "lock");
+registerToggle("track.toggleHide", "Show / hide track", "Hide the selected track from the picture, or show it again.", ["visibility", "eye", "invisible"], "hidden", "eye");
 
 // --- Markers ----------------------------------------------------------------------------------
 
@@ -439,3 +435,160 @@ editingActions.register({
     return ops;
   },
 });
+
+
+// --- Tools and view ---------------------------------------------------------------------------
+
+function registerTool(tool: Tool, title: string, description: string, shortcut: string, keywords: string[], icon: string): void {
+  editingActions.register({
+    id: `tool.${tool}`,
+    title,
+    description,
+    keywords,
+    category: "Tools",
+    icon,
+    shortcut,
+    when: (ctx) => activeComposition(ctx) !== undefined,
+    run: (ctx) => {
+      ctx.services.editor.setTool(tool);
+      return undefined;
+    },
+  });
+}
+
+registerTool("select", "Selection tool", "Select clips, drag them to move, drag their edges to trim.", "V", ["pointer", "arrow", "move", "default"], "select");
+registerTool("razor", "Razor tool", "Click a clip to cut it (and clips linked to it) at that point.", "C", ["cut", "blade", "split", "slice"], "split");
+registerTool("ripple", "Ripple trim tool", "Drag a clip edge to trim it and pull the later clips along.", "B", ["ripple", "close gap", "trim and shift"], "trim");
+registerTool("roll", "Roll tool", "Drag the cut between two clips to move it without changing the total length.", "N", ["rolling edit", "move cut", "adjust edit point"], "trim");
+registerTool("slip", "Slip tool", "Drag inside a clip to change which part of the media it shows, keeping its place and length.", "Y", ["offset content", "shift media"], "trim");
+registerTool("slide", "Slide tool", "Drag a clip along the track while its neighbours give way to fill the gap.", "U", ["move between", "shift clip"], "trim");
+
+function registerView(id: string, title: string, description: string, keywords: string[], shortcut: string, icon: string, run: (ctx: EditingContext) => void): void {
+  editingActions.register({
+    id,
+    title,
+    description,
+    keywords,
+    category: "Timeline",
+    icon,
+    shortcut,
+    when: (ctx) => activeComposition(ctx) !== undefined,
+    run: (ctx) => {
+      run(ctx);
+      return undefined;
+    },
+  });
+}
+
+registerView("timeline.zoomIn", "Zoom in", "Show the timeline in more detail.", ["magnify", "bigger", "closer"], "=", "zoomIn", (ctx) => {
+  ctx.services.editor.zoomBy(1.5);
+});
+registerView("timeline.zoomOut", "Zoom out", "Show more of the timeline.", ["smaller", "overview", "farther"], "-", "zoomOut", (ctx) => {
+  ctx.services.editor.zoomBy(1 / 1.5);
+});
+registerView("timeline.zoomFit", "Zoom to fit", "Zoom the timeline so the whole project fits the window.", ["fit", "show all", "whole timeline"], "\\", "fit", (ctx) => {
+  ctx.services.editor.zoomFit();
+});
+registerView("timeline.toggleSnapping", "Snapping on / off", "Make dragged clips and edges stick to nearby edges, markers and the playhead, or not.", ["magnet", "snap", "stick", "align"], "Shift+S", "magnet", (ctx) => {
+  ctx.services.editor.toggleSnapping();
+});
+
+// --- Selection --------------------------------------------------------------------------------
+
+editingActions.register({
+  id: "selection.selectAll",
+  title: "Select all clips",
+  description: "Select every clip in the composition.",
+  keywords: ["everything", "all"],
+  category: "Edit",
+  shortcut: "Mod+A",
+  when: (ctx) => {
+    const comp = activeComposition(ctx);
+    return comp !== undefined && placedClips(comp).length > 0;
+  },
+  run: (ctx) => {
+    const comp = activeComposition(ctx);
+    ctx.services.editor.selectClips(comp === undefined ? [] : placedClips(comp).map((p) => p.clip.id));
+    return undefined;
+  },
+});
+
+editingActions.register({
+  id: "selection.clear",
+  title: "Deselect",
+  description: "Clear the selection.",
+  keywords: ["unselect", "none", "escape"],
+  category: "Edit",
+  shortcut: "Escape",
+  when: (ctx) => ctx.selectedClipIds.length > 0,
+  run: (ctx) => {
+    ctx.services.editor.selectClips([]);
+    return undefined;
+  },
+});
+
+// --- Playback ---------------------------------------------------------------------------------
+
+editingActions.register({
+  id: "playback.playPause",
+  title: "Play / pause",
+  description: "Start or stop playing the composition from the playhead.",
+  keywords: ["play", "pause", "stop", "start", "resume"],
+  category: "Playback",
+  icon: "play",
+  shortcut: "Space",
+  when: (ctx) => duration(ctx) > 0,
+  run: (ctx) => {
+    ctx.services.playback.togglePlay();
+    return undefined;
+  },
+});
+
+function registerStep(id: string, title: string, description: string, keywords: string[], shortcut: string, icon: string, target: (ctx: EditingContext) => number): void {
+  editingActions.register({
+    id,
+    title,
+    description,
+    keywords,
+    category: "Playback",
+    icon,
+    shortcut,
+    when: (ctx) => duration(ctx) > 0,
+    run: (ctx) => {
+      ctx.services.playback.seek(target(ctx));
+      return undefined;
+    },
+  });
+}
+
+registerStep("playback.stepForward", "Next frame", "Step the playhead forward by one frame.", ["frame", "advance", "nudge"], "ArrowRight", "stepForward", (ctx) => stepTarget(ctx.playheadUs, 1, fpsOf(ctx), duration(ctx)));
+registerStep("playback.stepBack", "Previous frame", "Step the playhead back by one frame.", ["frame", "rewind", "nudge"], "ArrowLeft", "stepBack", (ctx) => stepTarget(ctx.playheadUs, -1, fpsOf(ctx), duration(ctx)));
+registerStep("playback.skipForward", "Forward 1 second", "Jump the playhead forward by one second.", ["skip", "jump", "second"], "Shift+ArrowRight", "skipForward", (ctx) => skipTarget(ctx.playheadUs, 1, fpsOf(ctx), duration(ctx)));
+registerStep("playback.skipBack", "Back 1 second", "Jump the playhead back by one second.", ["skip", "jump", "second"], "Shift+ArrowLeft", "skipBack", (ctx) => skipTarget(ctx.playheadUs, -1, fpsOf(ctx), duration(ctx)));
+registerStep("playback.goToStart", "Go to start", "Move the playhead to the beginning.", ["beginning", "first", "home"], "Home", "skipStart", () => 0);
+registerStep("playback.goToEnd", "Go to end", "Move the playhead to the last frame.", ["last", "finish", "end"], "End", "skipEnd", (ctx) => lastFrameUs(duration(ctx), fpsOf(ctx)));
+
+function registerMarkerJump(id: string, title: string, shortcut: string, direction: 1 | -1): void {
+  const target = (ctx: EditingContext): number | undefined => {
+    const times = (activeComposition(ctx)?.markers ?? []).map((m) => m.tUs);
+    const candidates = direction === 1 ? times.filter((t) => t > ctx.playheadUs) : times.filter((t) => t < ctx.playheadUs);
+    return candidates.length === 0 ? undefined : direction === 1 ? Math.min(...candidates) : Math.max(...candidates);
+  };
+  editingActions.register({
+    id,
+    title,
+    description: `Move the playhead to the ${direction === 1 ? "next" : "previous"} marker.`,
+    keywords: ["marker", "jump", direction === 1 ? "next" : "previous", "go to marker"],
+    category: "Timeline",
+    shortcut,
+    when: (ctx) => target(ctx) !== undefined,
+    run: (ctx) => {
+      const to = target(ctx);
+      if (to !== undefined) ctx.services.playback.seek(to);
+      return undefined;
+    },
+  });
+}
+
+registerMarkerJump("marker.next", "Go to next marker", "Shift+M", 1);
+registerMarkerJump("marker.previous", "Go to previous marker", "Alt+M", -1);

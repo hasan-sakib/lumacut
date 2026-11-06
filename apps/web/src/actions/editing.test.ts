@@ -57,6 +57,9 @@ const undo = vi.fn();
 const redo = vi.fn();
 const openPalette = vi.fn();
 const showShortcuts = vi.fn();
+const togglePlay = vi.fn();
+const seek = vi.fn();
+const editor = { setTool: vi.fn(), zoomBy: vi.fn(), zoomFit: vi.fn(), toggleSnapping: vi.fn(), selectClips: vi.fn() };
 
 function ctx(partial: Partial<EditingContext> = {}): EditingContext {
   return {
@@ -74,6 +77,8 @@ function ctx(partial: Partial<EditingContext> = {}): EditingContext {
       assetForProject: (id) => [videoAsset, audioAsset, imageAsset].find((a) => a.id === id) ?? null,
       openPalette,
       showShortcuts,
+      playback: { togglePlay, seek },
+      editor,
     },
     ...partial,
   };
@@ -94,12 +99,15 @@ beforeEach(() => {
   project = projectWith();
   undo.mockClear();
   redo.mockClear();
+  togglePlay.mockClear();
+  seek.mockClear();
+  for (const fn of Object.values(editor)) fn.mockClear();
 });
 
 describe("registry", () => {
   it("every action has a title, description and keywords, and shortcuts don't clash", () => {
     const all = editingActions.list();
-    expect(all.length).toBeGreaterThanOrEqual(18);
+    expect(all.length).toBeGreaterThanOrEqual(40);
     for (const a of all) {
       expect(a.title.length).toBeGreaterThan(2);
       expect(a.description.length).toBeGreaterThan(15);
@@ -222,8 +230,12 @@ describe("tracks", () => {
 
   it("toggles and removal act on the selected track only", async () => {
     const none = editingActions.available(ctx()).map((a) => a.id);
-    expect(none).not.toContain("track.toggleMute");
+    expect(none).toContain("track.toggleMute"); // listed; which track is decided when it runs
     expect(none).not.toContain("track.remove");
+    await expect(perform("track.toggleMute", ctx())).rejects.toThrow(/Select a track/);
+    await perform("track.toggleSolo", ctx(), { trackId: "V1" }); // a track header passes its own track
+    expect(project.compositions[0]?.tracks.find((t) => t.id === "V1")?.solo).toBe(true);
+    await perform("track.toggleSolo", ctx(), { trackId: "V1" });
     const c = () => ctx({ selectedTrackId: "A1" });
     await perform("track.toggleMute", c());
     await perform("track.toggleSolo", c());
@@ -301,6 +313,92 @@ describe("timeline.addAssetAtPlayhead", () => {
   it("explains when the asset isn't ready", async () => {
     await expect(perform("timeline.addAssetAtPlayhead", ctx(), { assetId: "nope" })).rejects.toThrow(/isn't ready/);
     await expect(perform("timeline.addAssetAtPlayhead", ctx(), {})).rejects.toThrow();
+  });
+});
+
+describe("tools and view", () => {
+  it.each([
+    ["tool.select", "select", "V"],
+    ["tool.razor", "razor", "C"],
+    ["tool.ripple", "ripple", "B"],
+    ["tool.roll", "roll", "N"],
+    ["tool.slip", "slip", "Y"],
+    ["tool.slide", "slide", "U"],
+  ])("%s switches the tool (shortcut %s)", async (id, tool, key) => {
+    await perform(id, ctx());
+    expect(editor.setTool).toHaveBeenCalledWith(tool);
+    expect(editingActions.get(id).shortcut).toBe(key);
+  });
+
+  it("zoom and snapping call the editor services", async () => {
+    await perform("timeline.zoomIn", ctx());
+    await perform("timeline.zoomOut", ctx());
+    await perform("timeline.zoomFit", ctx());
+    await perform("timeline.toggleSnapping", ctx());
+    expect(editor.zoomBy).toHaveBeenNthCalledWith(1, 1.5);
+    expect(editor.zoomBy).toHaveBeenNthCalledWith(2, 1 / 1.5);
+    expect(editor.zoomFit).toHaveBeenCalledOnce();
+    expect(editor.toggleSnapping).toHaveBeenCalledOnce();
+    expect(editingActions.get("timeline.zoomFit").shortcut).toBe("\\");
+  });
+
+  it("are unavailable without a composition", () => {
+    const ids = editingActions.available(ctx({ project: null, compositionId: null })).map((a) => a.id);
+    expect(ids.some((id) => id.startsWith("tool.") || id.startsWith("timeline."))).toBe(false);
+  });
+});
+
+describe("selection", () => {
+  it("select all selects every clip; deselect needs a selection", async () => {
+    await perform("selection.selectAll", ctx());
+    expect(editor.selectClips).toHaveBeenLastCalledWith(["c1", "c2", "a1c"]);
+    expect(editingActions.available(ctx()).map((a) => a.id)).not.toContain("selection.clear");
+    await perform("selection.clear", ctx({ selectedClipIds: ["c1"] }));
+    expect(editor.selectClips).toHaveBeenLastCalledWith([]);
+  });
+});
+
+describe("playback", () => {
+  it("play/pause toggles; stepping and skipping seek to frame boundaries inside the composition", async () => {
+    await perform("playback.playPause", ctx());
+    expect(togglePlay).toHaveBeenCalledOnce();
+    await perform("playback.stepForward", ctx());
+    expect(seek).toHaveBeenLastCalledWith(33_333);
+    await perform("playback.stepBack", ctx({ playheadUs: 0 }));
+    expect(seek).toHaveBeenLastCalledWith(0);
+    await perform("playback.skipForward", ctx({ playheadUs: 2 * SEC }));
+    expect(seek).toHaveBeenLastCalledWith(3 * SEC);
+    await perform("playback.skipBack", ctx({ playheadUs: 2 * SEC }));
+    expect(seek).toHaveBeenLastCalledWith(1 * SEC);
+    await perform("playback.goToStart", ctx({ playheadUs: 5 * SEC }));
+    expect(seek).toHaveBeenLastCalledWith(0);
+    await perform("playback.goToEnd", ctx());
+    expect(seek).toHaveBeenLastCalledWith(9_966_667);
+  });
+
+  it("is unavailable when the composition has no length", () => {
+    const empty = createProject({
+      id: "e",
+      now: "2026-11-06T00:00:00Z",
+      compositions: [createComposition({ id: "main", width: 10, height: 10, durationUs: 0 })],
+      mainCompositionId: "main",
+    });
+    const ids = editingActions.available(ctx({ project: empty })).map((a) => a.id);
+    expect(ids).not.toContain("playback.playPause");
+    expect(ids).not.toContain("playback.goToEnd");
+  });
+});
+
+describe("marker jumps", () => {
+  it("go to the next and previous marker, only when there is one", async () => {
+    expect(editingActions.available(ctx()).map((a) => a.id)).not.toContain("marker.next");
+    for (const t of [2, 5, 8]) await perform("marker.add", ctx({ playheadUs: t * SEC }));
+    await perform("marker.next", ctx({ playheadUs: 3 * SEC }));
+    expect(seek).toHaveBeenLastCalledWith(5 * SEC);
+    await perform("marker.previous", ctx({ playheadUs: 3 * SEC }));
+    expect(seek).toHaveBeenLastCalledWith(2 * SEC);
+    expect(editingActions.available(ctx({ playheadUs: 9 * SEC })).map((a) => a.id)).not.toContain("marker.next");
+    expect(editingActions.available(ctx({ playheadUs: 1 * SEC })).map((a) => a.id)).not.toContain("marker.previous");
   });
 });
 

@@ -1,3 +1,4 @@
+import type { Op } from "@lumacut/schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { editingActions } from "../actions/editing.ts";
@@ -8,18 +9,19 @@ import { ActionContextMenu } from "../components/palette/ActionContextMenu.tsx";
 import { CommandPalette } from "../components/palette/CommandPalette.tsx";
 import { ShortcutHelp } from "../components/palette/ShortcutHelp.tsx";
 import { SaveStatus } from "../components/project/SaveStatus.tsx";
+import { Timeline } from "../components/timeline/Timeline.tsx";
+import { Toolbar } from "../components/timeline/Toolbar.tsx";
 import { useEditingHost } from "../editor/useEditingHost.ts";
-import { formatDuration } from "../lib/format.ts";
+import { usePreview } from "../editor/usePreview.ts";
+import { newId } from "../lib/ids.ts";
 import { useAssetsStore } from "../stores/assets.ts";
 import { useEditorStore } from "../stores/editor.ts";
 import { projectStore, useProjectStore } from "../stores/project.ts";
 
-const BUTTONS = ["history.undo", "history.redo", "palette.open"] as const;
-
 /**
- * The editor shell. M3a gives it everything but the timeline: open a project, run any editing
- * action (palette, shortcuts, context menu), undo/redo and autosave, with a plain outline of the
- * tracks and clips to select from. The Pro timeline (M3b) replaces the outline.
+ * The editor: preview on top, the Pro timeline below, a side panel for adding media and for the
+ * history. Everything that changes the project goes through the editing actions or through a
+ * timeline gesture, and from there through `projectStore.dispatch`.
  */
 export function ProjectPage() {
   const { projectId } = useParams();
@@ -30,7 +32,7 @@ export function ProjectPage() {
   const saveError = useProjectStore((s) => s.saveError);
   const serverVersion = useProjectStore((s) => s.serverVersion);
   const undoStack = useProjectStore((s) => s.undoStack);
-  const { selectedClipIds, selectedTrackId, playheadUs } = useEditorStore();
+  const editor = useEditorStore();
   const assets = useAssetsStore((s) => s.byId);
   const assetOrder = useAssetsStore((s) => s.order);
   const loadAssets = useAssetsStore((s) => s.load);
@@ -38,6 +40,10 @@ export function ProjectPage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const compositionId = editor.activeCompositionId ?? project?.mainCompositionId ?? null;
+  const preview = usePreview(project, compositionId);
+  const { togglePlay, seek } = preview;
 
   const ui = useMemo(
     () => ({
@@ -47,8 +53,10 @@ export function ProjectPage() {
       showShortcuts: () => {
         setHelpOpen(true);
       },
+      togglePlay,
+      seek,
     }),
-    [],
+    [togglePlay, seek],
   );
   const host = useEditingHost(ui);
   useShortcuts(editingActions, host.ctx, host.runAction);
@@ -79,8 +87,7 @@ export function ProjectPage() {
       if (document.visibilityState === "hidden") void projectStore.getState().saveNow();
     };
     const warn = (event: BeforeUnloadEvent) => {
-      const state = projectStore.getState().saveState;
-      if (state !== "saved") event.preventDefault();
+      if (projectStore.getState().saveState !== "saved") event.preventDefault();
     };
     document.addEventListener("visibilitychange", flush);
     window.addEventListener("pagehide", flush);
@@ -101,32 +108,32 @@ export function ProjectPage() {
     [host],
   );
 
-  const composition = project?.compositions.find((c) => c.id === host.ctx.compositionId);
+  const commit = useCallback((op: Op, label: string) => {
+    const result = projectStore.getState().dispatch(op, { label });
+    setNotice(result.ok ? null : result.message);
+  }, []);
+
+  const composition = project?.compositions.find((c) => c.id === compositionId);
   const library = assetOrder.map((id) => assets[id]).filter((a) => a?.status === "ready");
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <header className="sticky top-0 z-30 flex flex-wrap items-center gap-3 border-b border-neutral-800 bg-neutral-950/95 px-6 py-3 backdrop-blur">
+    <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
+      <header className="flex flex-wrap items-center gap-3 border-b border-neutral-800 px-4 py-2">
         <Link to="/" className="text-sm text-sky-400 hover:underline">
           ← Library
         </Link>
-        <h1 className="truncate text-lg font-semibold" data-testid="project-name">
+        <h1 className="truncate text-base font-semibold" data-testid="project-name">
           {project?.name ?? "Project"}
         </h1>
         <SaveStatus state={saveState} detail={saveError} />
         <div className="ml-auto flex items-center gap-1">
-          {BUTTONS.map((id) => (
-            <ActionButton key={id} action={editingActions.get(id)} ctx={host.ctx} variant="icon" onRun={host.runAction} className="text-neutral-200 hover:bg-neutral-800" />
-          ))}
           <ActionButton action={editingActions.get("help.shortcuts")} ctx={host.ctx} variant="icon" onRun={host.runAction} className="text-neutral-200 hover:bg-neutral-800" />
         </div>
       </header>
 
       {saveState === "conflict" && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-red-900 bg-red-950/60 px-6 py-3 text-sm">
-          <span>
-            This project was changed somewhere else (version {serverVersion ?? "?"}). Your edits here are kept, but not saved yet.
-          </span>
+        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-red-900 bg-red-950/60 px-4 py-2 text-sm">
+          <span>This project was changed somewhere else (version {serverVersion ?? "?"}). Your edits here are kept, but not saved yet.</span>
           <button type="button" onClick={() => void projectStore.getState().resolveConflict("reload")} className="rounded bg-neutral-800 px-3 py-1 hover:bg-neutral-700">
             Load the other version
           </button>
@@ -136,103 +143,41 @@ export function ProjectPage() {
         </div>
       )}
 
-      <main className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        {loading && <p className="text-neutral-400">Opening project…</p>}
-        {loadError !== null && (
-          <p role="alert" className="rounded-md border border-red-800 bg-red-950/40 px-3 py-2 text-sm lg:col-span-2">
-            {loadError} <Link to="/" className="underline">Back to the library</Link>
-          </p>
-        )}
-        {project !== null && composition !== undefined && (
-          <>
-            <section aria-label="Tracks and clips" className="flex min-w-0 flex-col gap-3">
-              {notice !== null && (
-                <p role="alert" className="rounded-md border border-amber-700/60 bg-amber-950/40 px-3 py-2 text-sm">
-                  {notice}
+      {loading && <p className="p-4 text-neutral-400">Opening project…</p>}
+      {loadError !== null && (
+        <p role="alert" className="m-4 rounded-md border border-red-800 bg-red-950/40 px-3 py-2 text-sm">
+          {loadError} <Link to="/" className="underline">Back to the library</Link>
+        </p>
+      )}
+
+      {project !== null && composition !== undefined && (
+        <>
+          <div className="flex min-h-0 flex-1 gap-3 p-3">
+            <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col gap-2">
+              {(notice !== null || preview.error !== null) && (
+                <p role="alert" className="rounded-md border border-amber-700/60 bg-amber-950/40 px-3 py-1.5 text-sm">
+                  {notice ?? preview.error}
                 </p>
               )}
-              <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-300">
-                <span>
-                  {composition.name} · {composition.width}×{composition.height} · {composition.fps.num / composition.fps.den} fps · {formatDuration(composition.durationUs)} · <span data-testid="marker-count">{composition.markers.length}</span> markers
-                </span>
-                <label className="ml-auto flex items-center gap-2">
-                  Playhead (seconds)
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    value={playheadUs / 1_000_000}
-                    onChange={(e) => {
-                      useEditorStore.getState().setPlayhead(Number(e.target.value) * 1_000_000);
-                    }}
-                    className="w-24 rounded border border-neutral-700 bg-neutral-900 px-2 py-1"
-                  />
-                </label>
-              </div>
-              <ActionContextMenu registry={editingActions} ctx={host.ctx} onRun={(id) => void run(id)}>
-                <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3" data-testid="outline">
-                  {[...composition.tracks].reverse().map((track) => (
-                    <div key={track.id} className="rounded-md border border-neutral-800 p-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          useEditorStore.getState().selectTrack(track.id === selectedTrackId ? null : track.id);
-                        }}
-                        aria-pressed={track.id === selectedTrackId}
-                        className={`mb-1 flex items-center gap-2 text-sm font-medium ${track.id === selectedTrackId ? "text-sky-300" : "text-neutral-200"}`}
-                      >
-                        <Icon name={track.kind === "visual" ? "video" : "audio"} />
-                        {track.name}
-                        <span className="text-xs font-normal text-neutral-500">
-                          {[track.muted && "muted", track.solo && "solo", track.locked && "locked", track.hidden && "hidden"].filter(Boolean).join(" · ")}
-                        </span>
-                      </button>
-                      {track.clips.length === 0 ? (
-                        <p className="text-xs text-neutral-500">Empty</p>
-                      ) : (
-                        <ul className="flex flex-wrap gap-1">
-                          {track.clips.map((clip) => {
-                            const selected = selectedClipIds.includes(clip.id);
-                            const asset = project.assets.find((a) => a.id === clip.assetId);
-                            return (
-                              <li key={clip.id}>
-                                <button
-                                  type="button"
-                                  data-clip={clip.id}
-                                  aria-pressed={selected}
-                                  onClick={(e) => {
-                                    const editor = useEditorStore.getState();
-                                    if (e.shiftKey || e.metaKey || e.ctrlKey) {
-                                      editor.selectClips(selected ? selectedClipIds.filter((id) => id !== clip.id) : [...selectedClipIds, clip.id]);
-                                    } else {
-                                      editor.selectClips([clip.id]);
-                                    }
-                                  }}
-                                  className={`rounded border px-2 py-1 text-xs ${selected ? "border-sky-400 bg-sky-900/60" : "border-neutral-700 bg-neutral-800 hover:bg-neutral-700"}`}
-                                >
-                                  {asset?.name ?? clip.type} · {(clip.startUs / 1_000_000).toFixed(2)}s{clip.linkId ? " 🔗" : ""}
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
+              <div ref={preview.stageRef} data-testid="preview" className="min-h-0 flex-1 rounded-lg bg-black" />
+              {preview.diagnostics.length > 0 && (
+                <ul aria-label="Not shown in the preview" className="max-h-16 overflow-y-auto text-xs text-amber-300">
+                  {preview.diagnostics.map((d) => (
+                    <li key={`${d.clipId ?? "-"}:${d.code}`}>
+                      <span className="font-mono">{d.code}</span> — {d.message}
+                    </li>
                   ))}
-                </div>
-              </ActionContextMenu>
-              <p className="text-xs text-neutral-500">
-                Select clips (Shift/Ctrl-click for several) and a track, set the playhead, then press Mod+K to run any command. Right-click for a menu. The timeline arrives in the next step.
-              </p>
+                </ul>
+              )}
             </section>
 
-            <aside className="flex min-w-0 flex-col gap-4">
+            <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto">
               <section aria-label="Add media" className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
                 <h2 className="mb-2 text-sm font-semibold">Add media at the playhead</h2>
                 {library.length === 0 ? (
                   <p className="text-xs text-neutral-500">No ready assets. Upload some in the library.</p>
                 ) : (
-                  <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                  <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto">
                     {library.map((asset) =>
                       asset === undefined ? null : (
                         <li key={asset.id} className="flex items-center gap-2 text-xs">
@@ -257,17 +202,51 @@ export function ProjectPage() {
                 {undoStack.length === 0 ? (
                   <p className="text-xs text-neutral-500">No edits yet.</p>
                 ) : (
-                  <ol className="flex max-h-56 flex-col-reverse gap-0.5 overflow-y-auto text-xs text-neutral-300" data-testid="history">
+                  <ol className="flex max-h-48 flex-col-reverse gap-0.5 overflow-y-auto text-xs text-neutral-300" data-testid="history">
                     {undoStack.map((entry, i) => (
                       <li key={`${String(i)}-${String(entry.at)}`}>{entry.label}</li>
                     ))}
                   </ol>
                 )}
               </section>
+              <p className="text-xs text-neutral-500">
+                Mod+K opens every command. Tools: V select, C razor, B ripple, N roll, Y slip, U slide. Space plays, S splits at the playhead, ? lists all shortcuts.
+              </p>
             </aside>
-          </>
-        )}
-      </main>
+          </div>
+
+          <Toolbar ctx={host.ctx} tool={editor.tool} snapping={editor.snapping} playing={preview.playing} playheadUs={editor.playheadUs} fps={composition.fps} onRun={host.runAction} />
+          <ActionContextMenu registry={editingActions} ctx={host.ctx} onRun={(id) => void run(id)}>
+            <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+              <Timeline
+                project={project}
+                composition={composition}
+                ctx={host.ctx}
+                tool={editor.tool}
+                zoomPxPerSec={editor.zoomPxPerSec}
+                scrollUs={editor.scrollUs}
+                snapping={editor.snapping}
+                playheadUs={editor.playheadUs}
+                playing={preview.playing}
+                selectedClipIds={editor.selectedClipIds}
+                selectedTrackId={editor.selectedTrackId}
+                newId={newId}
+                onSelectClips={editor.selectClips}
+                onSelectTrack={editor.selectTrack}
+                onSeek={seek}
+                onCommit={commit}
+                onRunAction={host.runAction}
+                onZoom={(zoom, scroll) => {
+                  editor.setZoom(zoom);
+                  editor.setScroll(scroll);
+                }}
+                onScroll={editor.setScroll}
+                onViewport={editor.setViewportPx}
+              />
+            </div>
+          </ActionContextMenu>
+        </>
+      )}
 
       <CommandPalette registry={editingActions} ctx={host.ctx} open={paletteOpen} onOpenChange={setPaletteOpen} run={run} />
       <ShortcutHelp registry={editingActions} open={helpOpen} onOpenChange={setHelpOpen} />

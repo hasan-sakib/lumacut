@@ -7,7 +7,8 @@
 | M1 | Media pipeline + auth + asset library UI | done | 2026-11-01 |
 | M2 | Engine core: decode, cache, composite, nested comps, audio sync, frame-accurate seek | done, with checks skipped at the owner's request (see Current focus) | 2026-11-06 |
 | M3a | Ops engine (`packages/ops`), projects API + autosave + undo/redo, Action Registry upgrades + command palette | built, **not verified** (nothing was run; see Current focus) | 2026-11-06 |
-| M3b | Editor page: Pro timeline (trim tools, snapping, markers, linking), inspector, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | not started | — |
+| M3b-1 | Editor page: preview + playback, Pro timeline (zoom/scroll, move/trim, snapping, razor, ripple/roll/slip/slide, markers, track headers) | built, **not verified** (nothing was run) | 2026-11-06 |
+| M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | not started | — |
 | M4a | Keyframes + graph editor + color pipeline + scopes + LUTs + effect system (~10 effects) | not started | — |
 | M4b | Text + captions editing + all transitions | not started | — |
 | M4c | Remaining effects (40 total) | not started | — |
@@ -22,15 +23,15 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
-**M3a was built on 2026-11-06 at the owner's request without running any tests, typecheck or lint**, and was not committed. Everything below is unverified code. The only commands run were the generators (`make gen-schema`, `make gen-openapi`) and `pnpm install --offline` (to link `@lumacut/ops`). First thing next session, in this order, fixing whatever breaks:
-1. `make check` (types, lint, unit: the new `packages/ops` tests carry a 95% coverage threshold in `vitest.config.ts`; `make gen-schema`/`gen-openapi` outputs must match the drift checks).
-2. `make test-stack` after `docker compose ... up -d --build` (new Alembic revision `0002_projects`, `test_projects.py`, and `apps/web/e2e/{projects,player}.spec.ts`; the web image must be rebuilt).
-3. Manual: log in, **New project**, open it, `Mod+K` → "video track" → Enter, watch the save status turn "All changes saved", reload, undo/redo (`Mod+Z` / `Mod+Shift+Z`); open the project in a second tab, edit in both, expect the conflict banner.
-4. Still open from M2 (unchanged): `make perf-media && make perf`, `make test-stack`/`test-samples`, and the unexplained SwiftShader-vs-GPU video difference (see the M2 entries below and Known gaps).
+**M3a and M3b-1 were built on 2026-11-06 at the owner's request with no tests, typecheck or lint run, and nothing committed**, on top of M2 which was also closed without its final verification. Treat all three as unverified. Only generators (`make gen-schema`, `make gen-openapi`) and `pnpm install --offline` were run. First thing next session, in this order, fixing whatever breaks:
+1. `pnpm install` (lockfile), then `make check` (types, lint, unit; `packages/ops` has a 95% coverage threshold).
+2. `docker compose -f infra/docker-compose.yml up -d --build`, then `make test-stack` (Alembic `0002_projects`, `test_projects.py`, e2e `projects.spec.ts`, `timeline.spec.ts`, `player.spec.ts`).
+3. Manual in the browser: upload a video, **New project**, "Add media at the playhead", then: drag a clip, drag an edge, `C` razor click, `B`/`N`/`Y`/`U` tools, snapping to the playhead and edges, `Space` plays with sound, `S` splits at the playhead, `Mod+Z`, reload and check the edit is identical; two tabs for the conflict banner.
+4. Still open from M2: `make perf-media && make perf`, `make test-samples`, and the unexplained SwiftShader-vs-GPU video difference.
 
-**Owner decision needed before M4a:** `Keyframe.tUs` is treated as **relative to the clip's start** (see Decisions → M3a). The spec doesn't say.
+**Owner decision needed before M4a:** `Keyframe.tUs` is treated as relative to the clip's start (see Decisions → M3a); the spec doesn't say.
 
-Next: M3b (timeline, inspector, e2e acceptance). Plan it and wait for approval.
+Next: M3b-2 (inspector, thumbnails/waveforms, clip context menu, copy/paste, the acceptance e2e). Plan it and wait for approval.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -192,6 +193,13 @@ Getting started in a new session:
 - **Action Registry:** `search` (own fuzzy scorer, no dependency), `grouped`, `toToolList` (plain data + JSON Schema args, for the AI in M12), `describeArgs` (flat args form from a Zod schema), `runAction` (single op as is, several as one labelled `batch`). The command palette (`Mod+K`, ARIA combobox, argument step generated from the schema), the shortcut list (`?`) and the right-click menu are all generated from `editingActions`. 18 editing actions registered (split, delete, ripple delete, duplicate, link/unlink, track add/remove/mute/solo/lock/hide, markers, add media at playhead, undo/redo, palette, help).
 - **Web changes to shared pieces:** `useShortcuts(registry, ctx, onRun?)` can run actions through the host (op-returning actions); Space/Enter on a focused button is left to the button; `ActionButton` takes `onRun`; the library gained `project.new` and a projects list; `/project/:projectId` is a shell (outline of tracks and clips, playhead field, history list, add-media list) that the M3b timeline will replace.
 
+**2026-11-06 — M3b-1: editor page, timeline, preview (decisions)**
+- **A composition is exactly as long as its content.** Nothing updated `Composition.durationUs` (so the preview had nothing to play). `durationOps(project)` in `packages/ops` returns the `updateComposition` ops that make each composition end at its last clip; `projectStore.dispatch` folds them into the edit's own batch, so edit + duration is one undo step. Photo projects keep 0. A longer hand-set duration is therefore shortened by the first edit (project settings could later add a fixed length).
+- **Gestures are pure** (`apps/web/src/timeline/gestures.ts`): move (selection + linked clips, lane change for the grabbed clip within its kind), trim / ripple trim, roll, slip (drag right shows earlier media; delta in source µs scaled by speed), slide, razor (reuses `splitOps`, so linked halves are relinked). Each returns one op (a labelled `batch` when several) or null. `geometry.ts` (zoom, frame rounding, ruler ticks) and `snapping.ts` (points: 0, clip edges, markers, playhead; 8 px threshold; snap or else land on a frame) are pure too.
+- **What you see while dragging is what release applies:** the timeline draws `applyOp(project, op).project` computed on every pointer move; if `applyOp` refuses, the clips turn red with the reason and releasing does nothing. Escape cancels a drag.
+- **Timeline UI:** DOM + CSS, one scroll container with a sticky header column and ruler; pointer events on `window` during a drag. Visual tracks are listed top-down in reverse array order. Clicking a clip selects its linked partners (Alt: just the clip; Shift/Ctrl toggles). Ctrl/Cmd+wheel zooms around the pointer; the view follows the playhead while playing.
+- **Preview** (`editor/usePreview.ts`): one `PlaybackSession` per composition; project changes are pushed through a coalescing queue (an edit pauses playback: the M2 limitation); while playing the playhead follows the audio clock, while paused any playhead change shows that frame.
+- **Actions added:** tools (V C B N Y U), zoom in/out/fit (`=` `-` `\`), snapping (Shift+S), select all / deselect, playback (Space, frame and second steps, Home/End), marker jumps (Shift+M / Alt+M). Track switches take an optional `{ trackId }` so header buttons run the same actions; they are listed whenever tracks exist and ask for a track when run without one. `ActionButton` gained `args` and `pressed`; `useShortcuts`/`ActionButton` can run actions through the host.
 
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
@@ -258,6 +266,12 @@ Getting started in a new session:
   - Keyframes: time base is a pending decision (above); splitting mid-animation can jump (no boundary keyframes).
   - The palette searches editing actions only (effects, presets, templates and settings join in M4/M9); the right-click menu is attached to the outline only.
   - Not started (M3b): Pro timeline (zoom/scroll, snapping, drag/trim tools, markers UI, track headers, thumbnails/waveforms), inspector, preview in the editor, the acceptance e2e, shortcut editor.
+- **M3b-1 gaps:**
+  - **Unverified**, including the pointer/drag code, which was written without a browser; expect fixes on the first real run.
+  - The whole editor page re-renders on every animation frame while playing (the editor store is read in full); acceptable now, to be narrowed if playback stutters.
+  - Editing during playback pauses it (engine `setProject`); an incremental engine update is an M2 follow-up.
+  - Not built: inspector, clip thumbnails and waveforms, clip context menu, copy/paste of clips and attributes, in/out points, rubber-band selection, opening a nested composition to edit it, Simple-mode magnetic track, shortcut editor, markers with duration/rename in the UI.
+  - Dragging a clip to another lane moves only the grabbed clip (linked partners stay on their lanes); there is no "new lane" drop target.
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
@@ -335,7 +349,7 @@ Getting started in a new session:
 
 No new Python packages or AI models.
 
-**Added in M3a:** no new dependencies (`@lumacut/ops` is a new workspace package; `fast-check`, `zod`, `radix-ui` already present).
+**Added in M3a/M3b-1:** no new dependencies (`@lumacut/ops` is a new workspace package; `fast-check`, `zod`, `radix-ui` already present).
 
 **Docker images and system packages**
 | Component | Version | License | Notes |

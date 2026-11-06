@@ -2,6 +2,7 @@ import { runAction, type AnyAction } from "@lumacut/actions";
 import { useCallback, useMemo, useRef } from "react";
 import { editingActions, type EditingContext, type EditingServices } from "../actions/editing.ts";
 import { newId } from "../lib/ids.ts";
+import { fitZoom, zoomBy } from "../timeline/geometry.ts";
 import { toProjectAsset } from "../lib/project-assets.ts";
 import { useAssetsStore } from "../stores/assets.ts";
 import { useEditorStore } from "../stores/editor.ts";
@@ -10,13 +11,15 @@ import { projectStore, useProjectStore } from "../stores/project.ts";
 export interface EditingUi {
   openPalette: () => void;
   showShortcuts: () => void;
+  togglePlay: () => void;
+  seek: (us: number) => void;
 }
 
 export interface EditingHost {
   ctx: EditingContext;
   /** Runs an action by id; resolves with an error message to show, or null on success. */
   run: (id: string, args?: unknown) => Promise<string | null>;
-  runAction: (action: AnyAction<EditingContext>) => void;
+  runAction: (action: AnyAction<EditingContext>, args?: unknown) => void;
 }
 
 /**
@@ -32,7 +35,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
   const selectedTrackId = useEditorStore((s) => s.selectedTrackId);
   const playheadUs = useEditorStore((s) => s.playheadUs);
-  const { openPalette, showShortcuts } = ui;
+  const { openPalette, showShortcuts, togglePlay, seek } = ui;
 
   const services = useMemo<EditingServices>(
     () => ({
@@ -49,8 +52,31 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       },
       openPalette,
       showShortcuts,
+      playback: { togglePlay, seek },
+      editor: {
+        setTool: (tool) => {
+          useEditorStore.getState().setTool(tool);
+        },
+        zoomBy: (factor) => {
+          const editor = useEditorStore.getState();
+          editor.setZoom(zoomBy(editor.zoomPxPerSec, factor));
+        },
+        zoomFit: () => {
+          const editor = useEditorStore.getState();
+          const comp = projectStore.getState().project?.compositions.find((c) => c.id === editor.activeCompositionId);
+          editor.setZoom(fitZoom(comp?.durationUs ?? 0, editor.viewportPx));
+          editor.setScroll(0);
+        },
+        toggleSnapping: () => {
+          const editor = useEditorStore.getState();
+          editor.setSnapping(!editor.snapping);
+        },
+        selectClips: (ids) => {
+          useEditorStore.getState().selectClips(ids);
+        },
+      },
     }),
-    [openPalette, showShortcuts],
+    [openPalette, showShortcuts, togglePlay, seek],
   );
 
   const ctx = useMemo<EditingContext>(
@@ -83,8 +109,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   }, []);
 
   const runFromUi = useCallback(
-    (action: AnyAction<EditingContext>) => {
-      void run(action.id);
+    (action: AnyAction<EditingContext>, args?: unknown) => {
+      void run(action.id, args);
     },
     [run],
   );

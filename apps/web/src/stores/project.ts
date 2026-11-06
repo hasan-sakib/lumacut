@@ -1,4 +1,4 @@
-import { applyOp, OpError, type OpErrorCode } from "@lumacut/ops";
+import { applyOp, durationOps, OpError, type OpErrorCode } from "@lumacut/ops";
 import type { Op, Project } from "@lumacut/schema";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
@@ -154,9 +154,17 @@ export function createProjectStore(overrides: Partial<ProjectStoreDeps> = {}): S
       dispatch(op, options = {}) {
         const { project } = get();
         if (project === null) return { ok: false, code: "no_project", message: "No project is open." };
+        const label = options.label ?? labelFor(op);
+        let applied: Op = op;
         let result;
         try {
           result = applyOp(project, op);
+          // A composition is as long as its content: fold the duration update into the same step.
+          const fixes = durationOps(result.project);
+          if (fixes.length > 0) {
+            applied = { type: "batch", label, ops: [op, ...fixes] };
+            result = applyOp(project, applied);
+          }
         } catch (error) {
           return failure(error);
         }
@@ -169,9 +177,9 @@ export function createProjectStore(overrides: Partial<ProjectStoreDeps> = {}): S
         set({ project: result.project });
         record(
           {
-            label: options.label ?? labelFor(op),
+            label,
             undo: result.inverse,
-            redo: op,
+            redo: applied,
             ...(options.coalesceKey === undefined ? {} : { coalesceKey: options.coalesceKey }),
             at: now,
           },

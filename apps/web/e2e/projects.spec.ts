@@ -4,7 +4,7 @@ import { registerNewUser } from "./helpers.ts";
 test.describe.configure({ timeout: 120_000 });
 
 const status = (page: Page) => page.getByTestId("save-status");
-const tracks = (page: Page) => page.getByTestId("outline").getByRole("button", { pressed: false }).filter({ hasText: /Video|Audio/ });
+const tracks = (page: Page) => page.getByTestId("track-header");
 
 async function runFromPalette(page: Page, query: string): Promise<void> {
   await page.keyboard.press("ControlOrMeta+K");
@@ -50,7 +50,7 @@ test("a command that takes arguments asks for them in the palette", async ({ pag
   await runFromPalette(page, "marker");
   await page.getByLabel(/label/).fill("Intro");
   await page.getByRole("button", { name: "Run" }).click();
-  await expect(page.getByTestId("marker-count")).toHaveText("1");
+  await expect(page.locator("[data-marker]")).toHaveCount(1);
 });
 
 test("the shortcut list and the right-click menu come from the same actions", async ({ page }) => {
@@ -59,7 +59,7 @@ test("the shortcut list and the right-click menu come from the same actions", as
   await expect(page.getByRole("heading", { name: "Keyboard shortcuts" })).toBeVisible();
   await expect(page.getByText("Split clip at playhead")).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByTestId("outline").click({ button: "right", position: { x: 5, y: 5 } });
+  await page.getByTestId("lane").first().click({ button: "right", position: { x: 5, y: 5 } });
   await expect(page.getByRole("menuitem", { name: /Add video track/ })).toBeVisible();
 });
 
