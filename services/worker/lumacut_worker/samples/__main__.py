@@ -1,4 +1,9 @@
-"""Usage: python -m lumacut_worker.samples OUT_DIR"""
+"""Usage: python -m lumacut_worker.samples [--fixtures | --perf-media] OUT_DIR
+
+Without a flag: the full sample set (`make samples`). --fixtures: the small engine fixtures
+(`make fixtures`). --perf-media: M1 renditions of the 1080p samples for `make perf`; OUT_DIR is the
+samples directory (they are written to OUT_DIR/perf).
+"""
 
 import sys
 from pathlib import Path
@@ -8,12 +13,26 @@ from lumacut_worker.samples.generate import generate
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    args = argv[1:]
+    fixtures = "--fixtures" in args
+    perf = "--perf-media" in args
+    args = [a for a in args if a not in ("--fixtures", "--perf-media")]
+    if len(args) != 1:
         print(__doc__, file=sys.stderr)
         return 2
     configure_logging("INFO", json=False)
-    manifest = generate(Path(argv[1]))
-    print(f"generated {len(manifest['files'])} files into {argv[1]}")
+    if perf:
+        from lumacut_worker.samples.perf_media import generate_perf_media
+
+        samples = Path(args[0])
+        manifest = generate_perf_media(samples, samples / "perf")
+    elif fixtures:
+        from lumacut_worker.samples.fixtures import generate_fixtures
+
+        manifest = generate_fixtures(Path(args[0]))
+    else:
+        manifest = generate(Path(args[0]))
+    print(f"generated {len(manifest['files'])} files into {args[0]}")
     return 0
 
 

@@ -19,6 +19,8 @@ const proxy = {
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // The engine runs in a module Worker (ES imports inside the worker bundle).
+  worker: { format: "es" },
   server: { port: 5173, strictPort: true, headers: isolationHeaders, proxy },
   preview: { port: 8080, strictPort: true, host: true, headers: isolationHeaders, proxy },
 });

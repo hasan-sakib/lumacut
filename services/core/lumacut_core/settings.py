@@ -23,6 +23,8 @@ class CoreSettings(BaseSettings):
     s3_access_key: str = "lumacut"
     s3_secret_key: str = "lumacut-dev-secret"
     s3_bucket: str = "lumacut"
+    # Browser origins allowed to read/write the bucket directly (uploads, media playback).
+    cors_allowed_origins: tuple[str, ...] = ("http://localhost:8080", "http://localhost:5173")
     log_level: str = "INFO"
     log_json: bool = True
 

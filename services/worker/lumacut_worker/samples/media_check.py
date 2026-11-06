@@ -118,3 +118,32 @@ def top_level_atoms(path: Path) -> list[str]:
             else:
                 f.seek(size - 8, 1)
     return atoms
+
+
+def decode_all_barcodes(path: Path, width: int, height: int) -> list[int]:
+    """Frame number burned into every frame of `path`, in presentation order (one ffmpeg run).
+
+    Only the barcode row is extracted per frame, so this is cheap even for long files.
+    """
+    from lumacut_worker.samples import barcode
+
+    row_y = height - barcode.strip_height(height) // 2
+    raw = subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            str(path),
+            "-vf",
+            f"format=gray,crop={width}:1:0:{row_y}",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "gray",
+            "-",
+        ],
+        capture_output=True,
+        check=True,
+    ).stdout
+    return [barcode.decode_row(raw[i : i + width]) for i in range(0, len(raw), width)]

@@ -4,6 +4,7 @@ import { defineConfig } from "eslint/config";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
+import { DETERMINISTIC_GLOBS, determinismRules } from "./eslint.determinism.ts";
 
 export default defineConfig(
   {
@@ -44,6 +45,10 @@ export default defineConfig(
     files: ["apps/web/src/**/*.{ts,tsx}"],
     languageOptions: { globals: { ...globals.browser } },
     ...reactHooks.configs.flat["recommended-latest"],
+  },
+  {
+    files: DETERMINISTIC_GLOBS,
+    rules: determinismRules,
   },
   {
     // Tool config files must default-export their config.

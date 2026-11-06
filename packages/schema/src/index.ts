@@ -11,5 +11,6 @@ export * from "./asset.ts";
 export * from "./project.ts";
 export * from "./ops.ts";
 export * from "./time.ts";
+export * from "./factories.ts";
 export * from "./migrations.ts";
 export { registeredSchemaIds, schemaRegistry, type SchemaMeta } from "./registry.ts";

@@ -19,7 +19,11 @@ from lumacut_core.settings import CoreSettings
 if TYPE_CHECKING:
     # Type stubs are a dev-only dependency; never import them at runtime.
     from types_aiobotocore_s3 import S3Client
-    from types_aiobotocore_s3.type_defs import CompletedPartTypeDef, ObjectIdentifierTypeDef
+    from types_aiobotocore_s3.type_defs import (
+        CompletedPartTypeDef,
+        CORSConfigurationTypeDef,
+        ObjectIdentifierTypeDef,
+    )
 
 log = structlog.get_logger()
 
@@ -50,6 +54,38 @@ async def ensure_bucket(s3: S3Client, bucket: str) -> None:
     except ClientError:
         await s3.create_bucket(Bucket=bucket)
         log.info("storage.bucket_created", bucket=bucket)
+
+
+# Headers browsers may read from storage responses. Content-Range/Accept-Ranges are required by
+# the media engine, which reads proxies with HTTP range requests; ETag by multipart uploads.
+CORS_EXPOSE_HEADERS = [
+    "ETag",
+    "Content-Length",
+    "Content-Range",
+    "Accept-Ranges",
+    "Content-Type",
+    "Last-Modified",
+]
+
+
+def bucket_cors_rules(origins: tuple[str, ...]) -> CORSConfigurationTypeDef:
+    return {
+        "CORSRules": [
+            {
+                "AllowedOrigins": list(origins),
+                "AllowedMethods": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+                "AllowedHeaders": ["*"],
+                "ExposeHeaders": CORS_EXPOSE_HEADERS,
+                "MaxAgeSeconds": 3000,
+            }
+        ]
+    }
+
+
+async def apply_bucket_cors(s3: S3Client, bucket: str, origins: tuple[str, ...]) -> None:
+    """Idempotently set the bucket's CORS rules (called at API startup)."""
+    await s3.put_bucket_cors(Bucket=bucket, CORSConfiguration=bucket_cors_rules(origins))
+    log.info("storage.cors_applied", bucket=bucket, origins=list(origins))
 
 
 @dataclass(frozen=True)

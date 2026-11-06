@@ -97,3 +97,21 @@ def test_every_spec_has_a_unique_name_and_purpose(tmp_path: Path) -> None:
     names = [spec.name for spec, _ in jobs]
     assert len(names) == len(set(names)) == len(VIDEOS) + len(AUDIOS) + len(IMAGES)
     assert all(spec.purpose for spec, _ in jobs)
+
+
+def test_barcode_matches_the_shared_vectors_the_typescript_decoder_is_tested_with() -> None:
+    """The engine (TypeScript) and the generator (Python) must agree on the layout bit for bit."""
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[4] / "packages/engine/test/barcode-vectors.json"
+    vectors = json.loads(path.read_text())
+    assert (vectors["cells"], vectors["bits"]) == (barcode.CELLS, barcode.BITS)
+    for height, expected in vectors["stripHeights"].items():
+        assert barcode.strip_height(int(height)) == expected
+    for case in vectors["rows"]:
+        row = barcode.encode_row(case["frame"], case["width"])
+        rebuilt = bytearray()
+        for start, end, value in case["runs"]:
+            rebuilt += bytes([value]) * (end - start)
+        assert bytes(rebuilt) == row, case

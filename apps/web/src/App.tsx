@@ -1,9 +1,14 @@
 import { Tooltip } from "radix-ui";
-import { useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { AuthPage } from "./pages/AuthPage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
 import { useAuthStore } from "./stores/auth.ts";
+
+// The developer player bench carries the whole engine; load it only when someone opens /dev/player.
+const PlayerPage = lazy(() =>
+  import("./pages/dev/PlayerPage.tsx").then((m) => ({ default: m.PlayerPage })),
+);
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const status = useAuthStore((s) => s.status);
@@ -40,6 +45,16 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <LibraryPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dev/player"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<p className="p-10 text-neutral-400">Loading player…</p>}>
+              <PlayerPage />
+            </Suspense>
           </RequireAuth>
         }
       />

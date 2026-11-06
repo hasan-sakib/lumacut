@@ -14,6 +14,14 @@ const PATHS: Record<string, string> = {
   video: "M4 6h11v12H4zM15 10l5-3v10l-5-3",
   audio: "M9 18V6l10-2v12M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm10-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
   image: "M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9h.01",
+  play: "M7 4v16l13-8z",
+  pause: "M8 5v14M16 5v14",
+  stepBack: "M17 5v14M15 5l-9 7 9 7z",
+  stepForward: "M7 5v14M9 5l9 7-9 7z",
+  skipBack: "M11 5l-8 7 8 7zM21 5l-8 7 8 7z",
+  skipForward: "M13 5l8 7-8 7zM3 5l8 7-8 7z",
+  skipStart: "M5 5v14M19 5l-10 7 10 7z",
+  skipEnd: "M19 5v14M5 5l10 7-10 7z",
   file: "M6 3h8l4 4v14H6zM14 3v4h4",
 };
 

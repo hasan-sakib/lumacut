@@ -42,3 +42,21 @@ def test_event_channel_and_payload() -> None:
     wire = event.model_dump(mode="json")
     assert wire["assetId"] == "a1" and wire["errorCode"] is None and wire["deleted"] is False
     assert AssetStateEvent.model_validate(wire) == event
+
+
+def test_bucket_cors_exposes_range_headers_for_media_playback() -> None:
+    from lumacut_core.storage import bucket_cors_rules
+
+    (rule,) = bucket_cors_rules(("http://localhost:8080",))["CORSRules"]
+    assert rule["AllowedOrigins"] == ["http://localhost:8080"]
+    assert {"GET", "HEAD", "PUT"} <= set(rule["AllowedMethods"])
+    # The media engine reads proxies by HTTP range request and needs these to be readable.
+    assert {"Content-Range", "Accept-Ranges", "Content-Length", "ETag"} <= set(
+        rule["ExposeHeaders"]
+    )
+
+
+def test_cors_origins_are_configurable() -> None:
+    assert "http://localhost:8080" in CoreSettings().cors_allowed_origins
+    custom = CoreSettings(cors_allowed_origins=("https://studio.example.com",))
+    assert custom.cors_allowed_origins == ("https://studio.example.com",)

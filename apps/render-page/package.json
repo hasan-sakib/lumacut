@@ -1,0 +1,22 @@
+{
+  "name": "@lumacut/render-page",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless-friendly page that renders a project frame or runs the playback benchmark; driven by scripts/smoke.ts and scripts/perf.ts.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json",
+    "smoke": "node scripts/smoke.ts",
+    "perf": "node scripts/perf.ts"
+  },
+  "dependencies": {
+    "@lumacut/engine": "workspace:^",
+    "@lumacut/schema": "workspace:^"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "vite": "^8.3.5"
+  }
+}

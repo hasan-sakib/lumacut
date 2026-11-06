@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "@lumacut/actions": "workspace:^",
+    "@lumacut/engine": "workspace:^",
+    "@lumacut/schema": "workspace:^",
     "idb-keyval": "^6.3.0",
     "openapi-fetch": "^0.17.0",
     "radix-ui": "^1.8.1",

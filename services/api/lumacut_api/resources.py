@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from lumacut_api.health import HealthCheck
 from lumacut_api.settings import Settings
 from lumacut_core.db import create_engine, create_sessionmaker
-from lumacut_core.storage import ensure_bucket, open_s3
+from lumacut_core.storage import apply_bucket_cors, ensure_bucket, open_s3
 
 if TYPE_CHECKING:
     # Type stubs are a dev-only dependency; never import them at runtime.
@@ -78,6 +78,7 @@ async def open_resources(settings: Settings) -> AsyncIterator[Resources]:
         s3 = await stack.enter_async_context(open_s3(settings))
         s3_public = await stack.enter_async_context(open_s3(settings, public=True))
         await ensure_bucket(s3, settings.s3_bucket)
+        await apply_bucket_cors(s3, settings.s3_bucket, settings.cors_allowed_origins)
 
         yield Resources(
             settings=settings,
