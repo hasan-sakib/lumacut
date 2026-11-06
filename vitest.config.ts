@@ -13,6 +13,8 @@ export default defineConfig({
         "packages/schema/src/**": { lines: 95, statements: 95, functions: 95, branches: 90 },
         // The Action Registry feeds every UI surface and (later) the AI: keep it fully tested.
         "packages/actions/src/**": { lines: 95, statements: 95, functions: 95, branches: 90 },
+        // Every edit to a project goes through applyOp: it must stay close to fully tested.
+        "packages/ops/src/**": { lines: 95, statements: 95, functions: 95, branches: 90 },
       },
     },
   },

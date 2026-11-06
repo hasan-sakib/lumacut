@@ -22,6 +22,15 @@ const PATHS: Record<string, string> = {
   skipForward: "M13 5l8 7-8 7zM3 5l8 7-8 7z",
   skipStart: "M5 5v14M19 5l-10 7 10 7z",
   skipEnd: "M19 5v14M5 5l10 7-10 7z",
+  plus: "M12 5v14M5 12h14",
+  undo: "M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3",
+  redo: "m15 14 5-5-5-5M20 9H10a6 6 0 0 0 0 12h3",
+  split: "M12 3v18M7 8 3 12l4 4M17 8l4 4-4 4",
+  copy: "M9 9h11v11H9zM5 15V4h11",
+  link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  unlink: "M10 14a4 4 0 0 0 5.7 0M14 10a4 4 0 0 0-5.7 0M4 4l16 16",
+  marker: "M6 3h12v18l-6-4-6 4z",
+  command: "M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z",
   file: "M6 3h8l4 4v14H6zM14 3v4h4",
 };
 

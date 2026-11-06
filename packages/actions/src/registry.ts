@@ -1,5 +1,7 @@
 import type { Op } from "@lumacut/schema";
 import type * as z from "zod";
+import * as z from "zod";
+import { searchActions, type SearchHit } from "./search.ts";
 import { normalizeShortcut, shortcutFromEvent, type KeyEventLike } from "./shortcuts.ts";
 
 /**
@@ -29,6 +31,18 @@ export interface Action<Ctx, Args = undefined> {
 // Registries store actions with heterogeneous argument types.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyAction<Ctx> = Action<Ctx, any>;
+
+/** An action as the AI (and any other tool consumer) sees it: no functions, only data. */
+export interface ToolDescription {
+  id: string;
+  title: string;
+  description: string;
+  keywords: readonly string[];
+  category: string;
+  shortcut?: string;
+  /** JSON Schema of the arguments, or null when the action takes none. */
+  args: Record<string, unknown> | null;
+}
 
 export class ActionError extends Error {
   override name = "ActionError";
@@ -82,6 +96,39 @@ export class ActionRegistry<Ctx> {
   /** Actions whose `when` holds in this context (menus, palette, the AI tool list). */
   available(ctx: Ctx): AnyAction<Ctx>[] {
     return this.list().filter((a) => a.when(ctx));
+  }
+
+  /** Actions available in this context that match a palette query, best first. */
+  search(query: string, ctx: Ctx, limit?: number): SearchHit<Ctx>[] {
+    return searchActions(this.available(ctx), query, limit);
+  }
+
+  /** Available actions grouped by category (menus, the shortcut help), categories and titles sorted. */
+  grouped(ctx: Ctx): { category: string; actions: AnyAction<Ctx>[] }[] {
+    const groups = new Map<string, AnyAction<Ctx>[]>();
+    for (const action of this.available(ctx)) {
+      groups.set(action.category, [...(groups.get(action.category) ?? []), action]);
+    }
+    return [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([category, actions]) => ({
+        category,
+        actions: actions.sort((a, b) => a.title.localeCompare(b.title)),
+      }));
+  }
+
+  /** Every action (or only those available in `ctx`) as plain data: the tool list for the AI. */
+  toToolList(ctx?: Ctx): ToolDescription[] {
+    const actions = ctx === undefined ? this.list() : this.available(ctx);
+    return actions.map((a) => ({
+      id: a.id,
+      title: a.title,
+      description: a.description,
+      keywords: a.keywords,
+      category: a.category,
+      ...(a.shortcut === undefined ? {} : { shortcut: a.shortcut }),
+      args: a.argsSchema === undefined ? null : (z.toJSONSchema(a.argsSchema) as Record<string, unknown>),
+    }));
   }
 
   /** The action bound to this key event, if it is available in the context. */

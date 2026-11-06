@@ -14,6 +14,36 @@ import { named } from "./registry.ts";
 const Index = z.int().min(0);
 const ClipEdge = named("ClipEdge", z.enum(["start", "end"]));
 
+/** Optional clip fields a patch may remove (a patch can't express "absent" by itself). */
+export const ClipUnsettable = named(
+  "ClipUnsettable",
+  z.enum([
+    "assetId",
+    "compositionId",
+    "freezeAtUs",
+    "trackMatte",
+    "audio",
+    "text",
+    "shape",
+    "paint",
+    "caption",
+    "transitionIn",
+    "linkId",
+    "aiRunId",
+    "placeholder",
+  ]),
+  "An optional clip field that setProps can remove.",
+);
+export type ClipUnsettable = z.infer<typeof ClipUnsettable>;
+
+/** Optional asset fields a patch may remove. */
+export const AssetUnsettable = named(
+  "AssetUnsettable",
+  z.enum(["aiRunId", "video", "audio", "image"]),
+  "An optional asset field that updateAsset can remove.",
+);
+export type AssetUnsettable = z.infer<typeof AssetUnsettable>;
+
 function op<T extends string, S extends z.core.$ZodLooseShape>(type: T, shape: S) {
   return named(
     `${type.charAt(0).toUpperCase()}${type.slice(1)}Op`,
@@ -82,7 +112,11 @@ export type RippleDeleteTarget = z.infer<typeof RippleDeleteTarget>;
 
 // --- Compositions & tracks -------------------------------------------------------------------
 
-export const AddCompositionOp = op("addComposition", { composition: Composition });
+export const AddCompositionOp = op("addComposition", {
+  composition: Composition,
+  /** Position in the project's list; appended when absent. */
+  index: Index.optional(),
+});
 export const RemoveCompositionOp = op("removeComposition", { compositionId: Id });
 export const UpdateCompositionOp = op("updateComposition", {
   compositionId: Id,
@@ -112,7 +146,12 @@ export const RippleDeleteOp = op("rippleDelete", {
   compositionId: Id,
   target: RippleDeleteTarget,
 });
-export const SetPropsOp = op("setProps", { clipId: Id, props: ClipPatch });
+export const SetPropsOp = op("setProps", {
+  clipId: Id,
+  props: ClipPatch,
+  /** Optional fields to remove, applied after `props`. */
+  unset: z.array(ClipUnsettable).optional(),
+});
 export const LinkClipsOp = op("linkClips", { clipIds: z.array(Id).min(2), linkId: Id });
 export const UnlinkClipsOp = op("unlinkClips", { clipIds: z.array(Id).min(1) });
 export const SetPlaceholderOp = op("setPlaceholder", {
@@ -175,10 +214,19 @@ export const RemovePaintStrokesOp = op("removePaintStrokes", {
 
 // --- Assets & markers ------------------------------------------------------------------------
 
-export const AddAssetOp = op("addAsset", { asset: Asset });
+export const AddAssetOp = op("addAsset", { asset: Asset, index: Index.optional() });
 export const RemoveAssetOp = op("removeAsset", { assetId: Id });
-export const UpdateAssetOp = op("updateAsset", { assetId: Id, props: AssetPatch });
-export const AddMarkerOp = op("addMarker", { compositionId: Id, marker: Marker });
+export const UpdateAssetOp = op("updateAsset", {
+  assetId: Id,
+  props: AssetPatch,
+  unset: z.array(AssetUnsettable).optional(),
+});
+export const AddMarkerOp = op("addMarker", {
+  compositionId: Id,
+  marker: Marker,
+  /** Position in the composition's marker list; appended when absent. */
+  index: Index.optional(),
+});
 export const UpdateMarkerOp = op("updateMarker", { compositionId: Id, marker: Marker });
 export const RemoveMarkerOp = op("removeMarker", { compositionId: Id, markerId: Id });
 

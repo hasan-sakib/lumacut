@@ -98,3 +98,40 @@ class Asset(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ProjectRecord(Base):
+    """A project document (the `Project` of packages/schema, as JSON) with optimistic concurrency.
+
+    `version` starts at 1 and increases by one on every save; a save must name the version it was
+    based on (HTTP `If-Match`), so two tabs can't silently overwrite each other.
+    """
+
+    __tablename__ = "projects"
+    __table_args__ = (Index("ix_projects_owner_updated", "owner_id", text("updated_at DESC")),)
+
+    id: Mapped[str] = mapped_column(ID, primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(10))
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    doc: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _now()
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class ProjectSnapshot(Base):
+    """A named copy of a project document at one version (restorable)."""
+
+    __tablename__ = "project_snapshots"
+
+    id: Mapped[str] = mapped_column(ID, primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    version: Mapped[int] = mapped_column(Integer)
+    label: Mapped[str | None] = mapped_column(String(255))
+    doc: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _now()

@@ -767,6 +767,26 @@ class Project(BaseModel):
 type ClipEdge = Literal["start", "end"]
 
 
+type ClipUnsettable = Literal[
+    "assetId",
+    "compositionId",
+    "freezeAtUs",
+    "trackMatte",
+    "audio",
+    "text",
+    "shape",
+    "paint",
+    "caption",
+    "transitionIn",
+    "linkId",
+    "aiRunId",
+    "placeholder",
+]
+
+
+type AssetUnsettable = Literal["aiRunId", "video", "audio", "image"]
+
+
 class CompositionPatch(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -875,6 +895,7 @@ class AddCompositionOp(BaseModel):
     )
     type: Literal["addComposition"]
     composition: Composition
+    index: Annotated[StrictInt | MISSING, Field(ge=0, le=9007199254740991)] = MISSING
 
 
 class RemoveCompositionOp(BaseModel):
@@ -1033,6 +1054,7 @@ class SetPropsOp(BaseModel):
     type: Literal["setProps"]
     clipId: Id
     props: ClipPatch
+    unset: list[ClipUnsettable] | MISSING = MISSING
 
 
 class LinkClipsOp(BaseModel):
@@ -1205,6 +1227,7 @@ class AddAssetOp(BaseModel):
     )
     type: Literal["addAsset"]
     asset: Asset
+    index: Annotated[StrictInt | MISSING, Field(ge=0, le=9007199254740991)] = MISSING
 
 
 class RemoveAssetOp(BaseModel):
@@ -1222,6 +1245,7 @@ class UpdateAssetOp(BaseModel):
     type: Literal["updateAsset"]
     assetId: Id
     props: AssetPatch
+    unset: list[AssetUnsettable] | MISSING = MISSING
 
 
 class AddMarkerOp(BaseModel):
@@ -1231,6 +1255,7 @@ class AddMarkerOp(BaseModel):
     type: Literal["addMarker"]
     compositionId: Id
     marker: Marker
+    index: Annotated[StrictInt | MISSING, Field(ge=0, le=9007199254740991)] = MISSING
 
 
 class UpdateMarkerOp(BaseModel):

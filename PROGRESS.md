@@ -6,7 +6,8 @@
 | M0 | Scaffold: monorepo, Docker Compose, schema + JSON Schema + Pydantic gen, `make check`, sample media | done | 2026-11-01 |
 | M1 | Media pipeline + auth + asset library UI | done | 2026-11-01 |
 | M2 | Engine core: decode, cache, composite, nested comps, audio sync, frame-accurate seek | done, with checks skipped at the owner's request (see Current focus) | 2026-11-06 |
-| M3 | Action Registry + ops + palette + Pro timeline + inspector + undo/redo + autosave | not started | — |
+| M3a | Ops engine (`packages/ops`), projects API + autosave + undo/redo, Action Registry upgrades + command palette | built, **not verified** (nothing was run; see Current focus) | 2026-11-06 |
+| M3b | Editor page: Pro timeline (trim tools, snapping, markers, linking), inspector, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | not started | — |
 | M4a | Keyframes + graph editor + color pipeline + scopes + LUTs + effect system (~10 effects) | not started | — |
 | M4b | Text + captions editing + all transitions | not started | — |
 | M4c | Remaining effects (40 total) | not started | — |
@@ -21,16 +22,15 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
-M2 was closed on 2026-11-06 **at the owner's request without the final verification pass**. CLAUDE.md requires `make check` plus the acceptance runs before calling a milestone done, so treat M2 as built but not fully verified. First thing next session, run and record:
-- `make check` (not run after the last edits: `PlaybackSession` move, `dispose()` returning stats, render-page, web player files).
-- `make perf-media` once, then `make perf` (the SPEC perf gate, **never run**: the script, gates and soak are written but have no results). Perf numbers and the soak (20 s playback + 2000 seeks) are therefore unmeasured.
-- `make smoke-render` (ran once and passed: barcode 137 on both backends, SSIM 0.99805), `make test-stack` (e2e incl. `player.spec.ts`; the Docker `web` image must be rebuilt for `/dev/player`), `make test-samples`.
-- Still open from the smoke run: SwiftShader vs GPU video frames differ by more than 2/255 on 75% of pixels (mean 7.7, max 74) although SSIM is 0.998 and flat colours and means match. Suspected cause is decoder chroma upsampling (software vs VideoToolbox). Not confirmed; the planned check is the same comparison on an image (`perf_i1`), which skips the decoder. Don't record a golden-image tolerance until that is done.
-- Not written: a full-size-media seek test for `make test-engine` (100 random seeks per real 1080p rendition; the page API `seekCheck` exists, no test calls it).
+**M3a was built on 2026-11-06 at the owner's request without running any tests, typecheck or lint**, and was not committed. Everything below is unverified code. The only commands run were the generators (`make gen-schema`, `make gen-openapi`) and `pnpm install --offline` (to link `@lumacut/ops`). First thing next session, in this order, fixing whatever breaks:
+1. `make check` (types, lint, unit: the new `packages/ops` tests carry a 95% coverage threshold in `vitest.config.ts`; `make gen-schema`/`gen-openapi` outputs must match the drift checks).
+2. `make test-stack` after `docker compose ... up -d --build` (new Alembic revision `0002_projects`, `test_projects.py`, and `apps/web/e2e/{projects,player}.spec.ts`; the web image must be rebuilt).
+3. Manual: log in, **New project**, open it, `Mod+K` → "video track" → Enter, watch the save status turn "All changes saved", reload, undo/redo (`Mod+Z` / `Mod+Shift+Z`); open the project in a second tab, edit in both, expect the conflict banner.
+4. Still open from M2 (unchanged): `make perf-media && make perf`, `make test-stack`/`test-samples`, and the unexplained SwiftShader-vs-GPU video difference (see the M2 entries below and Known gaps).
 
-Last verified runs before closing: 347 engine tests (node + browser) green, web 63 unit tests green, typecheck and lint clean, player e2e 2/2 against `pnpm dev` on real uploads.
+**Owner decision needed before M4a:** `Keyframe.tUs` is treated as **relative to the clip's start** (see Decisions → M3a). The spec doesn't say.
 
-Next milestone: M3 (Action Registry + ops + palette + Pro timeline + inspector + undo/redo + autosave). Plan it and wait for approval.
+Next: M3b (timeline, inspector, e2e acceptance). Plan it and wait for approval.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -182,6 +182,17 @@ Getting started in a new session:
 - **Perf gate definition (not yet run):** ≥30 presented fps, p95 render ≤33 ms, ≤1% of composition frames never shown (distinct frame indices, so a 60 Hz display of 30 fps content isn't penalised), no diagnostics or errors; soak: open frames 0, frames opened = closed, texture peak ≤256 MB, memory growth ≤100 MB. SwiftShader is reported as a floor, never gated. Scenario = 3 video tracks (1080p30, 1080p60, 720p24) + 2 image overlays with transform/opacity/blend over 1080p, 30 s timeline with cuts, plus sound.
 - **Headless playback is slow by design:** SwiftShader gave about 7 presented fps in the player e2e, so e2e only asserts frames flow; the real frame-rate claim belongs to `make perf` on the GPU.
 
+**2026-11-06 — M3a: ops, projects API, history, palette (decisions)**
+- **`packages/ops`: `applyOp(project, op) → { project, inverse }`, pure** (`docs/ops.md` has the full semantics). Inverses are exact: structural ops invert directly; every clip-level op's inverse is computed by diffing the clips before/after (`removeClip` / `moveClip` / one `setProps` with `unset` / `addClip`), so no per-op inverse can drift. Clips on a track are kept sorted by `startUs` (canonical order), and invariants (references, track kind, ranges, overlap, source bounds, cycles, unique ids, locked tracks) are checked on the **end state of the top-level op**, so batches and inverses may pass through overlaps. 26 stable error codes (`OP_ERROR_CODES`).
+- **Schema additions for exact inverses:** optional `index` on `addComposition`/`addAsset`/`addMarker`; optional `unset` list on `setProps` (`ClipUnsettable`) and `updateAsset` (`AssetUnsettable`). Regenerated JSON Schema + Pydantic models (`make gen-schema`).
+- **Semantics chosen where the spec is silent** (all in `docs/ops.md`): `rippleTrim` start edge keeps the clip's start; `slipClip` deltas are in source µs; `slideClip` trims adjacent neighbours; `splitClip` drops `transitionIn`/`linkId` on the second half and moves the audio fade-out to it (the action relinks the new halves); `rippleDelete` range splits spanning clips with tail id `<id>-r<end>`; link groups of one are legal; `precompose` puts the nested clip on the lowest picture track involved and fails with `clips_overlap` if the span isn't free.
+- **Keyframe time base (needs owner confirmation):** `Keyframe.tUs` is relative to the clip's `startUs`; `splitClip` partitions and shifts keyframes accordingly and inserts no boundary keyframe.
+- **Projects API:** `projects` + `project_snapshots` tables (`0002_projects`), `POST/GET/PUT/DELETE /api/projects`, snapshots (create, list, restore as a new version, newest 100 kept). Saves send the whole document with `If-Match: <version>`; a stale version gets **412** with the current version in the `ETag` header; a missing header gets 428. The document is validated with the generated Pydantic `Project`; the server stamps `meta.updatedAt`. Deleting an asset that a project lists in `assets` fails with 409 `asset_in_use` (closes the M1 gap in part).
+- **Web project store** (`stores/project.ts`, injected deps so tests use fake clock/client): `dispatch` is the only way to change the document (applyOp, history, autosave scheduling). Undo/redo stacks of `{undo, redo}` ops (200 deep); rapid edits with the same `coalesceKey` within 1 s merge into one step. Autosave: 1.5 s idle, 10 s max wait, retry with backoff (1 s doubling to 30 s) when offline or on 5xx, conflict → banner with "Load the other version" / "Keep mine and save". Late responses from a previously open project are ignored.
+- **Action Registry:** `search` (own fuzzy scorer, no dependency), `grouped`, `toToolList` (plain data + JSON Schema args, for the AI in M12), `describeArgs` (flat args form from a Zod schema), `runAction` (single op as is, several as one labelled `batch`). The command palette (`Mod+K`, ARIA combobox, argument step generated from the schema), the shortcut list (`?`) and the right-click menu are all generated from `editingActions`. 18 editing actions registered (split, delete, ripple delete, duplicate, link/unlink, track add/remove/mute/solo/lock/hide, markers, add media at playhead, undo/redo, palette, help).
+- **Web changes to shared pieces:** `useShortcuts(registry, ctx, onRun?)` can run actions through the host (op-returning actions); Space/Enter on a focused button is left to the button; `ActionButton` takes `onRun`; the library gained `project.new` and a projects list; `/project/:projectId` is a shell (outline of tracks and clips, playhead field, history list, add-media list) that the M3b timeline will replace.
+
+
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
 - **Valkey (BSD-3) instead of Redis.** Redis 8 is RSAL/SSPL/AGPL. RQ and redis-py work unchanged.
@@ -196,7 +207,8 @@ Getting started in a new session:
   - Stable `id` on shape items and text animators.
   - New types the spec leaves undefined: `Asset`, `Marker`, `AiRunRecord`, `PlaceholderInfo`.
 - **Ops added to the SPEC §4 list (14):** `updateComposition, removeComposition, updateAsset, removeAsset, addMarker, updateMarker, removeMarker, setTrackProps, linkClips, unlinkClips, setPlaceholder, removeMask, addPaintStrokes, removePaintStrokes`. A test asserts the catalogue equals the spec list plus exactly these.
-- **`docs/` folder added**, holding the pre-M0 review.
+- **`docs/` folder added**, holding the pre-M0 review and `ops.md` (op semantics).
+- **M3a schema additions** beyond SPEC §4: `index` on three add-ops and `unset` on `setProps`/`updateAsset` (see Decisions).
 - **M1:**
   - **"MinIO" in the M1 request means SeaweedFS** (the swap was approved before M0).
   - **`Action.run` may return `void` / `Promise<void>`** as well as `Op | Op[]`, so app-level commands (upload, retry, log out) are Actions too.
@@ -237,6 +249,15 @@ Getting started in a new session:
   - The full SPEC perf scenario (text, shapes, colour, effects) is added to M4a and M5 acceptance.
   - Playwright's bundled Chromium has H.264 here, but Linux CI would need `channel: "chrome"`. Presigned-URL refresh is basic (45 min TTL, re-resolve on `invalidate`).
   - The `/dev/player` barcode readout only decodes when the barcode clip fills the composition unscaled. Editing a layer pauses playback (project reload).
+- **M3a gaps:**
+  - **Nothing was run** (see Current focus); expect type, lint and logic errors on the first `make check`. `pnpm-lock.yaml` was updated by `pnpm install --offline`.
+  - No op renames the project (`Project.name`), so there is no `project.rename` action yet; a `setProjectProps` op is needed (rule 2).
+  - Autosave sends the whole document; there is no op-log sync, so concurrent edits are caught by version conflict only. Undo history is not persisted across reloads. `beforeunload` can't flush an async save: the page saves on `visibilitychange`/`pagehide` and warns when unsaved.
+  - The asset-in-use guard looks at the project's `assets` list, not at clips; migrations of `schemaVersion` exist in TS only (the server rejects versions other than 1).
+  - `applyOp` re-validates every touched composition in full (O(project) per op): fine for now, to be optimised if drag editing needs it. The composition-cycle check exists in both `packages/ops` and `packages/engine`.
+  - Keyframes: time base is a pending decision (above); splitting mid-animation can jump (no boundary keyframes).
+  - The palette searches editing actions only (effects, presets, templates and settings join in M4/M9); the right-click menu is attached to the outline only.
+  - Not started (M3b): Pro timeline (zoom/scroll, snapping, drag/trim tools, markers UI, track headers, thumbnails/waveforms), inspector, preview in the editor, the acceptance e2e, shortcut editor.
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
@@ -313,6 +334,8 @@ Getting started in a new session:
 | @playwright/test | 1.64.1 | Apache-2.0 | apps/render-page (dev; installed Google Chrome is used for the GPU backend) |
 
 No new Python packages or AI models.
+
+**Added in M3a:** no new dependencies (`@lumacut/ops` is a new workspace package; `fast-check`, `zod`, `radix-ui` already present).
 
 **Docker images and system packages**
 | Component | Version | License | Notes |

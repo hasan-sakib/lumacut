@@ -5,6 +5,8 @@ import type { ViewMode } from "../stores/ui.ts";
 /** Side effects the library actions need; provided by the library page. */
 export interface LibraryServices {
   pickAndUpload: () => Promise<void>;
+  /** Create an empty project and open it. */
+  createProject: () => Promise<void>;
   focusSearch: () => void;
   setView: (view: ViewMode) => void;
   askDelete: (assetId: string) => void;
@@ -36,6 +38,21 @@ libraryActions.register({
   when: () => true,
   run: (ctx) => {
     void ctx.services.pickAndUpload();
+    return undefined;
+  },
+});
+
+libraryActions.register({
+  id: "project.new",
+  title: "New project",
+  description: "Create an empty video project and open the editor.",
+  keywords: ["create", "start", "edit", "video", "composition"],
+  category: "Project",
+  icon: "plus",
+  shortcut: "Mod+Shift+N",
+  when: () => true,
+  run: (ctx) => {
+    void ctx.services.createProject();
     return undefined;
   },
 });

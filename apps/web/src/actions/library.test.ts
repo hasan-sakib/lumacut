@@ -26,6 +26,7 @@ function asset(status: AssetOut["status"]): AssetOut {
 function ctx(partial: Partial<LibraryContext> = {}): LibraryContext {
   const services: LibraryServices = {
     pickAndUpload: vi.fn(() => Promise.resolve()),
+    createProject: vi.fn(() => Promise.resolve()),
     focusSearch: vi.fn(),
     setView: vi.fn(),
     askDelete: vi.fn(),
@@ -53,6 +54,7 @@ describe("library actions", () => {
       "library.search",
       "library.toggleView",
       "library.upload",
+      "project.new",
       "upload.cancel",
       "upload.resume",
     ]);
@@ -67,6 +69,7 @@ describe("library actions", () => {
       "library.search",
       "library.toggleView",
       "library.upload",
+      "project.new",
     ]);
     expect(ids(ctx({ asset: asset("failed") }))).toContain("asset.retry");
     expect(ids(ctx({ asset: asset("ready") }))).not.toContain("asset.retry");

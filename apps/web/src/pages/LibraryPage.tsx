@@ -1,11 +1,14 @@
 import { DropdownMenu } from "radix-ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
+import { createProject } from "../api/projects.ts";
 import { libraryActions, type LibraryContext, type LibraryServices } from "../actions/library.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
 import { Icon } from "../components/Icon.tsx";
 import { AssetGrid, AssetTable } from "../components/library/AssetViews.tsx";
 import { DeleteDialog } from "../components/library/DeleteDialog.tsx";
+import { ProjectsStrip } from "../components/library/ProjectsStrip.tsx";
 import { UploadsPanel } from "../components/library/UploadsPanel.tsx";
 import { droppedFiles, pickFiles, pickWithInput } from "../lib/files.ts";
 import { connectSse } from "../lib/sse.ts";
@@ -53,6 +56,7 @@ export function LibraryPage() {
   const [search, setSearch] = useState(query);
   const [dragging, setDragging] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const resumeInput = useRef<HTMLInputElement>(null);
@@ -81,6 +85,13 @@ export function LibraryPage() {
         const picked = await pickFiles(uploadInput.current, true);
         if (picked.length > 0) useUploadsStore.getState().start(picked);
       },
+      async createProject() {
+        try {
+          void navigate(`/project/${await createProject("Untitled project")}`);
+        } catch (e) {
+          setNotice(e instanceof Error ? e.message : "Couldn't create the project.");
+        }
+      },
       focusSearch() {
         searchRef.current?.focus();
         searchRef.current?.select();
@@ -108,7 +119,7 @@ export function LibraryPage() {
         await useAuthStore.getState().logout();
       },
     }),
-    [setView, askDelete, retry],
+    [setView, askDelete, retry, navigate],
   );
 
   const assets = order.map((id) => byId[id]).filter((a) => a !== undefined);
@@ -171,6 +182,11 @@ export function LibraryPage() {
           className="text-neutral-300 hover:bg-neutral-800"
         />
         <ActionButton
+          action={libraryActions.get("project.new")}
+          ctx={ctx}
+          className="text-neutral-200 hover:bg-neutral-800"
+        />
+        <ActionButton
           action={libraryActions.get("library.upload")}
           ctx={ctx}
           className="bg-sky-600 text-white hover:bg-sky-500"
@@ -203,6 +219,7 @@ export function LibraryPage() {
       </header>
 
       <main className="px-6 py-6">
+        <ProjectsStrip />
         {notice && (
           <p
             role="status"

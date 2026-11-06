@@ -10,6 +10,11 @@ interface ActionButtonProps<Ctx> {
   /** "icon": icon only (the title becomes the ARIA label); "label": icon + text. */
   variant?: "icon" | "label";
   className?: string;
+  /**
+   * How to run the action. Defaults to calling `action.run` directly, which is right for app-level
+   * actions; actions that return project ops must be run through the host (`runAction`) instead.
+   */
+  onRun?: (action: AnyAction<Ctx>) => void;
 }
 
 /** Renders any registered action: tooltip (name, description, shortcut), ARIA label, availability. */
@@ -18,6 +23,7 @@ export function ActionButton<Ctx>({
   ctx,
   variant = "label",
   className = "",
+  onRun,
 }: ActionButtonProps<Ctx>) {
   const available = action.when(ctx);
   const shortcut = action.shortcut ? formatShortcut(action.shortcut, isMacPlatform()) : null;
@@ -32,7 +38,8 @@ export function ActionButton<Ctx>({
           data-action={action.id}
           onClick={(event) => {
             event.stopPropagation();
-            void action.run(ctx, undefined);
+            if (onRun === undefined) void action.run(ctx, undefined);
+            else onRun(action);
           }}
           className={`inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium transition
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400

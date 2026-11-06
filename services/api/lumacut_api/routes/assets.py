@@ -18,7 +18,7 @@ from lumacut_api.assets_service import (
 from lumacut_api.deps import CurrentUser, ResourcesDep, SessionDep
 from lumacut_api.errors import ApiError, error_responses
 from lumacut_core.camel import CamelModel
-from lumacut_core.db import Asset
+from lumacut_core.db import Asset, ProjectRecord
 from lumacut_core.storage import AssetKeys, delete_prefix
 
 router = APIRouter(prefix="/api/assets", tags=["assets"])
@@ -91,13 +91,33 @@ def _stop_job(resources: ResourcesDep, asset: Asset) -> None:
 
 
 @router.delete(
-    "/{asset_id}", status_code=status.HTTP_204_NO_CONTENT, responses=error_responses(401, 404)
+    "/{asset_id}", status_code=status.HTTP_204_NO_CONTENT, responses=error_responses(401, 404, 409)
 )
 async def delete_asset(
     asset_id: str, user: CurrentUser, session: SessionDep, resources: ResourcesDep
 ) -> None:
     """Delete an asset, its original and every rendition (also cancels an unfinished upload)."""
     asset = await _owned(session, user, asset_id)
+    using = (
+        (
+            await session.execute(
+                select(ProjectRecord.name).where(
+                    ProjectRecord.owner_id == user.id,
+                    ProjectRecord.doc["assets"].contains([{"id": asset.id}]),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if using:
+        raise ApiError(
+            409,
+            "asset_in_use",
+            "This asset is used in "
+            + ", ".join(f"“{name}”" for name in using[:3])
+            + ". Remove it from the project first.",
+        )
     bucket = resources.settings.s3_bucket
     if asset.status in ("queued", "processing"):
         await asyncio.to_thread(_stop_job, resources, asset)

@@ -2116,6 +2116,33 @@
         "end"
       ]
     },
+    "ClipUnsettable": {
+      "type": "string",
+      "enum": [
+        "assetId",
+        "compositionId",
+        "freezeAtUs",
+        "trackMatte",
+        "audio",
+        "text",
+        "shape",
+        "paint",
+        "caption",
+        "transitionIn",
+        "linkId",
+        "aiRunId",
+        "placeholder"
+      ]
+    },
+    "AssetUnsettable": {
+      "type": "string",
+      "enum": [
+        "aiRunId",
+        "video",
+        "audio",
+        "image"
+      ]
+    },
     "CompositionPatch": {
       "type": "object",
       "properties": {
@@ -2381,6 +2408,11 @@
         },
         "composition": {
           "$ref": "#/$defs/Composition"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -2761,6 +2793,12 @@
         },
         "props": {
           "$ref": "#/$defs/ClipPatch"
+        },
+        "unset": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClipUnsettable"
+          }
         }
       },
       "required": [
@@ -3202,6 +3240,11 @@
         },
         "asset": {
           "$ref": "#/$defs/Asset"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -3239,6 +3282,12 @@
         },
         "props": {
           "$ref": "#/$defs/AssetPatch"
+        },
+        "unset": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AssetUnsettable"
+          }
         }
       },
       "required": [
@@ -3260,6 +3309,11 @@
         },
         "marker": {
           "$ref": "#/$defs/Marker"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [

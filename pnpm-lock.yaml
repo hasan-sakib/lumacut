@@ -69,6 +69,9 @@ importers:
       '@lumacut/engine':
         specifier: workspace:^
         version: link:../../packages/engine
+      '@lumacut/ops':
+        specifier: workspace:^
+        version: link:../../packages/ops
       '@lumacut/schema':
         specifier: workspace:^
         version: link:../../packages/schema
@@ -155,6 +158,16 @@ importers:
       vite:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@26.6.6)(jiti@2.7.0)
+
+  packages/ops:
+    dependencies:
+      '@lumacut/schema':
+        specifier: workspace:^
+        version: link:../schema
+    devDependencies:
+      fast-check:
+        specifier: ^4.10.2
+        version: 4.10.2
 
   packages/schema:
     dependencies:

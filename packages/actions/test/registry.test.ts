@@ -96,3 +96,49 @@ describe("ActionRegistry", () => {
     );
   });
 });
+
+describe("ActionRegistry search, grouping and the tool list", () => {
+  function many(): ActionRegistry<Ctx> {
+    const r = new ActionRegistry<Ctx>();
+    r.register(action({ id: "clip.split", title: "Split clip", keywords: ["cut", "razor"], category: "Edit", when: () => true }));
+    r.register(action({ id: "clip.delete", title: "Delete clip", keywords: ["remove"], category: "Edit", when: (c) => c.selected.length > 0 }));
+    r.register(action({ id: "lib.upload", title: "Upload media", keywords: ["import"], category: "Library", shortcut: "Mod+U", when: () => true }));
+    r.register(
+      action({
+        id: "marker.add",
+        title: "Add marker",
+        keywords: ["flag"],
+        category: "Edit",
+        argsSchema: z.object({ label: z.string() }) as unknown as z.ZodType<undefined>,
+        when: () => true,
+      }),
+    );
+    return r;
+  }
+
+  it("search only offers actions available in the context, best first", () => {
+    const r = many();
+    expect(r.search("clip", { selected: [] }).map((h) => h.action.id)).toEqual(["clip.split"]);
+    expect(r.search("clip", { selected: ["x"] }).map((h) => h.action.id).sort()).toEqual(["clip.delete", "clip.split"]);
+    expect(r.search("razor", { selected: [] })[0]?.action.id).toBe("clip.split");
+    expect(r.search("", { selected: [] }, 2)).toHaveLength(2);
+  });
+
+  it("groups available actions by category with sorted titles", () => {
+    const groups = many().grouped({ selected: [] });
+    expect(groups.map((g) => g.category)).toEqual(["Edit", "Library"]);
+    expect(groups[0]?.actions.map((a) => a.title)).toEqual(["Add marker", "Split clip"]);
+  });
+
+  it("exports plain data for the AI, with JSON Schema args", () => {
+    const tools = many().toToolList();
+    expect(tools).toHaveLength(4);
+    const marker = tools.find((t) => t.id === "marker.add");
+    expect(marker?.args).toMatchObject({ type: "object", properties: { label: { type: "string" } } });
+    expect(tools.find((t) => t.id === "clip.split")?.args).toBeNull();
+    expect(tools.find((t) => t.id === "lib.upload")?.shortcut).toBe("Mod+U");
+    expect(tools.find((t) => t.id === "clip.split")).not.toHaveProperty("shortcut");
+    expect(JSON.stringify(tools)).not.toContain("function");
+    expect(many().toToolList({ selected: [] }).map((t) => t.id)).not.toContain("clip.delete");
+  });
+});

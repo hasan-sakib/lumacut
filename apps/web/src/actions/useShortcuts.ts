@@ -1,4 +1,4 @@
-import type { ActionRegistry } from "@lumacut/actions";
+import type { ActionRegistry, AnyAction } from "@lumacut/actions";
 import { useEffect, useRef } from "react";
 import { isMacPlatform } from "../lib/format.ts";
 
@@ -17,10 +17,20 @@ function activatesNatively(target: EventTarget | null, shortcut: string | undefi
 }
 
 /** Dispatches keyboard shortcuts from the registry (the shortcut map is generated, not wired). */
-export function useShortcuts<Ctx>(registry: ActionRegistry<Ctx>, ctx: Ctx): void {
+/**
+ * `onRun` decides how a triggered action runs; pass it for registries whose actions return project
+ * ops (so they get applied). Without it the action's `run` is just called.
+ */
+export function useShortcuts<Ctx>(
+  registry: ActionRegistry<Ctx>,
+  ctx: Ctx,
+  onRun?: (action: AnyAction<Ctx>) => void,
+): void {
   const ctxRef = useRef(ctx);
+  const onRunRef = useRef(onRun);
   useEffect(() => {
     ctxRef.current = ctx;
+    onRunRef.current = onRun;
   });
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -31,7 +41,8 @@ export function useShortcuts<Ctx>(registry: ActionRegistry<Ctx>, ctx: Ctx): void
       if (typing && !action.shortcut?.startsWith("Mod")) return;
       if (activatesNatively(event.target, action.shortcut)) return;
       event.preventDefault();
-      void action.run(ctxRef.current, undefined);
+      if (onRunRef.current === undefined) void action.run(ctxRef.current, undefined);
+      else onRunRef.current(action);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
