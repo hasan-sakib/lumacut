@@ -2,7 +2,7 @@ import { Asset } from "@lumacut/schema";
 import { describe, expect, it } from "vitest";
 import type { AssetOut } from "../api/client.ts";
 import { newId } from "./ids.ts";
-import { toProjectAsset } from "./project-assets.ts";
+import { resolveAssetQuery, toProjectAsset } from "./project-assets.ts";
 
 function out(over: Partial<AssetOut>): AssetOut {
   return {
@@ -53,5 +53,34 @@ describe("newId", () => {
     const ids = Array.from({ length: 200 }, newId);
     expect(new Set(ids).size).toBe(200);
     for (const id of ids) expect(id).toMatch(/^[A-Za-z0-9_-]{21}$/);
+  });
+});
+
+describe("resolveAssetQuery", () => {
+  const library = [
+    out({ id: "id-one", name: "Beach sunset.mp4" }),
+    out({ id: "id-two", name: "Beach walk.mp4" }),
+    out({ id: "id-three", name: "City.mp4" }),
+    out({ id: "id-four", name: "Pending.mp4", status: "processing" }),
+  ];
+
+  it("finds an asset by id, exact name, or a unique part of its name, ignoring case", () => {
+    expect(resolveAssetQuery(library, "id-three")).toMatchObject({ asset: { id: "id-three" } });
+    expect(resolveAssetQuery(library, "city.mp4")).toMatchObject({ asset: { id: "id-three" } });
+    expect(resolveAssetQuery(library, "SUNSET")).toMatchObject({ asset: { id: "id-one" } });
+    expect(resolveAssetQuery(library, "  walk ")).toMatchObject({ asset: { id: "id-two" } });
+  });
+
+  it("an exact name wins over longer names that contain it", () => {
+    const more = [...library, out({ id: "id-five", name: "City.mp4 (copy)" })];
+    expect(resolveAssetQuery(more, "City.mp4")).toMatchObject({ asset: { id: "id-three" } });
+  });
+
+  it("refuses to guess: ambiguous, missing, not ready and empty queries explain themselves", () => {
+    const ambiguous = resolveAssetQuery(library, "beach");
+    expect(ambiguous).toMatchObject({ error: expect.stringMatching(/matches 2 assets.*Beach sunset.*Beach walk/) });
+    expect(resolveAssetQuery(library, "zebra")).toEqual({ error: "No ready asset matches “zebra”." });
+    expect(resolveAssetQuery(library, "pending")).toMatchObject({ error: expect.stringMatching(/No ready asset/) });
+    expect(resolveAssetQuery(library, "  ")).toMatchObject({ error: expect.stringMatching(/Say which asset/) });
   });
 });

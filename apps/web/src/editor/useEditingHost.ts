@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { editingActions, type EditingContext, type EditingServices } from "../actions/editing.ts";
 import { newId } from "../lib/ids.ts";
 import { fitZoom, zoomBy } from "../timeline/geometry.ts";
-import { toProjectAsset } from "../lib/project-assets.ts";
+import { resolveAssetQuery } from "../lib/project-assets.ts";
 import { useAssetsStore } from "../stores/assets.ts";
 import { useEditorStore } from "../stores/editor.ts";
 import { projectStore, useProjectStore } from "../stores/project.ts";
@@ -35,6 +35,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
   const selectedTrackId = useEditorStore((s) => s.selectedTrackId);
   const playheadUs = useEditorStore((s) => s.playheadUs);
+  const clipboard = useEditorStore((s) => s.clipboard);
+  const attributes = useEditorStore((s) => s.attributes);
   const { openPalette, showShortcuts, togglePlay, seek } = ui;
 
   const services = useMemo<EditingServices>(
@@ -46,9 +48,14 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       redo: () => {
         projectStore.getState().redo();
       },
-      assetForProject: (assetId) => {
-        const asset = useAssetsStore.getState().byId[assetId];
-        return asset === undefined ? null : toProjectAsset(asset);
+      resolveAsset: (query) => resolveAssetQuery(Object.values(useAssetsStore.getState().byId), query),
+      clipboard: {
+        setClips: (data) => {
+          useEditorStore.getState().setClipboard(data);
+        },
+        setAttributes: (attrs) => {
+          useEditorStore.getState().setAttributes(attrs);
+        },
       },
       openPalette,
       showShortcuts,
@@ -88,9 +95,13 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       playheadUs,
       canUndo,
       canRedo,
+      hasClipboard: clipboard !== null,
+      hasAttributes: attributes !== null,
+      clipboard,
+      attributes,
       services,
     }),
-    [project, activeCompositionId, selectedClipIds, selectedTrackId, playheadUs, canUndo, canRedo, services],
+    [project, activeCompositionId, selectedClipIds, selectedTrackId, playheadUs, canUndo, canRedo, clipboard, attributes, services],
   );
 
   const latest = useRef(ctx);

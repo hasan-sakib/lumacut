@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ActionRegistry } from "@lumacut/actions";
 import { playerActions, type PlayerContext } from "./player.ts";
 import { useShortcuts } from "./useShortcuts.ts";
 
@@ -65,5 +66,44 @@ describe("useShortcuts", () => {
     // Other keys still work from a focused button.
     fireEvent.keyDown(button, { key: "ArrowRight" });
     expect(services.stepFrames).toHaveBeenCalledWith(1);
+  });
+});
+
+describe("useShortcuts and text fields", () => {
+  function Modal({ registry, hit }: { registry: ActionRegistry<null>; hit: (id: string) => void }) {
+    useShortcuts(registry, null, (action) => {
+      hit(action.id);
+    });
+    return <input aria-label="field" type="text" />;
+  }
+  const make = () => {
+    const r = new ActionRegistry<null>();
+    const base = { description: "Does something useful.", keywords: ["k"], category: "Edit", when: () => true, run: () => undefined };
+    r.register({ ...base, id: "history.undo", title: "Undo", shortcut: "Mod+Z" });
+    r.register({ ...base, id: "clip.paste", title: "Paste", shortcut: "Mod+V" });
+    r.register({ ...base, id: "library.upload", title: "Upload", shortcut: "Mod+U" });
+    r.register({ ...base, id: "clip.split", title: "Split", shortcut: "S" });
+    return r;
+  };
+
+  it("while typing: copy/paste/undo stay with the field, other Mod shortcuts still work, bare keys don't", () => {
+    const hit = vi.fn();
+    const { getByLabelText } = render(<Modal registry={make()} hit={hit} />);
+    const field = getByLabelText("field");
+    field.focus();
+    fireEvent.keyDown(field, { key: "z", ctrlKey: true });
+    fireEvent.keyDown(field, { key: "v", ctrlKey: true });
+    fireEvent.keyDown(field, { key: "s" });
+    expect(hit).not.toHaveBeenCalled();
+    fireEvent.keyDown(field, { key: "u", ctrlKey: true });
+    expect(hit).toHaveBeenCalledWith("library.upload");
+  });
+
+  it("outside a field every shortcut runs", () => {
+    const hit = vi.fn();
+    render(<Modal registry={make()} hit={hit} />);
+    fireEvent.keyDown(document.body, { key: "z", ctrlKey: true });
+    fireEvent.keyDown(document.body, { key: "s" });
+    expect(hit.mock.calls.map((c) => c[0])).toEqual(["history.undo", "clip.split"]);
   });
 });

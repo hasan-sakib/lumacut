@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Tooltip } from "radix-ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EditingContext } from "../../actions/editing.ts";
+import { useAssetsStore } from "../../stores/assets.ts";
 import { Timeline, type TimelineProps } from "./Timeline.tsx";
 
 const SEC = 1_000_000;
@@ -65,11 +66,16 @@ function ctxFor(project: Project): EditingContext {
     playheadUs: 0,
     canUndo: false,
     canRedo: false,
+    hasClipboard: false,
+    hasAttributes: false,
+    clipboard: null,
+    attributes: null,
     services: {
       newId: () => "new",
       undo: vi.fn(),
       redo: vi.fn(),
-      assetForProject: () => null,
+      resolveAsset: () => ({ error: "none" }),
+      clipboard: { setClips: vi.fn(), setAttributes: vi.fn() },
       openPalette: vi.fn(),
       showShortcuts: vi.fn(),
       playback: { togglePlay: vi.fn(), seek: vi.fn() },
@@ -374,5 +380,51 @@ describe("track headers, ruler and markers", () => {
     move(600);
     up();
     expect(props.onCommit).toHaveBeenCalledWith(expect.objectContaining({ type: "updateMarker", compositionId: "main", marker: expect.objectContaining({ id: "m1", tUs: 6 * SEC }) }), "Move marker");
+  });
+});
+
+describe("right-click and media on clips", () => {
+  it("right-clicking an unselected clip selects it (and its linked partners) first; a selected one is left alone", () => {
+    const { props, clip } = setup();
+    fireEvent.contextMenu(clip("c1"));
+    expect(props.onSelectClips).toHaveBeenCalledWith(expect.arrayContaining(["c1", "a1"]));
+    cleanup();
+    const again = setup({ selectedClipIds: ["c2"] });
+    fireEvent.contextMenu(again.clip("c2"));
+    expect(again.props.onSelectClips).not.toHaveBeenCalled();
+  });
+
+  it("draws a filmstrip on picture clips and a waveform on sound clips from the library renditions", async () => {
+    const index = { intervalUs: SEC, tileWidth: 80, tileHeight: 45, columns: 4, rows: 2, count: 10 };
+    const wave = { channels: 1, length: 1000, data: Array.from({ length: 2000 }, (_, i) => (i % 2 === 0 ? -50 : 50)) };
+    vi.stubGlobal("fetch", (url: string) => Promise.resolve({ ok: true, json: () => Promise.resolve(url.includes("index") ? index : wave) }));
+    useAssetsStore.setState({
+      order: ["v1"],
+      byId: {
+        v1: {
+          id: "v1", kind: "video", name: "clip.mp4", mimeType: "video/mp4", sizeBytes: 1, status: "ready", stage: null, progress: 1,
+          errorCode: null, errorMessage: null, attempts: 1, createdAt: "2026-11-06T00:00:00Z", updatedAt: "2026-11-06T00:00:00Z", readyAt: "2026-11-06T00:00:00Z", media: null,
+          urls: { thumbSheets: ["https://s3/m3b2/sheet0.jpg"], thumbIndex: "https://s3/m3b2/thumbs/index.json?sig=1", waveform: "https://s3/m3b2/wave.json?sig=1" },
+        },
+      },
+    });
+    setup();
+    expect((await screen.findAllByTestId("filmstrip")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByTestId("clip-waveform")).length).toBeGreaterThan(0);
+    const tile = document.querySelector('[data-testid="filmstrip"] img') as HTMLImageElement;
+    expect(tile.getAttribute("crossorigin")).toBe("anonymous");
+    expect(tile.src).toContain("sheet0.jpg");
+    // the sound clip is on the audio lane, the pictures on the visual lanes
+    expect(document.querySelector('[data-lane="A1"] [data-testid="clip-waveform"]')).not.toBeNull();
+    expect(document.querySelector('[data-lane="V1"] [data-testid="filmstrip"]')).not.toBeNull();
+    expect(document.querySelector('[data-lane="V1"] [data-testid="clip-waveform"]')).toBeNull();
+    vi.unstubAllGlobals();
+    useAssetsStore.setState({ order: [], byId: {} });
+  });
+
+  it("clips without library renditions are plain boxes", () => {
+    setup();
+    expect(screen.queryByTestId("filmstrip")).toBeNull();
+    expect(screen.queryByTestId("clip-waveform")).toBeNull();
   });
 });

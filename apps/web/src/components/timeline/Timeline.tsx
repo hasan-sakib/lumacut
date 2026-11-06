@@ -366,11 +366,17 @@ export function Timeline(props: TimelineProps) {
                     key={clip.id}
                     clip={clip}
                     asset={project.assets.find((a) => a.id === clip.assetId)}
+                    trackKind={track.kind}
                     zoomPxPerSec={zoom}
                     selected={selectedClipIds.includes(clip.id)}
                     invalid={invalid.has(clip.id)}
                     cursor={CURSORS[tool]}
+                    viewFromPx={usToPx(scrollUs, zoom)}
+                    viewToPx={usToPx(scrollUs, zoom) + Math.max(viewportPx, 1200)}
                     onPointerDown={onClipPointerDown}
+                    onContextMenu={(c) => {
+                      if (!selectedClipIds.includes(c.id)) props.onSelectClips(withLinked(composition, [c.id]));
+                    }}
                   />
                 ))}
               </div>

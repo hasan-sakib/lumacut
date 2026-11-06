@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { Attributes, ClipboardData } from "../timeline/clipboard.ts";
 import { DEFAULT_PX_PER_SEC, clampZoom } from "../timeline/geometry.ts";
 
 export type Tool = "select" | "razor" | "ripple" | "roll" | "slip" | "slide";
@@ -17,6 +18,9 @@ interface EditorState {
   /** Width of the visible timeline area (set by the timeline; used for "zoom to fit"). */
   viewportPx: number;
   snapping: boolean;
+  /** Copied clips and a copied look (internal: not the system clipboard). */
+  clipboard: ClipboardData | null;
+  attributes: Attributes | null;
   setActiveComposition: (id: string | null) => void;
   selectClips: (ids: string[]) => void;
   selectTrack: (id: string | null) => void;
@@ -26,6 +30,8 @@ interface EditorState {
   setScroll: (us: number) => void;
   setViewportPx: (px: number) => void;
   setSnapping: (on: boolean) => void;
+  setClipboard: (data: ClipboardData | null) => void;
+  setAttributes: (attributes: Attributes | null) => void;
   reset: () => void;
 }
 
@@ -39,6 +45,8 @@ const INITIAL = {
   scrollUs: 0,
   viewportPx: 0,
   snapping: true,
+  clipboard: null as ClipboardData | null,
+  attributes: null as Attributes | null,
 };
 
 export const useEditorStore = create<EditorState>()((set) => ({
@@ -69,6 +77,12 @@ export const useEditorStore = create<EditorState>()((set) => ({
   },
   setSnapping: (on) => {
     set({ snapping: on });
+  },
+  setClipboard: (data) => {
+    set({ clipboard: data });
+  },
+  setAttributes: (attributes) => {
+    set({ attributes });
   },
   reset: () => {
     set({ ...INITIAL, selectedClipIds: [] });

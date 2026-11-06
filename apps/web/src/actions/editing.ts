@@ -17,6 +17,8 @@ import * as z from "zod";
 import { lastFrameUs, skipTarget, stepTarget } from "../engine/transport.ts";
 import type { Tool } from "../stores/editor.ts";
 import { placedClips, splitOps, withLinked, type Placed } from "../timeline/clips.ts";
+import { copyAttributes, copyClips, pasteAttributesOps, pasteOps, type Attributes, type ClipboardData } from "../timeline/clipboard.ts";
+import { roundToFrame } from "../timeline/geometry.ts";
 
 /** Things an editing action can't do itself (ids, the history, the library). Supplied by the page. */
 export interface EditingServices {
@@ -25,7 +27,13 @@ export interface EditingServices {
   undo: () => void;
   redo: () => void;
   /** A library asset as the project's `Asset`, or null when it isn't ready to use. */
-  assetForProject: (assetId: string) => Asset | null;
+  /** Finds a ready library asset by id or (part of) its name; an error message when none or several match. */
+  resolveAsset: (query: string) => { asset: Asset } | { error: string };
+  /** The editor's internal clipboard (clips, and a clip's look). */
+  clipboard: {
+    setClips: (data: ClipboardData | null) => void;
+    setAttributes: (attributes: Attributes | null) => void;
+  };
   /** Opens the command palette / the keyboard shortcut list. */
   openPalette: () => void;
   showShortcuts: () => void;
@@ -50,6 +58,12 @@ export interface EditingContext {
   playheadUs: number;
   canUndo: boolean;
   canRedo: boolean;
+  /** Clips are on the clipboard / a clip's look is. */
+  hasClipboard: boolean;
+  hasAttributes: boolean;
+  /** The clipboard's contents, for pasting. */
+  clipboard: ClipboardData | null;
+  attributes: Attributes | null;
   services: EditingServices;
 }
 
@@ -399,14 +413,15 @@ editingActions.register({
   keywords: ["insert", "import", "put on timeline", "drop", "place clip"],
   category: "Timeline",
   icon: "upload",
-  argsSchema: z.object({ assetId: z.string().describe("Id of a ready asset in the library") }) as unknown as z.ZodType<{ assetId: string }>,
+  argsSchema: z.object({ asset: z.string().describe("Name (or part of it) of a ready asset in the library, or its id") }) as unknown as z.ZodType<{ asset: string }>,
   when: (ctx) => activeComposition(ctx) !== undefined,
   run: (ctx, args): Op[] => {
     const comp = activeComposition(ctx);
     const project = ctx.project;
     if (comp === undefined || project === null) throw new ActionError("Open a composition first.");
-    const asset = ctx.services.assetForProject(args.assetId);
-    if (asset === null) throw new ActionError("This asset isn't ready to use yet.");
+    const found = ctx.services.resolveAsset(args.asset);
+    if ("error" in found) throw new ActionError(found.error);
+    const asset = found.asset;
     const ops: Op[] = [];
     if (!project.assets.some((a) => a.id === asset.id)) ops.push({ type: "addAsset", asset });
     const start = ctx.playheadUs;
@@ -592,3 +607,192 @@ function registerMarkerJump(id: string, title: string, shortcut: string, directi
 
 registerMarkerJump("marker.next", "Go to next marker", "Shift+M", 1);
 registerMarkerJump("marker.previous", "Go to previous marker", "Alt+M", -1);
+
+
+// --- Clipboard --------------------------------------------------------------------------------
+
+editingActions.register({
+  id: "clip.copy",
+  title: "Copy clips",
+  description: "Copy the selected clips (and clips linked to them) so they can be pasted at the playhead.",
+  keywords: ["duplicate", "clipboard", "ctrl c"],
+  category: "Edit",
+  icon: "copy",
+  shortcut: "Mod+C",
+  when: hasSelection,
+  run: (ctx) => {
+    const comp = activeComposition(ctx);
+    if (comp !== undefined) ctx.services.clipboard.setClips(copyClips(comp, selectedWithLinked(ctx)));
+    return undefined;
+  },
+});
+
+editingActions.register({
+  id: "clip.cut",
+  title: "Cut clips",
+  description: "Copy the selected clips and remove them, leaving a gap.",
+  keywords: ["remove and copy", "move to clipboard", "ctrl x"],
+  category: "Edit",
+  icon: "trash",
+  shortcut: "Mod+X",
+  when: hasSelection,
+  run: (ctx) => {
+    const comp = activeComposition(ctx);
+    const ids = selectedWithLinked(ctx);
+    if (comp !== undefined) ctx.services.clipboard.setClips(copyClips(comp, ids));
+    return ids.map((clipId): Op => ({ type: "removeClip", clipId }));
+  },
+});
+
+editingActions.register({
+  id: "clip.paste",
+  title: "Paste clips",
+  description: "Paste the copied clips with the first one at the playhead, on their own tracks where there is room.",
+  keywords: ["insert copy", "put back", "ctrl v"],
+  category: "Edit",
+  icon: "copy",
+  shortcut: "Mod+V",
+  when: (ctx) => ctx.hasClipboard && activeComposition(ctx) !== undefined,
+  run: (ctx) => {
+    const comp = activeComposition(ctx);
+    if (comp === undefined || ctx.clipboard === null) return [];
+    return pasteOps(comp, ctx.clipboard, ctx.playheadUs, ctx.services.newId);
+  },
+});
+
+editingActions.register({
+  id: "clip.copyAttributes",
+  title: "Copy clip attributes",
+  description: "Copy the look of the selected clip (transform, opacity, blend, crop, colour; or audio settings) to paste onto other clips.",
+  keywords: ["copy look", "copy style", "copy settings", "format painter"],
+  category: "Edit",
+  shortcut: "Mod+Alt+C",
+  when: hasSelection,
+  run: (ctx) => {
+    const comp = activeComposition(ctx);
+    const first = comp === undefined ? undefined : placedClips(comp).find((p) => ctx.selectedClipIds.includes(p.clip.id));
+    if (first !== undefined) ctx.services.clipboard.setAttributes(copyAttributes(first.clip, first.track.kind));
+    return undefined;
+  },
+});
+
+editingActions.register({
+  id: "clip.pasteAttributes",
+  title: "Paste clip attributes",
+  description: "Apply the copied look to the selected clips (picture attributes to picture clips, audio to audio clips).",
+  keywords: ["paste look", "paste style", "apply settings", "format painter"],
+  category: "Edit",
+  shortcut: "Mod+Alt+V",
+  when: (ctx) => ctx.hasAttributes && hasSelection(ctx),
+  run: (ctx) => {
+    const comp = activeComposition(ctx);
+    return comp === undefined || ctx.attributes === null ? [] : pasteAttributesOps(comp, ctx.attributes, selectedWithLinked(ctx));
+  },
+});
+
+// --- Everything a gesture can do, available from the palette -----------------------------------
+
+type SecondsArgs = { seconds: number };
+const secondsSchema = (describe: string) => z.object({ seconds: z.number().describe(describe) }) as unknown as z.ZodType<SecondsArgs>;
+const toUs = (seconds: number): number => Math.round(seconds * 1_000_000);
+
+editingActions.register({
+  id: "playback.goToTime",
+  title: "Go to time…",
+  description: "Move the playhead to a time, in seconds from the start.",
+  keywords: ["seek", "jump to", "timecode", "playhead"],
+  category: "Playback",
+  argsSchema: secondsSchema("Seconds from the start of the composition"),
+  when: (ctx) => activeComposition(ctx) !== undefined,
+  run: (ctx, args) => {
+    ctx.services.playback.seek(roundToFrame(Math.max(0, toUs(args.seconds)), fpsOf(ctx)));
+    return undefined;
+  },
+});
+
+editingActions.register({
+  id: "selection.clipAtPlayhead",
+  title: "Select clips at playhead",
+  description: "Select every clip the playhead is on (optionally only on one track, by name).",
+  keywords: ["pick", "choose clip", "under playhead"],
+  category: "Edit",
+  argsSchema: z.object({ track: z.string().optional().describe("Track name; leave empty for all tracks") }).optional() as unknown as z.ZodType<{ track?: string } | undefined>,
+  when: (ctx) => activeComposition(ctx) !== undefined,
+  run: (ctx, args) => {
+    const comp = activeComposition(ctx);
+    if (comp === undefined) return undefined;
+    const wanted = args?.track?.trim().toLowerCase();
+    const hits = placedClips(comp).filter(
+      (p) => p.clip.startUs <= ctx.playheadUs && ctx.playheadUs < endOf(p.clip) && (wanted === undefined || wanted === "" || p.track.name.toLowerCase() === wanted || p.track.id === args?.track),
+    );
+    if (hits.length === 0) throw new ActionError("There is no clip at the playhead.");
+    ctx.services.editor.selectClips(hits.map((p) => p.clip.id));
+    return undefined;
+  },
+});
+
+function registerClipJump(id: string, title: string, direction: 1 | -1): void {
+  editingActions.register({
+    id,
+    title,
+    description: `Select the ${direction === 1 ? "next" : "previous"} clip and move the playhead to its start.`,
+    keywords: ["clip", direction === 1 ? "next" : "previous", "step through clips", "jump"],
+    category: "Edit",
+    when: (ctx) => clipStartAround(ctx, direction) !== undefined,
+    run: (ctx) => {
+      const at = clipStartAround(ctx, direction);
+      const comp = activeComposition(ctx);
+      if (at === undefined || comp === undefined) return undefined;
+      ctx.services.editor.selectClips(placedClips(comp).filter((p) => p.clip.startUs === at).map((p) => p.clip.id));
+      ctx.services.playback.seek(at);
+      return undefined;
+    },
+  });
+}
+
+/** The nearest clip start after (or before) the playhead, if any. */
+function clipStartAround(ctx: EditingContext, direction: 1 | -1): number | undefined {
+  const comp = activeComposition(ctx);
+  if (comp === undefined) return undefined;
+  const starts = placedClips(comp).map((p) => p.clip.startUs);
+  const candidates = direction === 1 ? starts.filter((t) => t > ctx.playheadUs) : starts.filter((t) => t < ctx.playheadUs);
+  return candidates.length === 0 ? undefined : direction === 1 ? Math.min(...candidates) : Math.max(...candidates);
+}
+
+registerClipJump("selection.nextClip", "Select next clip", 1);
+registerClipJump("selection.previousClip", "Select previous clip", -1);
+
+editingActions.register({
+  id: "clip.moveBy",
+  title: "Move clips by…",
+  description: "Move the selected clips (and clips linked to them) later, or earlier with a negative number, by some seconds.",
+  keywords: ["shift", "nudge", "offset", "slide along"],
+  category: "Edit",
+  argsSchema: secondsSchema("Seconds to move by (negative moves earlier)"),
+  when: hasSelection,
+  run: (ctx, args) => {
+    const comp = activeComposition(ctx);
+    if (comp === undefined) return [];
+    const ids = new Set(selectedWithLinked(ctx));
+    const delta = toUs(args.seconds);
+    return placedClips(comp)
+      .filter((p) => ids.has(p.clip.id))
+      .map((p): Op => ({ type: "moveClip", clipId: p.clip.id, trackId: p.track.id, startUs: Math.max(0, p.clip.startUs + delta) }));
+  },
+});
+
+function registerTrimTo(id: string, title: string, edge: "start" | "end"): void {
+  editingActions.register({
+    id,
+    title,
+    description: `Set where the ${edge} of the selected clips (and clips linked to them) is on the timeline, in seconds.`,
+    keywords: ["trim", "cut to", "shorten", "lengthen", edge === "start" ? "in point" : "out point"],
+    category: "Edit",
+    argsSchema: secondsSchema("Timeline time in seconds"),
+    when: hasSelection,
+    run: (ctx, args) => selectedWithLinked(ctx).map((clipId): Op => ({ type: "trimClip", clipId, edge, toUs: roundToFrame(Math.max(0, toUs(args.seconds)), fpsOf(ctx)) })),
+  });
+}
+
+registerTrimTo("clip.trimStartTo", "Trim start to…", "start");
+registerTrimTo("clip.trimEndTo", "Trim end to…", "end");

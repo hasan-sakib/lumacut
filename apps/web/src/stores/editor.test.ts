@@ -40,6 +40,16 @@ describe("editor store", () => {
     expect(s()).toMatchObject({ activeCompositionId: "main", selectedClipIds: [], selectedTrackId: null, playheadUs: 0, scrollUs: 0 });
   });
 
+  it("holds a clipboard and a copied look, and reset empties them", () => {
+    s().setClipboard({ clips: [], originUs: 0 });
+    s().setAttributes({ picture: { opacity: 0.5 }, audio: {} });
+    expect(s().clipboard).not.toBeNull();
+    expect(s().attributes?.picture).toEqual({ opacity: 0.5 });
+    s().reset();
+    expect(s().clipboard).toBeNull();
+    expect(s().attributes).toBeNull();
+  });
+
   it("reset restores everything, including the tool", () => {
     s().setTool("razor");
     s().setSnapping(false);

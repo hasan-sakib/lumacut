@@ -29,6 +29,7 @@ test("a command from the palette edits the project, autosaves, survives a reload
   await runFromPalette(page, "video track");
   await expect(page.getByRole("combobox", { name: "Search commands" })).toBeHidden();
   await expect(tracks(page)).toHaveCount(3);
+  await page.getByRole("tab", { name: /history/i }).click();
   await expect(page.getByTestId("history")).toContainText("Add video track");
 
   // Autosave: unsaved first, then saved.

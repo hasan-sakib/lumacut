@@ -12,7 +12,9 @@ async function projectWithVideo(page: Page): Promise<void> {
   await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", { timeout: 240_000 });
   await page.getByRole("button", { name: "New project" }).click();
   await page.waitForURL(/\/project\//);
+  await page.getByRole("tab", { name: /add media/i }).click();
   await page.getByRole("button", { name: "Add fn_1080p30.mp4 at the playhead" }).click();
+  await page.getByRole("tab", { name: /inspector/i }).click();
   await expect(clips(page)).toHaveCount(2); // the picture and its linked sound
 }
 

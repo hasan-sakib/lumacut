@@ -8,7 +8,7 @@
 | M2 | Engine core: decode, cache, composite, nested comps, audio sync, frame-accurate seek | done, with checks skipped at the owner's request (see Current focus) | 2026-11-06 |
 | M3a | Ops engine (`packages/ops`), projects API + autosave + undo/redo, Action Registry upgrades + command palette | built, **not verified** (nothing was run; see Current focus) | 2026-11-06 |
 | M3b-1 | Editor page: preview + playback, Pro timeline (zoom/scroll, move/trim, snapping, razor, ripple/roll/slip/slide, markers, track headers) | built, **not verified** (nothing was run) | 2026-11-06 |
-| M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | not started | — |
+| M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | built, **not verified** (nothing was run) | 2026-11-06 |
 | M4a | Keyframes + graph editor + color pipeline + scopes + LUTs + effect system (~10 effects) | not started | — |
 | M4b | Text + captions editing + all transitions | not started | — |
 | M4c | Remaining effects (40 total) | not started | — |
@@ -23,15 +23,15 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
-**M3a and M3b-1 were built on 2026-11-06 at the owner's request with no tests, typecheck or lint run, and nothing committed**, on top of M2 which was also closed without its final verification. Treat all three as unverified. Only generators (`make gen-schema`, `make gen-openapi`) and `pnpm install --offline` were run. First thing next session, in this order, fixing whatever breaks:
+**M3a, M3b-1 and M3b-2 (all of M3) were built on 2026-11-06 at the owner's request with no tests, typecheck or lint run, and nothing committed**, on top of M2 which was also closed without its final verification. Treat all of it as unverified; M3's acceptance (the palette-only / mouse-only 5-clip edit with an identical reload) has never been run. Only generators (`make gen-schema`, `make gen-openapi`) and `pnpm install --offline` were run. First thing next session, in this order, fixing whatever breaks:
 1. `pnpm install` (lockfile), then `make check` (types, lint, unit; `packages/ops` has a 95% coverage threshold).
-2. `docker compose -f infra/docker-compose.yml up -d --build`, then `make test-stack` (Alembic `0002_projects`, `test_projects.py`, e2e `projects.spec.ts`, `timeline.spec.ts`, `player.spec.ts`).
+2. `docker compose -f infra/docker-compose.yml up -d --build`, then `make test-stack` (Alembic `0002_projects`, `test_projects.py`, e2e `projects.spec.ts`, `timeline.spec.ts`, `acceptance-m3.spec.ts` (the M3 acceptance), `player.spec.ts`).
 3. Manual in the browser: upload a video, **New project**, "Add media at the playhead", then: drag a clip, drag an edge, `C` razor click, `B`/`N`/`Y`/`U` tools, snapping to the playhead and edges, `Space` plays with sound, `S` splits at the playhead, `Mod+Z`, reload and check the edit is identical; two tabs for the conflict banner.
 4. Still open from M2: `make perf-media && make perf`, `make test-samples`, and the unexplained SwiftShader-vs-GPU video difference.
 
 **Owner decision needed before M4a:** `Keyframe.tUs` is treated as relative to the clip's start (see Decisions → M3a); the spec doesn't say.
 
-Next: M3b-2 (inspector, thumbnails/waveforms, clip context menu, copy/paste, the acceptance e2e). Plan it and wait for approval.
+Next: after verification, M4a (keyframes + graph editor + colour pipeline + scopes + LUTs + effect system). Plan it and wait for approval.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -201,6 +201,15 @@ Getting started in a new session:
 - **Preview** (`editor/usePreview.ts`): one `PlaybackSession` per composition; project changes are pushed through a coalescing queue (an edit pauses playback: the M2 limitation); while playing the playhead follows the audio clock, while paused any playhead change shows that frame.
 - **Actions added:** tools (V C B N Y U), zoom in/out/fit (`=` `-` `\`), snapping (Shift+S), select all / deselect, playback (Space, frame and second steps, Home/End), marker jumps (Shift+M / Alt+M). Track switches take an optional `{ trackId }` so header buttons run the same actions; they are listed whenever tracks exist and ask for a track when run without one. `ActionButton` gained `args` and `pressed`; `useShortcuts`/`ActionButton` can run actions through the host.
 
+**2026-11-06 — M3b-2: inspector, clip media, clipboard, palette completeness (decisions)**
+- **Inspector is generated from a field catalogue** (`apps/web/src/inspector/fields.ts`): each property is declared once (label, section, advanced, search keywords, display↔stored conversion, which clips it applies to, the `setProps` patch it makes). Sections: Transform, Opacity & blend, Crop, Time, Audio. Percent fields show 0–100, volume shows dB (silence at −60), fades show seconds. M4a/M5 add entries, not UI. Multi-selection shows only fields that apply, marks differing values "Mixed", and an edit is one `batch`. Scrubbing and arrow-stepping carry a `coalesceKey` (one undo step per drag); typed values and choices don't.
+- **Typed maths** (`inspector/evaluate.ts`): `12`, `-5` (a negative number), `+10`, `*2`, `/2`, trailing units ignored; anything else is explained and never applied. Search matches label, keywords and section and shows advanced fields too.
+- **Clip media:** video clips get a sprite-sheet filmstrip chosen by source time (speed/reverse/freeze aware), picture-track clips only; audio-track clips get a waveform of their source range (mirrored when reversed); only clips near the visible window fetch or draw anything (`timeline/filmstrip.ts`, `timeline/waveform.ts`, `editor/useClipMedia.ts`).
+- **Clipboard** (`timeline/clipboard.ts`, internal to the editor): paste puts the first clip at the playhead, each clip back on its own track when free, else another free unlocked track of that kind, else a new track; ids are new; link groups copied whole are re-linked among the copies; a transition survives only if the clip before it was copied too. Attribute copy/paste moves picture attributes between picture clips and audio attributes between audio clips.
+- **The palette can do everything a gesture can** (needed by the acceptance test): `timeline.addAssetAtPlayhead` takes an asset name or id (ambiguity is an error that names the candidates); `playback.goToTime`, `selection.clipAtPlayhead` / next / previous clip, `clip.moveBy`, `clip.trimStartTo` / `trimEndTo`. They emit the same ops as the gestures.
+- **Shortcut fix:** while a text field has focus, Mod+A/C/V/X/Y/Z stay with the field (they were being taken by Undo etc.).
+- **Acceptance spec** (`apps/web/e2e/acceptance-m3.spec.ts`): the same edit (cut a 10 s video at 2/4/6/8 s into five picture clips with their sound, move the last 2 s later, trim the first to 1.5 s) is built once with palette+keyboard only and once with mouse only; each is read back from the timeline, the page is reloaded, and the clips must be identical, and identical between the two flows. Setup (upload, create project) is shared. The spec counts 5 picture clips + 5 linked sound clips.
+
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
 - **Valkey (BSD-3) instead of Redis.** Redis 8 is RSAL/SSPL/AGPL. RQ and redis-py work unchanged.
@@ -272,6 +281,11 @@ Getting started in a new session:
   - Editing during playback pauses it (engine `setProject`); an incremental engine update is an M2 follow-up.
   - Not built: inspector, clip thumbnails and waveforms, clip context menu, copy/paste of clips and attributes, in/out points, rubber-band selection, opening a nested composition to edit it, Simple-mode magnetic track, shortcut editor, markers with duration/rename in the UI.
   - Dragging a clip to another lane moves only the grabbed clip (linked partners stay on their lanes); there is no "new lane" drop target.
+- **M3b-2 gaps:**
+  - **Unverified**, like everything since M2. The scrub/drag components and the e2e (pointer maths, palette typing) are the most likely to need fixes.
+  - Inspector: no keyframe ◆ control (M4a), no colour/effects/masks/text/shape sections (M4a/M5); crop edges and speed accept any value in range without cross-field checks; the Time section's source in/out and duration are read-only.
+  - No drag-and-drop from the asset list onto lanes (the Add button places at the playhead), no in/out points, no rubber-band selection, no system-clipboard integration (the clipboard lives in the editor and is lost on reload).
+  - Undo history is still not kept across a reload.
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses

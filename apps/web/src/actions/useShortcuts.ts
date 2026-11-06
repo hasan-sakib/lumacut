@@ -9,6 +9,9 @@ function isTyping(target: EventTarget | null): boolean {
   return target.isContentEditable || ["TEXTAREA", "SELECT"].includes(target.tagName);
 }
 
+/** Shortcuts a text field needs for itself (select all, copy, cut, paste, undo, redo). */
+const TEXT_EDITING = /^Mod\+(?:Shift\+)?[ACVXYZ]$/;
+
 /** Space/Enter on a focused button or link already activate it; running the action too would fire twice. */
 function activatesNatively(target: EventTarget | null, shortcut: string | undefined): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -37,8 +40,9 @@ export function useShortcuts<Ctx>(
       const typing = isTyping(event.target);
       const action = registry.forKeyEvent(event, ctxRef.current, isMacPlatform());
       if (action === undefined) return;
-      // While typing, only modifier shortcuts apply (e.g. Mod+U), never bare keys like "/".
-      if (typing && !action.shortcut?.startsWith("Mod")) return;
+      // While typing, only modifier shortcuts apply (e.g. Mod+U), never bare keys like "/", and
+      // never the ones a text field uses itself (copy, paste, undo…).
+      if (typing && (!action.shortcut?.startsWith("Mod") || TEXT_EDITING.test(action.shortcut))) return;
       if (activatesNatively(event.target, action.shortcut)) return;
       event.preventDefault();
       if (onRunRef.current === undefined) void action.run(ctxRef.current, undefined);

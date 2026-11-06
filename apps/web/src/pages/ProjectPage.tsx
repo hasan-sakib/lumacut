@@ -5,6 +5,7 @@ import { editingActions } from "../actions/editing.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
 import { Icon } from "../components/Icon.tsx";
+import { Inspector } from "../components/inspector/Inspector.tsx";
 import { ActionContextMenu } from "../components/palette/ActionContextMenu.tsx";
 import { CommandPalette } from "../components/palette/CommandPalette.tsx";
 import { ShortcutHelp } from "../components/palette/ShortcutHelp.tsx";
@@ -14,6 +15,8 @@ import { Toolbar } from "../components/timeline/Toolbar.tsx";
 import { useEditingHost } from "../editor/useEditingHost.ts";
 import { usePreview } from "../editor/usePreview.ts";
 import { newId } from "../lib/ids.ts";
+import type { ClipInfo } from "../inspector/fields.ts";
+import { findPlaced } from "../timeline/clips.ts";
 import { useAssetsStore } from "../stores/assets.ts";
 import { useEditorStore } from "../stores/editor.ts";
 import { projectStore, useProjectStore } from "../stores/project.ts";
@@ -40,6 +43,7 @@ export function ProjectPage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [tab, setTab] = useState<"inspector" | "media" | "history">("inspector");
 
   const compositionId = editor.activeCompositionId ?? project?.mainCompositionId ?? null;
   const preview = usePreview(project, compositionId);
@@ -113,7 +117,19 @@ export function ProjectPage() {
     setNotice(result.ok ? null : result.message);
   }, []);
 
+  const commitField = useCallback((op: Op, coalesceKey: string | undefined) => {
+    const result = projectStore.getState().dispatch(op, coalesceKey === undefined ? {} : { coalesceKey });
+    setNotice(result.ok ? null : result.message);
+  }, []);
+
   const composition = project?.compositions.find((c) => c.id === compositionId);
+  const selectedInfos = useMemo<ClipInfo[]>(() => {
+    if (composition === undefined || project === null) return [];
+    return editor.selectedClipIds.flatMap((id) => {
+      const placed = findPlaced(composition, id);
+      return placed === undefined ? [] : [{ clip: placed.clip, track: placed.track, asset: project.assets.find((a) => a.id === placed.clip.assetId) }];
+    });
+  }, [composition, project, editor.selectedClipIds]);
   const library = assetOrder.map((id) => assets[id]).filter((a) => a?.status === "ready");
 
   return (
@@ -171,46 +187,69 @@ export function ProjectPage() {
               )}
             </section>
 
-            <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto">
-              <section aria-label="Add media" className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
-                <h2 className="mb-2 text-sm font-semibold">Add media at the playhead</h2>
-                {library.length === 0 ? (
-                  <p className="text-xs text-neutral-500">No ready assets. Upload some in the library.</p>
-                ) : (
-                  <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto">
-                    {library.map((asset) =>
-                      asset === undefined ? null : (
-                        <li key={asset.id} className="flex items-center gap-2 text-xs">
-                          <Icon name={asset.kind ?? "file"} />
-                          <span className="min-w-0 flex-1 truncate">{asset.name}</span>
-                          <button
-                            type="button"
-                            aria-label={`Add ${asset.name} at the playhead`}
-                            onClick={() => void run("timeline.addAssetAtPlayhead", { assetId: asset.id })}
-                            className="rounded bg-sky-600 px-2 py-0.5 text-white hover:bg-sky-500"
-                          >
-                            Add
-                          </button>
-                        </li>
-                      ),
+            <aside aria-label="Side panel" className="flex w-80 shrink-0 flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
+              <div role="tablist" aria-label="Panels" className="flex border-b border-neutral-800 text-xs">
+                {(["inspector", "media", "history"] as const).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === id}
+                    onClick={() => {
+                      setTab(id);
+                    }}
+                    className={`flex-1 px-3 py-2 capitalize ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+                  >
+                    {id === "media" ? "Add media" : id}
+                  </button>
+                ))}
+              </div>
+              <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
+                {tab === "inspector" && <Inspector composition={composition} items={selectedInfos} onChange={commitField} />}
+                {tab === "media" && (
+                  <section aria-label="Add media" className="p-3">
+                    <h2 className="mb-2 text-sm font-semibold">Add media at the playhead</h2>
+                    {library.length === 0 ? (
+                      <p className="text-xs text-neutral-500">No ready assets. Upload some in the library.</p>
+                    ) : (
+                      <ul className="flex flex-col gap-1">
+                        {library.map((asset) =>
+                          asset === undefined ? null : (
+                            <li key={asset.id} className="flex items-center gap-2 text-xs">
+                              <Icon name={asset.kind ?? "file"} />
+                              <span className="min-w-0 flex-1 truncate">{asset.name}</span>
+                              <button
+                                type="button"
+                                aria-label={`Add ${asset.name} at the playhead`}
+                                onClick={() => void run("timeline.addAssetAtPlayhead", { asset: asset.id })}
+                                className="rounded bg-sky-600 px-2 py-0.5 text-white hover:bg-sky-500"
+                              >
+                                Add
+                              </button>
+                            </li>
+                          ),
+                        )}
+                      </ul>
                     )}
-                  </ul>
+                  </section>
                 )}
-              </section>
-              <section aria-label="History" className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
-                <h2 className="mb-2 text-sm font-semibold">History</h2>
-                {undoStack.length === 0 ? (
-                  <p className="text-xs text-neutral-500">No edits yet.</p>
-                ) : (
-                  <ol className="flex max-h-48 flex-col-reverse gap-0.5 overflow-y-auto text-xs text-neutral-300" data-testid="history">
-                    {undoStack.map((entry, i) => (
-                      <li key={`${String(i)}-${String(entry.at)}`}>{entry.label}</li>
-                    ))}
-                  </ol>
+                {tab === "history" && (
+                  <section aria-label="History" className="p-3">
+                    <h2 className="mb-2 text-sm font-semibold">History</h2>
+                    {undoStack.length === 0 ? (
+                      <p className="text-xs text-neutral-500">No edits yet.</p>
+                    ) : (
+                      <ol className="flex flex-col-reverse gap-0.5 text-xs text-neutral-300" data-testid="history">
+                        {undoStack.map((entry, i) => (
+                          <li key={`${String(i)}-${String(entry.at)}`}>{entry.label}</li>
+                        ))}
+                      </ol>
+                    )}
+                  </section>
                 )}
-              </section>
-              <p className="text-xs text-neutral-500">
-                Mod+K opens every command. Tools: V select, C razor, B ripple, N roll, Y slip, U slide. Space plays, S splits at the playhead, ? lists all shortcuts.
+              </div>
+              <p className="border-t border-neutral-800 p-2 text-[11px] text-neutral-500">
+                Mod+K: every command · V C B N Y U: tools · Space: play · S: split · Mod+C / V: copy and paste · ?: all shortcuts
               </p>
             </aside>
           </div>
