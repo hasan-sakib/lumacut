@@ -5,10 +5,25 @@ import { peaksPerSecond, waveformSlice, type WaveformJson } from "./waveform.ts"
 
 const SEC = 1_000_000;
 const clip = (extra: Partial<ReturnType<typeof createClip>> = {}) =>
-  createClip({ id: "c", type: "media", assetId: "v", startUs: 0, inUs: 0, outUs: 4 * SEC, ...extra });
+  createClip({
+    id: "c",
+    type: "media",
+    assetId: "v",
+    startUs: 0,
+    inUs: 0,
+    outUs: 4 * SEC,
+    ...extra,
+  });
 
 // 1 s between tiles, 4 columns x 2 rows per sheet, 10 tiles (so a second, short sheet), 80x45 tiles
-const index: ThumbIndex = { intervalUs: SEC, tileWidth: 80, tileHeight: 45, columns: 4, rows: 2, count: 10 };
+const index: ThumbIndex = {
+  intervalUs: SEC,
+  tileWidth: 80,
+  tileHeight: 45,
+  columns: 4,
+  rows: 2,
+  count: 10,
+};
 
 describe("sourceTimeAt", () => {
   it("follows in point and speed, mirrors for reversed, holds for freeze, and stays inside the clip", () => {
@@ -84,6 +99,8 @@ describe("waveformSlice", () => {
     expect(peaksPerSecond(wave([1]))).toBe(100);
     expect(waveformSlice(clip(), wave([]), 3)).toEqual([0, 0, 0]);
     expect(waveformSlice(clip(), wave([127]), 0)).toEqual([]);
-    expect(waveformSlice(clip({ inUs: 50 * SEC, outUs: 51 * SEC }), wave([127, 127]), 2)).toEqual([0, 0]); // past the end
+    expect(waveformSlice(clip({ inUs: 50 * SEC, outUs: 51 * SEC }), wave([127, 127]), 2)).toEqual([
+      0, 0,
+    ]); // past the end
   });
 });

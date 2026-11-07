@@ -46,7 +46,7 @@ function describe(label: string, r: BenchmarkResult): void {
 }
 
 const server = await startServer();
-let failed = false;
+let failed: boolean;
 const report: Record<string, unknown> = {};
 try {
   const gpu = await openSession("gpu", server.url);
@@ -63,9 +63,10 @@ try {
   report.renderer = gpu.info.renderer;
   report.userAgent = gpu.info.userAgent;
 
-  const bench = await gpu.call((api) =>
-    api.benchmark({ seconds: PLAY_SECONDS, warmupMs: WARMUP_MS }),
-  );
+  const bench = await gpu.call((api, options) => api.benchmark(options), {
+    seconds: PLAY_SECONDS,
+    warmupMs: WARMUP_MS,
+  });
   describe(`Playback (${String(PLAY_SECONDS)} s, GPU)`, bench);
   report.playback = bench;
   const gates: Gate[] = [
@@ -89,9 +90,11 @@ try {
   if (bench.diagnostics.length > 0) console.log(`  diagnostics: ${bench.diagnostics.join(" | ")}`);
   if (bench.errors.length > 0) console.log(`  errors: ${bench.errors.slice(0, 3).join(" | ")}`);
 
-  const soak: SoakResult = await gpu.call((api) =>
-    api.soak({ playSeconds: PLAY_SECONDS, seeks: SEEKS, seed: 20261102 }),
-  );
+  const soak: SoakResult = await gpu.call((api, options) => api.soak(options), {
+    playSeconds: PLAY_SECONDS,
+    seeks: SEEKS,
+    seed: 20261102,
+  });
   report.soak = soak;
   const final = soak.finalStats;
   const peakTextures = Math.max(0, ...soak.samples.map((s) => s.textureBytes));
@@ -145,9 +148,10 @@ try {
   await gpu.close();
 
   const soft = await openSession("swiftshader", server.url);
-  const floor = await soft.call((api) =>
-    api.benchmark({ seconds: Math.min(PLAY_SECONDS, 8), warmupMs: WARMUP_MS }),
-  );
+  const floor = await soft.call((api, options) => api.benchmark(options), {
+    seconds: Math.min(PLAY_SECONDS, 8),
+    warmupMs: WARMUP_MS,
+  });
   describe(`Floor: SwiftShader, CPU WebGL (${soft.info.renderer}) — reported, not gated`, floor);
   report.swiftshaderFloor = floor;
   await soft.close();

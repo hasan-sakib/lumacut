@@ -23,7 +23,10 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
   const [query, setQuery] = useState("");
   const [advanced, setAdvanced] = useState<Partial<Record<SectionId, boolean>>>({});
   const [collapsed, setCollapsed] = useState<Partial<Record<SectionId, boolean>>>({});
-  const sections = useMemo(() => buildInspector(items, { query, showAdvanced: advanced }), [items, query, advanced]);
+  const sections = useMemo(
+    () => buildInspector(items, { query, showAdvanced: advanced }),
+    [items, query, advanced],
+  );
   const searching = query.trim() !== "";
 
   if (items.length === 0) {
@@ -31,7 +34,8 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
       <div aria-label="Inspector" className="p-3 text-xs text-neutral-400">
         <p className="mb-2 text-sm font-semibold text-neutral-100">{composition.name}</p>
         <p>
-          {composition.width}×{composition.height} · {composition.fps.num / composition.fps.den} fps · {formatDuration(composition.durationUs)}
+          {composition.width}×{composition.height} · {composition.fps.num / composition.fps.den} fps
+          · {formatDuration(composition.durationUs)}
         </p>
         <p className="mt-3">Select a clip to see its properties here.</p>
       </div>
@@ -39,15 +43,23 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
   }
 
   const first = items[0];
-  const title = items.length === 1 ? (first?.asset?.name ?? first?.clip.type ?? "Clip") : `${String(items.length)} clips selected`;
+  const title =
+    items.length === 1
+      ? (first?.asset?.name ?? first?.clip.type ?? "Clip")
+      : `${String(items.length)} clips selected`;
 
   return (
     <div aria-label="Inspector" className="flex flex-col gap-2 p-3">
       <div>
-        <h2 className="truncate text-sm font-semibold text-neutral-100" data-testid="inspector-title">
+        <h2
+          className="truncate text-sm font-semibold text-neutral-100"
+          data-testid="inspector-title"
+        >
           {title}
         </h2>
-        {items.length === 1 && first !== undefined && <p className="text-xs text-neutral-500">{first.clip.type} clip</p>}
+        {items.length === 1 && first !== undefined && (
+          <p className="text-xs text-neutral-500">{first.clip.type} clip</p>
+        )}
       </div>
       <input
         type="search"
@@ -65,7 +77,13 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
         }}
         className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-xs text-neutral-100 outline-none focus:border-sky-500"
       />
-      {sections.length === 0 && <p className="text-xs text-neutral-500">{searching ? `No property matches “${query.trim()}”.` : "Nothing to edit for this selection."}</p>}
+      {sections.length === 0 && (
+        <p className="text-xs text-neutral-500">
+          {searching
+            ? `No property matches “${query.trim()}”.`
+            : "Nothing to edit for this selection."}
+        </p>
+      )}
       {sections.map((section) => (
         <Section
           key={section.id}
@@ -89,7 +107,13 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
               field={field}
               onChange={(stored: FieldValue, source) => {
                 const op = opForField(field.def, stored, items);
-                if (op !== null) onChange(op, source === "scrub" || source === "step" ? `inspector:${field.def.id}` : undefined);
+                if (op !== null)
+                  onChange(
+                    op,
+                    source === "scrub" || source === "step"
+                      ? `inspector:${field.def.id}`
+                      : undefined,
+                  );
               }}
             />
           ))}

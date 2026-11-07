@@ -5,10 +5,10 @@
 |---|---|---|---|
 | M0 | Scaffold: monorepo, Docker Compose, schema + JSON Schema + Pydantic gen, `make check`, sample media | done | 2026-11-01 |
 | M1 | Media pipeline + auth + asset library UI | done | 2026-11-01 |
-| M2 | Engine core: decode, cache, composite, nested comps, audio sync, frame-accurate seek | done, with checks skipped at the owner's request (see Current focus) | 2026-11-06 |
-| M3a | Ops engine (`packages/ops`), projects API + autosave + undo/redo, Action Registry upgrades + command palette | built, **not verified** (nothing was run; see Current focus) | 2026-11-06 |
-| M3b-1 | Editor page: preview + playback, Pro timeline (zoom/scroll, move/trim, snapping, razor, ripple/roll/slip/slide, markers, track headers) | built, **not verified** (nothing was run) | 2026-11-06 |
-| M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | built, **not verified** (nothing was run) | 2026-11-06 |
+| M2 | Engine core: decode, cache, composite, nested comps, audio sync, frame-accurate seek | done, verified 2026-11-07 (`make check`, engine browser tests, `make smoke-render`, `make perf` on GPU) | 2026-11-07 |
+| M3a | Ops engine (`packages/ops`), projects API + autosave + undo/redo, Action Registry upgrades + command palette | done, verified 2026-11-07 (`make check`, `make test-stack`; acceptance e2e passes) | 2026-11-07 |
+| M3b-1 | Editor page: preview + playback, Pro timeline (zoom/scroll, move/trim, snapping, razor, ripple/roll/slip/slide, markers, track headers) | done, verified 2026-11-07 | 2026-11-07 |
+| M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | done, verified 2026-11-07 | 2026-11-07 |
 | M4a | Keyframes + graph editor + color pipeline + scopes + LUTs + effect system (~10 effects) | not started | — |
 | M4b | Text + captions editing + all transitions | not started | — |
 | M4c | Remaining effects (40 total) | not started | — |
@@ -23,15 +23,16 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
-**M3a, M3b-1 and M3b-2 (all of M3) were built on 2026-11-06 at the owner's request with no tests, typecheck or lint run, and nothing committed**, on top of M2 which was also closed without its final verification. Treat all of it as unverified; M3's acceptance (the palette-only / mouse-only 5-clip edit with an identical reload) has never been run. Only generators (`make gen-schema`, `make gen-openapi`) and `pnpm install --offline` were run. First thing next session, in this order, fixing whatever breaks:
-1. `pnpm install` (lockfile), then `make check` (types, lint, unit; `packages/ops` has a 95% coverage threshold).
-2. `docker compose -f infra/docker-compose.yml up -d --build`, then `make test-stack` (Alembic `0002_projects`, `test_projects.py`, e2e `projects.spec.ts`, `timeline.spec.ts`, `acceptance-m3.spec.ts` (the M3 acceptance), `player.spec.ts`).
-3. Manual in the browser: upload a video, **New project**, "Add media at the playhead", then: drag a clip, drag an edge, `C` razor click, `B`/`N`/`Y`/`U` tools, snapping to the playhead and edges, `Space` plays with sound, `S` splits at the playhead, `Mod+Z`, reload and check the edit is identical; two tabs for the conflict banner.
-4. Still open from M2: `make perf-media && make perf`, `make test-samples`, and the unexplained SwiftShader-vs-GPU video difference.
+**M2 and M3 (M3a, M3b-1, M3b-2) are built and verified (2026-11-07); nothing is committed** (the owner commits). Verification run, all on this machine:
+- `make check` green (ruff, mypy --strict, ESLint with the determinism rule, tsc, prettier, schema/openapi drift, all Vitest projects incl. the `packages/ops` 95% coverage gate, pytest).
+- `make test-engine` (browser, SwiftShader) green; `make smoke-render` green.
+- `make perf` on the GPU (Apple M2, Metal via installed Chrome) passes every gate: 60.0 fps, p95 render 4.0 ms, 0% composition frames never shown, no diagnostics/errors, frames opened = closed (15 644), 0 open iterators, texture cache peak 256 MB at budget, memory growth 0.47 MB over 20 s + 2000 seeks. SwiftShader floor (reported, not gated): 8.2 fps, p95 140 ms.
+- `make test-stack`: integration 26 passed / 1 skipped; e2e 16 of 18 on the first full parallel run, and the 2 failures (`player.spec.ts` frame-exact playback → "fps > 2" got 1; `resume.spec.ts` → "Upload failed" at 95%) **pass when run alone with `--workers=1`**, i.e. CPU contention on a loaded laptop, not regressions. Treat `make test-stack` as needing a quiet machine (or `--workers=2`).
+- The M3 acceptance (`acceptance-m3.spec.ts`: palette-only vs mouse-only 5-clip edit, identical after reload) passes.
 
-**Owner decision needed before M4a:** `Keyframe.tUs` is treated as relative to the clip's start (see Decisions → M3a); the spec doesn't say.
+Not run: `make test-samples` (~25 min, M1 pipeline, untouched since it last passed) and the manual browser pass (drag/trim feel, tool keys, two-tab conflict banner).
 
-Next: after verification, M4a (keyframes + graph editor + colour pipeline + scopes + LUTs + effect system). Plan it and wait for approval.
+Next: **M4a-1** (keyframes + graph editor), then M4a-2 (colour pipeline + scopes + LUTs), then M4a-3 (effect system + ~10 effects). Plan each and wait for approval. `Keyframe.tUs` is relative to the clip's start (stated in the schema docs): no owner decision outstanding.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -210,6 +211,15 @@ Getting started in a new session:
 - **Shortcut fix:** while a text field has focus, Mod+A/C/V/X/Y/Z stay with the field (they were being taken by Undo etc.).
 - **Acceptance spec** (`apps/web/e2e/acceptance-m3.spec.ts`): the same edit (cut a 10 s video at 2/4/6/8 s into five picture clips with their sound, move the last 2 s later, trim the first to 1.5 s) is built once with palette+keyboard only and once with mouse only; each is read back from the timeline, the page is reloaded, and the clips must be identical, and identical between the two flows. Setup (upload, create project) is shared. The spec counts 5 picture clips + 5 linked sound clips.
 
+**2026-11-07 — verification pass of M2+M3: what it found and changed**
+- Missing `zod` dependency in `apps/web` (Docker build failed) → added; the web Dockerfile copies the engine and ops packages.
+- **Space didn't play after clicking a toolbar/tab button** (focus stolen) → `ActionButton`, `TrackHeader` buttons use `onMouseDown` preventDefault. Real bug.
+- **Trimming an edge of a linked clip didn't trim its partner by mouse** while the palette flow did (found by the acceptance spec). Fixed test-first in `trimGesture` (takes `selectedIds`, trims linked partners by the same delta, one undo step "Trim clips"); 3 unit tests + a Timeline component test.
+- Lint-driven patterns: `must()` (`apps/web/src/lib/must.ts`) instead of `!`; refs written in effects, not render; callback ref (`attachStage`) rather than a ref object from a hook; no dynamic `delete`.
+- Test expectation errors corrected (my oracle, not the code): `moveClip` picture→audio is allowed for video assets; palette search "razor" rightly ranks the Razor tool first; autosave max-wait timing; e2e helper used `must` inside `page.evaluate`; linked selection counts as "2 clips selected" (use Alt-click for one).
+- Integration test now builds a valid PNG programmatically (a hand-typed one crashed the worker's decode); `test_engine_fixtures.py` skips at module level when fixtures aren't mounted.
+- render-page harness: `call(fn, arg)` passes data into the page (closures can't see Node variables); `smoke.ts` also compares an image asset across backends to isolate decoder from compositor.
+
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
 - **Valkey (BSD-3) instead of Redis.** Redis 8 is RSAL/SSPL/AGPL. RQ and redis-py work unchanged.
@@ -256,8 +266,8 @@ Getting started in a new session:
   - The resume path that uses a stored FileSystemFileHandle can't be automated (native picker). e2e covers the re-pick path, and the handle path is a manual test.
   - Web page components rely on e2e coverage. Unit tests cover the upload engine, SSE parser, stores, actions and components; overall web line coverage isn't gated.
 - **M2 gaps:**
-  - **Verification skipped at the owner's request** (see Current focus): `make perf` and the soak never ran; `make check`, `make test-stack`, `make test-samples` weren't re-run after the final edits.
-  - Cross-backend (SwiftShader vs GPU) video difference unexplained; no golden-image tolerance recorded yet.
+  - `make test-samples` wasn't re-run after the M2/M3 edits (the M1 pipeline is untouched).
+  - **Cross-backend tolerance (measured):** the compositor is bit-identical between SwiftShader and the GPU (image asset, 0/255 difference); the video difference is decoder-only (SSIM ≈ 0.998 on the same composition). Golden-image tests for effects (M4a-3) must therefore use still-image inputs, with video only for non-pixel-exact checks.
   - No full-size-media seek test in `make test-engine` (it only runs the existing suites).
   - Keyframes are not evaluated (`resolveClipProps` is static until M4a). Masks, colour grade, effects, mattes, motion blur and text/shape/adjustment/caption/paint clips are diagnosed, not drawn. The `solid` clip type has no colour field in the schema.
   - Audio fades, keyframed volume, effects, reverse, freeze and `speed ≠ 1` audio are diagnosed, not played (M7).
@@ -267,22 +277,20 @@ Getting started in a new session:
   - Playwright's bundled Chromium has H.264 here, but Linux CI would need `channel: "chrome"`. Presigned-URL refresh is basic (45 min TTL, re-resolve on `invalidate`).
   - The `/dev/player` barcode readout only decodes when the barcode clip fills the composition unscaled. Editing a layer pauses playback (project reload).
 - **M3a gaps:**
-  - **Nothing was run** (see Current focus); expect type, lint and logic errors on the first `make check`. `pnpm-lock.yaml` was updated by `pnpm install --offline`.
   - No op renames the project (`Project.name`), so there is no `project.rename` action yet; a `setProjectProps` op is needed (rule 2).
   - Autosave sends the whole document; there is no op-log sync, so concurrent edits are caught by version conflict only. Undo history is not persisted across reloads. `beforeunload` can't flush an async save: the page saves on `visibilitychange`/`pagehide` and warns when unsaved.
   - The asset-in-use guard looks at the project's `assets` list, not at clips; migrations of `schemaVersion` exist in TS only (the server rejects versions other than 1).
   - `applyOp` re-validates every touched composition in full (O(project) per op): fine for now, to be optimised if drag editing needs it. The composition-cycle check exists in both `packages/ops` and `packages/engine`.
-  - Keyframes: time base is a pending decision (above); splitting mid-animation can jump (no boundary keyframes).
+  - Keyframes: splitting mid-animation can jump (no boundary keyframes; M4a-1).
   - The palette searches editing actions only (effects, presets, templates and settings join in M4/M9); the right-click menu is attached to the outline only.
-  - Not started (M3b): Pro timeline (zoom/scroll, snapping, drag/trim tools, markers UI, track headers, thumbnails/waveforms), inspector, preview in the editor, the acceptance e2e, shortcut editor.
+  - Shortcut editor not built.
 - **M3b-1 gaps:**
-  - **Unverified**, including the pointer/drag code, which was written without a browser; expect fixes on the first real run.
+  - Pointer/drag code is covered by pure-function tests and the e2e specs; the real mouse feel hasn't had a manual pass.
   - The whole editor page re-renders on every animation frame while playing (the editor store is read in full); acceptable now, to be narrowed if playback stutters.
   - Editing during playback pauses it (engine `setProject`); an incremental engine update is an M2 follow-up.
   - Not built: inspector, clip thumbnails and waveforms, clip context menu, copy/paste of clips and attributes, in/out points, rubber-band selection, opening a nested composition to edit it, Simple-mode magnetic track, shortcut editor, markers with duration/rename in the UI.
   - Dragging a clip to another lane moves only the grabbed clip (linked partners stay on their lanes); there is no "new lane" drop target.
 - **M3b-2 gaps:**
-  - **Unverified**, like everything since M2. The scrub/drag components and the e2e (pointer maths, palette typing) are the most likely to need fixes.
   - Inspector: no keyframe ◆ control (M4a), no colour/effects/masks/text/shape sections (M4a/M5); crop edges and speed accept any value in range without cross-field checks; the Time section's source in/out and duration are read-only.
   - No drag-and-drop from the asset list onto lanes (the Add button places at the playhead), no in/out points, no rubber-band selection, no system-clipboard integration (the clipboard lives in the editor and is lost on reload).
   - Undo history is still not kept across a reload.

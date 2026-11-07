@@ -20,7 +20,10 @@ const TYPES: Record<string, string> = {
 /** Serves renditions with Range support (Mediabunny reads video by byte range). */
 const serveMedia: Connect.NextHandleFunction = (req, res, next) => {
   const url = new URL(req.url ?? "/", "http://x");
-  if (!url.pathname.startsWith("/media/")) return next();
+  if (!url.pathname.startsWith("/media/")) {
+    next();
+    return;
+  }
   const name = normalize(decodeURIComponent(url.pathname.slice("/media/".length)));
   if (name.startsWith("..") || name.includes("/")) {
     res.statusCode = 400;

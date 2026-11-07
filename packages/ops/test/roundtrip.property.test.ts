@@ -19,18 +19,44 @@ const arbOp: fc.Arbitrary<Op> = fc.oneof(
   fc.record({ type: fc.constant("rippleTrim" as const), clipId, edge, toUs: time }),
   fc.record({ type: fc.constant("slipClip" as const), clipId, deltaUs: delta }),
   fc.record({ type: fc.constant("slideClip" as const), clipId, deltaUs: delta }),
-  fc.record({ type: fc.constant("moveClip" as const), clipId, trackId: fc.constantFrom(...TRACKS), startUs: time }),
+  fc.record({
+    type: fc.constant("moveClip" as const),
+    clipId,
+    trackId: fc.constantFrom(...TRACKS),
+    startUs: time,
+  }),
   fc.record({ type: fc.constant("removeClip" as const), clipId }),
-  fc.record({ type: fc.constant("splitClip" as const), clipId, atUs: time }).map((o) => ({ ...o, newClipId: freshId() })),
-  fc.record({ type: fc.constant("rollEdit" as const), leftClipId: clipId, rightClipId: clipId, toUs: time }),
   fc
-    .record({ type: fc.constant("rippleDelete" as const), compositionId: fc.constant("main"), startUs: time, len: fc.integer({ min: 1, max: 3 * SEC }) })
+    .record({ type: fc.constant("splitClip" as const), clipId, atUs: time })
+    .map((o) => ({ ...o, newClipId: freshId() })),
+  fc.record({
+    type: fc.constant("rollEdit" as const),
+    leftClipId: clipId,
+    rightClipId: clipId,
+    toUs: time,
+  }),
+  fc
+    .record({
+      type: fc.constant("rippleDelete" as const),
+      compositionId: fc.constant("main"),
+      startUs: time,
+      len: fc.integer({ min: 1, max: 3 * SEC }),
+    })
     .map((o) => ({
       type: o.type,
       compositionId: o.compositionId,
-      target: { kind: "range" as const, startUs: o.startUs, endUs: o.startUs + o.len, trackIds: ["V1"] },
+      target: {
+        kind: "range" as const,
+        startUs: o.startUs,
+        endUs: o.startUs + o.len,
+        trackIds: ["V1"],
+      },
     })),
-  fc.record({ type: fc.constant("setProps" as const), clipId, props: fc.record({ opacity: fc.double({ min: 0, max: 1, noNaN: true }) }) }),
+  fc.record({
+    type: fc.constant("setProps" as const),
+    clipId,
+    props: fc.record({ opacity: fc.double({ min: 0, max: 1, noNaN: true }) }),
+  }),
 );
 
 describe("random edit sequences", () => {

@@ -23,14 +23,27 @@ const format = (v: number): string => String(tidy(v, 2));
  * dragging its label (1 px = one step). Enter or leaving the box applies a typed value, Esc puts
  * the old one back, and something that isn't a number is explained and never applied.
  */
-export function ScrubNumber({ label, value, mixed = false, unit, step, min, max, readOnly = false, onCommit }: ScrubNumberProps) {
+export function ScrubNumber({
+  label,
+  value,
+  mixed = false,
+  unit,
+  step,
+  min,
+  max,
+  readOnly = false,
+  onCommit,
+}: ScrubNumberProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const latest = useRef({ value, step, min, max, onCommit });
-  latest.current = { value, step, min, max, onCommit };
+  useEffect(() => {
+    latest.current = { value, step, min, max, onCommit };
+  });
 
   const shown = draft ?? (value === undefined ? "" : format(value));
-  const multiplier = (e: { shiftKey: boolean; altKey: boolean }) => (e.shiftKey ? 10 : e.altKey ? 0.1 : 1);
+  const multiplier = (e: { shiftKey: boolean; altKey: boolean }) =>
+    e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
 
   function apply(next: number, source: NumberSource) {
     onCommit(tidy(clampTo(next, min, max), 4), source);
@@ -54,7 +67,10 @@ export function ScrubNumber({ label, value, mixed = false, unit, step, min, max,
     if (scrub === null) return;
     const move = (e: PointerEvent) => {
       const { step: s, min: lo, max: hi, onCommit: commit } = latest.current;
-      commit(tidy(clampTo(scrub.startValue + (e.clientX - scrub.startX) * s * multiplier(e), lo, hi), 4), "scrub");
+      commit(
+        tidy(clampTo(scrub.startValue + (e.clientX - scrub.startX) * s * multiplier(e), lo, hi), 4),
+        "scrub",
+      );
     };
     const up = () => {
       setScrub(null);
@@ -71,7 +87,11 @@ export function ScrubNumber({ label, value, mixed = false, unit, step, min, max,
     return (
       <div className="grid grid-cols-[7rem_1fr] items-center gap-2 text-xs">
         <span className="text-neutral-400">{label}</span>
-        <span className="font-mono text-neutral-300" aria-label={label} data-testid={`field-${label}`}>
+        <span
+          className="font-mono text-neutral-300"
+          aria-label={label}
+          data-testid={`field-${label}`}
+        >
           {value === undefined ? "Mixed" : `${format(value)}${unit ? ` ${unit}` : ""}`}
         </span>
       </div>

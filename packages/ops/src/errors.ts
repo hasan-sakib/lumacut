@@ -46,6 +46,9 @@ export function fail(code: OpErrorCode, message: string): never {
 /** A time or duration must be a non-negative safe integer (microseconds). */
 export function assertTime(us: number, what: string): void {
   if (!Number.isSafeInteger(us) || us < 0) {
-    fail("invalid_time", `${what} must be a non-negative whole number of microseconds, got ${String(us)}.`);
+    fail(
+      "invalid_time",
+      `${what} must be a non-negative whole number of microseconds, got ${String(us)}.`,
+    );
   }
 }

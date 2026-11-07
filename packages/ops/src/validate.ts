@@ -38,12 +38,18 @@ function sourceDuration(asset: Asset): number | undefined {
 function checkClip(clip: Clip, track: Track, project: Project): void {
   lengthOf(clip);
   if (clip.startUs < 0 || !Number.isSafeInteger(clip.startUs)) {
-    fail("invalid_time", `Clip ${clip.id} starts at ${String(clip.startUs)}; start times are whole microseconds from 0.`);
+    fail(
+      "invalid_time",
+      `Clip ${clip.id} starts at ${String(clip.startUs)}; start times are whole microseconds from 0.`,
+    );
   }
   if (clip.type === "media") {
     const asset = project.assets.find((a) => a.id === clip.assetId);
     if (clip.assetId === undefined || asset === undefined) {
-      fail("unknown_asset", `Clip ${clip.id} uses asset "${String(clip.assetId)}", which isn't in the project.`);
+      fail(
+        "unknown_asset",
+        `Clip ${clip.id} uses asset "${String(clip.assetId)}", which isn't in the project.`,
+      );
     }
     if (track.kind === "audio" && asset.kind !== "video" && asset.kind !== "audio") {
       fail("wrong_track_kind", `An ${asset.kind} can't go on the audio track "${track.name}".`);
@@ -53,14 +59,23 @@ function checkClip(clip: Clip, track: Track, project: Project): void {
     }
     const duration = sourceDuration(asset);
     if (duration !== undefined && clip.outUs > duration) {
-      fail("trim_beyond_source", `Clip ${clip.id} ends ${String(clip.outUs - duration)} µs after the end of its media.`);
+      fail(
+        "trim_beyond_source",
+        `Clip ${clip.id} ends ${String(clip.outUs - duration)} µs after the end of its media.`,
+      );
     }
   } else if (track.kind === "audio") {
     fail("wrong_track_kind", `A ${clip.type} clip can't go on the audio track "${track.name}".`);
   }
   if (clip.type === "composition") {
-    if (clip.compositionId === undefined || !project.compositions.some((c) => c.id === clip.compositionId)) {
-      fail("unknown_composition", `Clip ${clip.id} uses composition "${String(clip.compositionId)}", which doesn't exist.`);
+    if (
+      clip.compositionId === undefined ||
+      !project.compositions.some((c) => c.id === clip.compositionId)
+    ) {
+      fail(
+        "unknown_composition",
+        `Clip ${clip.id} uses composition "${String(clip.compositionId)}", which doesn't exist.`,
+      );
     }
   }
 }
@@ -72,7 +87,10 @@ export function validateComposition(project: Project, composition: Composition):
     for (const clip of [...track.clips].sort((a, b) => a.startUs - b.startUs)) {
       checkClip(clip, track, project);
       if (previous !== undefined && endOf(previous) > clip.startUs) {
-        fail("clips_overlap", `On track "${track.name}", clip ${previous.id} overlaps clip ${clip.id}.`);
+        fail(
+          "clips_overlap",
+          `On track "${track.name}", clip ${previous.id} overlaps clip ${clip.id}.`,
+        );
       }
       previous = clip;
     }

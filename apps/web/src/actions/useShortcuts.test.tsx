@@ -78,7 +78,13 @@ describe("useShortcuts and text fields", () => {
   }
   const make = () => {
     const r = new ActionRegistry<null>();
-    const base = { description: "Does something useful.", keywords: ["k"], category: "Edit", when: () => true, run: () => undefined };
+    const base = {
+      description: "Does something useful.",
+      keywords: ["k"],
+      category: "Edit",
+      when: () => true,
+      run: () => undefined,
+    };
     r.register({ ...base, id: "history.undo", title: "Undo", shortcut: "Mod+Z" });
     r.register({ ...base, id: "clip.paste", title: "Paste", shortcut: "Mod+V" });
     r.register({ ...base, id: "library.upload", title: "Upload", shortcut: "Mod+U" });
@@ -100,7 +106,7 @@ describe("useShortcuts and text fields", () => {
   });
 
   it("outside a field every shortcut runs", () => {
-    const hit = vi.fn();
+    const hit = vi.fn<(id: string) => void>();
     render(<Modal registry={make()} hit={hit} />);
     fireEvent.keyDown(document.body, { key: "z", ctrlKey: true });
     fireEvent.keyDown(document.body, { key: "s" });

@@ -25,7 +25,12 @@ export interface GestureResult {
 export type GestureKind = "move" | "trim" | "roll" | "slip" | "slide" | "razor";
 
 /** The clips whose own edges must not attract the gesture (the ones being dragged). */
-export function snapExclusions(comp: Composition, kind: GestureKind, clipId: string, selectedIds: readonly string[]): string[] {
+export function snapExclusions(
+  comp: Composition,
+  kind: GestureKind,
+  clipId: string,
+  selectedIds: readonly string[],
+): string[] {
   return kind === "move" ? withLinked(comp, [...new Set([...selectedIds, clipId])]) : [clipId];
 }
 
@@ -38,7 +43,8 @@ function place(env: GestureEnv, tUs: number): { tUs: number; snappedTo: number |
   return { tUs: roundToFrame(tUs, env.fps), snappedTo: null };
 }
 
-const one = (ops: Op[], label: string): Op => (ops.length === 1 && ops[0] !== undefined ? ops[0] : { type: "batch", label, ops });
+const one = (ops: Op[], label: string): Op =>
+  ops.length === 1 && ops[0] !== undefined ? ops[0] : { type: "batch", label, ops };
 
 // --- Move -------------------------------------------------------------------------------------
 
@@ -57,26 +63,36 @@ export function moveGesture(env: GestureEnv, input: MoveInput): GestureResult | 
   const comp = env.composition;
   const grabbed = findPlaced(comp, input.clipId);
   if (grabbed === undefined) return null;
-  const moving = withLinked(comp, [...new Set([...input.selectedIds, input.clipId])]).flatMap((id) => {
-    const p = findPlaced(comp, id);
-    return p === undefined ? [] : [p];
-  });
+  const moving = withLinked(comp, [...new Set([...input.selectedIds, input.clipId])]).flatMap(
+    (id) => {
+      const p = findPlaced(comp, id);
+      return p === undefined ? [] : [p];
+    },
+  );
   const minStart = Math.min(...moving.map((m) => m.clip.startUs));
   const length = endOf(grabbed.clip) - grabbed.clip.startUs;
 
   let delta = Math.max(input.deltaUs, -minStart);
   let snappedTo: number | null = null;
   if (env.snapping) {
-    const s = snapSpan(grabbed.clip.startUs + delta, grabbed.clip.startUs + delta + length, env.snapPoints, env.thresholdUs);
+    const s = snapSpan(
+      grabbed.clip.startUs + delta,
+      grabbed.clip.startUs + delta + length,
+      env.snapPoints,
+      env.thresholdUs,
+    );
     if (s.to !== null) {
       delta += s.deltaUs;
       snappedTo = s.to;
     }
   }
-  if (snappedTo === null) delta = roundToFrame(grabbed.clip.startUs + delta, env.fps) - grabbed.clip.startUs;
+  if (snappedTo === null)
+    delta = roundToFrame(grabbed.clip.startUs + delta, env.fps) - grabbed.clip.startUs;
   delta = Math.max(delta, -minStart);
 
-  const lane = comp.tracks.find((t) => t.id === input.targetTrackId && t.kind === grabbed.track.kind);
+  const lane = comp.tracks.find(
+    (t) => t.id === input.targetTrackId && t.kind === grabbed.track.kind,
+  );
   const destination = lane?.id ?? grabbed.track.id;
   if (delta === 0 && destination === grabbed.track.id) return null;
 
@@ -98,6 +114,11 @@ export interface TrimInput {
   toUs: number;
   /** Ripple tool: later clips on the track follow. */
   ripple: boolean;
+  /**
+   * Clips selected with the grabbed one. Those linked to it are trimmed by the same amount, so a
+   * picture and its sound stay in step; Alt-clicking a clip leaves its partner out of the selection.
+   */
+  selectedIds?: readonly string[];
 }
 
 export function trimGesture(env: GestureEnv, input: TrimInput): GestureResult | null {
@@ -106,10 +127,32 @@ export function trimGesture(env: GestureEnv, input: TrimInput): GestureResult | 
   const { tUs, snappedTo } = place(env, input.toUs);
   const current = input.edge === "start" ? placed.clip.startUs : endOf(placed.clip);
   if (tUs === current) return null;
-  return {
-    op: { type: input.ripple ? "rippleTrim" : "trimClip", clipId: input.clipId, edge: input.edge, toUs: tUs },
-    snappedTo,
-  };
+  const delta = tUs - current;
+  const trim = (clipId: string, toUs: number): Op => ({
+    type: input.ripple ? "rippleTrim" : "trimClip",
+    clipId,
+    edge: input.edge,
+    toUs,
+  });
+  const partners = (input.selectedIds ?? []).flatMap((id) => {
+    const other = findPlaced(env.composition, id);
+    const linked =
+      other !== undefined &&
+      other.clip.id !== input.clipId &&
+      placed.clip.linkId !== undefined &&
+      other.clip.linkId === placed.clip.linkId;
+    return linked ? [other] : [];
+  });
+  const ops = [
+    trim(input.clipId, tUs),
+    ...partners.map((p) =>
+      trim(
+        p.clip.id,
+        Math.max(0, (input.edge === "start" ? p.clip.startUs : endOf(p.clip)) + delta),
+      ),
+    ),
+  ];
+  return { op: one(ops, "Trim clips"), snappedTo };
 }
 
 export interface RollInput {
@@ -124,7 +167,15 @@ export function rollGesture(env: GestureEnv, input: RollInput): GestureResult | 
   if (left === undefined) return null;
   const { tUs, snappedTo } = place(env, input.toUs);
   if (tUs === endOf(left.clip)) return null;
-  return { op: { type: "rollEdit", leftClipId: input.leftClipId, rightClipId: input.rightClipId, toUs: tUs }, snappedTo };
+  return {
+    op: {
+      type: "rollEdit",
+      leftClipId: input.leftClipId,
+      rightClipId: input.rightClipId,
+      toUs: tUs,
+    },
+    snappedTo,
+  };
 }
 
 // --- Slip and slide ---------------------------------------------------------------------------
@@ -166,7 +217,9 @@ export function slideGesture(env: GestureEnv, input: DeltaInput): GestureResult 
   }
   if (snappedTo === null) delta = roundToFrame(start + delta, env.fps) - start;
   delta = Math.max(delta, -start);
-  return delta === 0 ? null : { op: { type: "slideClip", clipId: input.clipId, deltaUs: delta }, snappedTo };
+  return delta === 0
+    ? null
+    : { op: { type: "slideClip", clipId: input.clipId, deltaUs: delta }, snappedTo };
 }
 
 // --- Razor ------------------------------------------------------------------------------------
@@ -190,7 +243,9 @@ export function razorGesture(env: GestureEnv, input: RazorInput): GestureResult 
 
 // --- Preview ----------------------------------------------------------------------------------
 
-export type Preview = { project: Project; error: null } | { project: null; error: { code: OpErrorCode; message: string } };
+export type Preview =
+  | { project: Project; error: null }
+  | { project: null; error: { code: OpErrorCode; message: string } };
 
 /**
  * What the project would look like after the gesture, or why it would be refused. The timeline
@@ -200,7 +255,8 @@ export function previewGesture(project: Project, op: Op): Preview {
   try {
     return { project: applyOp(project, op).project, error: null };
   } catch (error) {
-    if (error instanceof OpError) return { project: null, error: { code: error.code, message: error.message } };
+    if (error instanceof OpError)
+      return { project: null, error: { code: error.code, message: error.message } };
     throw error;
   }
 }

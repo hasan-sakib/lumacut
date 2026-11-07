@@ -21,7 +21,14 @@ const TONE: Record<SaveState, string> = {
 /** The autosave indicator; announced politely to screen readers when it changes. */
 export function SaveStatus({ state, detail }: { state: SaveState; detail?: string | null }) {
   return (
-    <span role="status" aria-live="polite" data-testid="save-status" data-state={state} title={detail ?? undefined} className={`text-xs ${TONE[state]}`}>
+    <span
+      role="status"
+      aria-live="polite"
+      data-testid="save-status"
+      data-state={state}
+      title={detail ?? undefined}
+      className={`text-xs ${TONE[state]}`}
+    >
       {TEXT[state]}
     </span>
   );

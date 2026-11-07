@@ -41,9 +41,15 @@ export function resolveAssetQuery(assets: readonly AssetOut[], query: string): A
   const byId = usable.find((a) => a.id === text);
   if (byId !== undefined) return { asset: byId };
   const exact = usable.filter((a) => a.name.toLowerCase() === lower);
-  const candidates = exact.length > 0 ? exact : usable.filter((a) => a.name.toLowerCase().includes(lower));
+  const candidates =
+    exact.length > 0 ? exact : usable.filter((a) => a.name.toLowerCase().includes(lower));
   if (candidates.length === 1 && candidates[0] !== undefined) return { asset: candidates[0] };
   if (candidates.length === 0) return { error: `No ready asset matches “${text}”.` };
-  const shown = candidates.slice(0, 3).map((a) => `“${a.name}”`).join(", ");
-  return { error: `“${text}” matches ${String(candidates.length)} assets (${shown}${candidates.length > 3 ? ", …" : ""}). Type more of the name.` };
+  const shown = candidates
+    .slice(0, 3)
+    .map((a) => `“${a.name}”`)
+    .join(", ");
+  return {
+    error: `“${text}” matches ${String(candidates.length)} assets (${shown}${candidates.length > 3 ? ", …" : ""}). Type more of the name.`,
+  };
 }

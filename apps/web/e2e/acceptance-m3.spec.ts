@@ -31,9 +31,14 @@ async function readClips(page: Page): Promise<ClipShape[]> {
   const shapes = await page.evaluate((pxPerSecond) => {
     const lanes = Array.from(document.querySelectorAll("[data-lane]"));
     return Array.from(document.querySelectorAll("[data-clip]")).map((el) => {
-      const lane = lanes.indexOf(el.closest("[data-lane]") as Element);
+      const laneEl = el.closest("[data-lane]");
+      const lane = laneEl === null ? -1 : lanes.indexOf(laneEl);
       const style = (el as HTMLElement).style;
-      return { lane, startS: parseFloat(style.left) / pxPerSecond, lengthS: parseFloat(style.width) / pxPerSecond };
+      return {
+        lane,
+        startS: parseFloat(style.left) / pxPerSecond,
+        lengthS: parseFloat(style.width) / pxPerSecond,
+      };
     });
   }, PX_PER_SECOND);
   const round = (n: number) => Math.round(n * 1000) / 1000;
@@ -49,7 +54,12 @@ async function waitSaved(page: Page): Promise<void> {
 }
 
 /** Runs a palette command with the keyboard alone: open, type, Enter, fill the argument form, Enter. */
-async function palette(page: Page, query: string, args: Record<string, string> = {}, expectForm = Object.keys(args).length > 0): Promise<void> {
+async function palette(
+  page: Page,
+  query: string,
+  args: Record<string, string> = {},
+  expectForm = Object.keys(args).length > 0,
+): Promise<void> {
   await page.keyboard.press("ControlOrMeta+K");
   const box = page.getByRole("combobox", { name: "Search commands" });
   await expect(box).toBeVisible();
@@ -79,10 +89,14 @@ async function reloadAndRead(page: Page): Promise<ClipShape[]> {
 
 const EXPECTED_CLIP_COUNT = 10; // five pictures and their five sound clips
 
-test("a 5-clip edit built only with the palette, then only with the mouse, is the same after a reload", async ({ page }) => {
+test("a 5-clip edit built only with the palette, then only with the mouse, is the same after a reload", async ({
+  page,
+}) => {
   await registerNewUser(page);
   await page.getByTestId("upload-input").setInputFiles([sample("fn_1080p30.mp4")]);
-  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", { timeout: 240_000 });
+  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", {
+    timeout: 240_000,
+  });
 
   // --- A: palette and keyboard only --------------------------------------------------------------
   await newProject(page);
@@ -127,14 +141,20 @@ test("a 5-clip edit built only with the palette, then only with the mouse, is th
   if (last === null) throw new Error("last clip has no box");
   await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2);
   await page.mouse.down();
-  await page.mouse.move(last.x + last.width / 2 + 2 * PX_PER_SECOND, last.y + last.height / 2, { steps: 12 });
+  await page.mouse.move(last.x + last.width / 2 + 2 * PX_PER_SECOND, last.y + last.height / 2, {
+    steps: 12,
+  });
   await page.mouse.up();
 
   const first = await pictures.first().boundingBox();
   if (first === null) throw new Error("first clip has no box");
   await page.mouse.move(first.x + first.width - 3, first.y + first.height / 2);
   await page.mouse.down();
-  await page.mouse.move(first.x + first.width - 3 - 0.5 * PX_PER_SECOND, first.y + first.height / 2, { steps: 8 });
+  await page.mouse.move(
+    first.x + first.width - 3 - 0.5 * PX_PER_SECOND,
+    first.y + first.height / 2,
+    { steps: 8 },
+  );
   await page.mouse.up();
 
   await expect(page.locator("[data-clip]")).toHaveCount(EXPECTED_CLIP_COUNT);
@@ -154,16 +174,26 @@ test("a 5-clip edit built only with the palette, then only with the mouse, is th
   ]);
 });
 
-test("a clip's properties are edited in the inspector, undo in one step, and survive a reload", async ({ page }) => {
+test("a clip's properties are edited in the inspector, undo in one step, and survive a reload", async ({
+  page,
+}) => {
   await registerNewUser(page);
   await page.getByTestId("upload-input").setInputFiles([sample("fn_1080p30.mp4")]);
-  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", { timeout: 240_000 });
+  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", {
+    timeout: 240_000,
+  });
   await newProject(page);
   await page.getByRole("tab", { name: /add media/i }).click();
   await page.getByRole("button", { name: "Add fn_1080p30.mp4 at the playhead" }).click();
   await page.getByRole("tab", { name: /inspector/i }).click();
 
-  await page.getByTestId("lane").nth(1).locator("[data-clip]").first().click(); // select the picture clip
+  // Alt-click: just the picture clip (a plain click would also select its linked sound).
+  await page
+    .getByTestId("lane")
+    .nth(1)
+    .locator("[data-clip]")
+    .first()
+    .click({ modifiers: ["Alt"] });
   await expect(page.getByTestId("inspector-title")).toContainText("fn_1080p30.mp4");
 
   const opacity = page.getByRole("textbox", { name: "Opacity" });
@@ -177,7 +207,12 @@ test("a clip's properties are edited in the inspector, undo in one step, and sur
 
   await waitSaved(page);
   await page.reload();
-  await page.getByTestId("lane").nth(1).locator("[data-clip]").first().click();
+  await page
+    .getByTestId("lane")
+    .nth(1)
+    .locator("[data-clip]")
+    .first()
+    .click({ modifiers: ["Alt"] });
   await expect(page.getByRole("textbox", { name: "Opacity" })).toHaveValue("40");
   await expect(page.getByRole("textbox", { name: "Scale" })).toHaveValue("50");
 
@@ -194,7 +229,9 @@ test("a clip's properties are edited in the inspector, undo in one step, and sur
 test("copy and paste, and the right-click menu, work on clips", async ({ page }) => {
   await registerNewUser(page);
   await page.getByTestId("upload-input").setInputFiles([sample("fn_1080p30.mp4")]);
-  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", { timeout: 240_000 });
+  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", {
+    timeout: 240_000,
+  });
   await newProject(page);
   await page.getByRole("tab", { name: /add media/i }).click();
   await page.getByRole("button", { name: "Add fn_1080p30.mp4 at the playhead" }).click();

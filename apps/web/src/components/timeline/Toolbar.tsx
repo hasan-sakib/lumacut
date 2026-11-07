@@ -22,10 +22,22 @@ const BUTTON = "text-neutral-200 hover:bg-neutral-800";
 /** Every button is an action from the registry: its tooltip, label and shortcut come from there. */
 export function Toolbar({ ctx, tool, snapping, playing, playheadUs, fps, onRun }: ToolbarProps) {
   const button = (id: string, pressed?: boolean) => (
-    <ActionButton key={id} action={editingActions.get(id)} ctx={ctx} variant="icon" onRun={onRun} {...(pressed === undefined ? {} : { pressed })} className={BUTTON} />
+    <ActionButton
+      key={id}
+      action={editingActions.get(id)}
+      ctx={ctx}
+      variant="icon"
+      onRun={onRun}
+      {...(pressed === undefined ? {} : { pressed })}
+      className={BUTTON}
+    />
   );
   return (
-    <div role="toolbar" aria-label="Timeline tools" className="flex flex-wrap items-center gap-2 border-y border-neutral-800 bg-neutral-950 px-3 py-1.5">
+    <div
+      role="toolbar"
+      aria-label="Timeline tools"
+      className="flex flex-wrap items-center gap-2 border-y border-neutral-800 bg-neutral-950 px-3 py-1.5"
+    >
       <div className={GROUP}>{["history.undo", "history.redo"].map((id) => button(id))}</div>
       <div className={GROUP} role="group" aria-label="Tools">
         {TOOLS.map((t) => button(`tool.${t}`, tool === t))}
@@ -38,7 +50,11 @@ export function Toolbar({ ctx, tool, snapping, playing, playheadUs, fps, onRun }
         {button("playback.stepForward")}
         {button("playback.goToEnd")}
       </div>
-      <span data-testid="timecode" aria-label="Playhead timecode" className="font-mono text-sm tabular-nums text-neutral-100">
+      <span
+        data-testid="timecode"
+        aria-label="Playhead timecode"
+        className="font-mono text-sm tabular-nums text-neutral-100"
+      >
         {formatTimecode(playheadUs, fps)}
       </span>
       <div className={`${GROUP} ml-auto`}>

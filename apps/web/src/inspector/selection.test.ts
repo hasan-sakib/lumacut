@@ -1,7 +1,15 @@
-import { createClip, createComposition, createProject, createTrack, type Asset, type Project } from "@lumacut/schema";
+import {
+  createClip,
+  createComposition,
+  createProject,
+  createTrack,
+  type Asset,
+  type Project,
+} from "@lumacut/schema";
 import { describe, expect, it } from "vitest";
 import { fieldById, type ClipInfo } from "./fields.ts";
 import { buildInspector, opForField, opsForField } from "./selection.ts";
+import { must } from "../lib/must.ts";
 
 const SEC = 1_000_000;
 const video: Asset = {
@@ -11,7 +19,13 @@ const video: Asset = {
   mimeType: "video/mp4",
   sizeBytes: 1,
   source: "user",
-  video: { width: 1920, height: 1080, fps: { num: 30, den: 1 }, durationUs: 10 * SEC, codec: "avc1" },
+  video: {
+    width: 1920,
+    height: 1080,
+    fps: { num: 30, den: 1 },
+    durationUs: 10 * SEC,
+    codec: "avc1",
+  },
 };
 
 function infos(): { pic1: ClipInfo; pic2: ClipInfo; snd: ClipInfo; project: Project } {
@@ -29,18 +43,42 @@ function infos(): { pic1: ClipInfo; pic2: ClipInfo; snd: ClipInfo; project: Proj
             id: "V1",
             kind: "visual",
             clips: [
-              createClip({ id: "a", type: "media", assetId: "v1", startUs: 0, outUs: 2 * SEC, opacity: 0.5 }),
-              createClip({ id: "b", type: "media", assetId: "v1", startUs: 2 * SEC, outUs: 2 * SEC, opacity: 1 }),
+              createClip({
+                id: "a",
+                type: "media",
+                assetId: "v1",
+                startUs: 0,
+                outUs: 2 * SEC,
+                opacity: 0.5,
+              }),
+              createClip({
+                id: "b",
+                type: "media",
+                assetId: "v1",
+                startUs: 2 * SEC,
+                outUs: 2 * SEC,
+                opacity: 1,
+              }),
             ],
           }),
-          createTrack({ id: "A1", kind: "audio", clips: [createClip({ id: "s", type: "media", assetId: "v1", startUs: 0, outUs: 2 * SEC })] }),
+          createTrack({
+            id: "A1",
+            kind: "audio",
+            clips: [
+              createClip({ id: "s", type: "media", assetId: "v1", startUs: 0, outUs: 2 * SEC }),
+            ],
+          }),
         ],
       }),
     ],
     mainCompositionId: "main",
   });
   const tracks = project.compositions[0]?.tracks ?? [];
-  const at = (t: number, c: number): ClipInfo => ({ clip: tracks[t]!.clips[c]!, track: tracks[t], asset: video });
+  const at = (t: number, c: number): ClipInfo => ({
+    clip: must(must(tracks[t]).clips[c]),
+    track: tracks[t],
+    asset: video,
+  });
   return { pic1: at(0, 0), pic2: at(0, 1), snd: at(1, 0), project };
 }
 
@@ -59,7 +97,12 @@ describe("buildInspector", () => {
     const { pic1 } = infos();
     const basic = buildInspector([pic1], { query: "", showAdvanced: {} });
     const transform = basic.find((s) => s.id === "transform");
-    expect(transform?.fields.map((f) => f.def.id)).toEqual(["positionX", "positionY", "scale", "rotation"]);
+    expect(transform?.fields.map((f) => f.def.id)).toEqual([
+      "positionX",
+      "positionY",
+      "scale",
+      "rotation",
+    ]);
     expect(transform?.hasAdvanced).toBe(true);
     expect(transform?.hiddenAdvanced).toBe(5); // scaleX, scaleY, anchorX, anchorY, skew
     const adv = buildInspector([pic1], { query: "", showAdvanced: { transform: true } });
@@ -69,7 +112,10 @@ describe("buildInspector", () => {
 
   it("search matches label, keywords and section, ignores the advanced switch, and drops empty sections", () => {
     const { pic1 } = infos();
-    const ids = (q: string) => buildInspector([pic1], { query: q, showAdvanced: {} }).flatMap((s) => s.fields.map((f) => f.def.id));
+    const ids = (q: string) =>
+      buildInspector([pic1], { query: q, showAdvanced: {} }).flatMap((s) =>
+        s.fields.map((f) => f.def.id),
+      );
     expect(ids("slant")).toEqual(["skew"]); // keyword of an advanced field
     expect(ids("transparency")).toEqual(["opacity"]);
     expect(ids("crop left")).toEqual(["cropLeft"]);
@@ -107,13 +153,18 @@ describe("opsForField", () => {
   it("includes unset for fields that remove a property", () => {
     const { pic1 } = infos();
     const frozen = { ...pic1, clip: { ...pic1.clip, freezeAtUs: 0 } };
-    expect(opsForField(fieldById("freeze"), false, [frozen])).toEqual([{ type: "setProps", clipId: "a", props: {}, unset: ["freezeAtUs"] }]);
+    expect(opsForField(fieldById("freeze"), false, [frozen])).toEqual([
+      { type: "setProps", clipId: "a", props: {}, unset: ["freezeAtUs"] },
+    ]);
   });
 
   it("opForField is null when nothing changes, the op itself for one clip, a labelled batch for several", () => {
     const { pic1, pic2 } = infos();
     expect(opForField(fieldById("rotation"), 0, [pic1])).toBeNull();
-    expect(opForField(fieldById("rotation"), 10, [pic1])).toMatchObject({ type: "setProps", clipId: "a" });
+    expect(opForField(fieldById("rotation"), 10, [pic1])).toMatchObject({
+      type: "setProps",
+      clipId: "a",
+    });
     const many = opForField(fieldById("rotation"), 10, [pic1, pic2]);
     expect(many).toMatchObject({ type: "batch", label: "Change rotation" });
     expect(many?.type === "batch" ? many.ops : []).toHaveLength(2);

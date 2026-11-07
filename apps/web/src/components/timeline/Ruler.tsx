@@ -18,7 +18,16 @@ interface RulerProps {
 }
 
 /** Time ruler: labelled ticks, markers you can drag, and scrubbing by pressing on it. */
-export function Ruler({ composition, fps, zoomPxPerSec, scrollUs, viewportPx, widthPx, onSeek, onCommit }: RulerProps) {
+export function Ruler({
+  composition,
+  fps,
+  zoomPxPerSec,
+  scrollUs,
+  viewportPx,
+  widthPx,
+  onSeek,
+  onCommit,
+}: RulerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [scrubbing, setScrubbing] = useState(false);
   const [markerDrag, setMarkerDragState] = useState<{ id: string; tUs: number } | null>(null);
@@ -29,11 +38,16 @@ export function Ruler({ composition, fps, zoomPxPerSec, scrollUs, viewportPx, wi
     setMarkerDragState(next);
   };
   const live = useRef({ onSeek, zoomPxPerSec, fps });
-  live.current = { onSeek, zoomPxPerSec, fps };
+  useEffect(() => {
+    live.current = { onSeek, zoomPxPerSec, fps };
+  });
 
   const timeAt = (clientX: number): number => {
     const left = ref.current?.getBoundingClientRect().left ?? 0;
-    return roundToFrame(Math.max(0, pxToUs(clientX - left, live.current.zoomPxPerSec)), live.current.fps);
+    return roundToFrame(
+      Math.max(0, pxToUs(clientX - left, live.current.zoomPxPerSec)),
+      live.current.fps,
+    );
   };
 
   // Scrubbing and marker dragging follow the pointer wherever it goes.
@@ -51,7 +65,10 @@ export function Ruler({ composition, fps, zoomPxPerSec, scrollUs, viewportPx, wi
         const marker = composition.markers.find((m) => m.id === dragged.id);
         if (marker !== undefined && marker.tUs !== dragged.tUs) {
           const moved: Marker = { ...marker, tUs: dragged.tUs };
-          onCommit({ type: "updateMarker", compositionId: composition.id, marker: moved }, "Move marker");
+          onCommit(
+            { type: "updateMarker", compositionId: composition.id, marker: moved },
+            "Move marker",
+          );
         }
       }
       setScrubbing(false);
@@ -80,8 +97,19 @@ export function Ruler({ composition, fps, zoomPxPerSec, scrollUs, viewportPx, wi
       }}
     >
       {ticks.map((t) => (
-        <div key={t.us} className="absolute top-0 border-l border-neutral-600" style={{ left: usToPx(t.us, zoomPxPerSec), height: t.major ? RULER_HEIGHT : RULER_HEIGHT / 3 }}>
-          {t.major && <span className="absolute left-1 top-0.5 whitespace-nowrap text-[10px] text-neutral-400">{formatTimecode(t.us, fps)}</span>}
+        <div
+          key={t.us}
+          className="absolute top-0 border-l border-neutral-600"
+          style={{
+            left: usToPx(t.us, zoomPxPerSec),
+            height: t.major ? RULER_HEIGHT : RULER_HEIGHT / 3,
+          }}
+        >
+          {t.major && (
+            <span className="absolute left-1 top-0.5 whitespace-nowrap text-[10px] text-neutral-400">
+              {formatTimecode(t.us, fps)}
+            </span>
+          )}
         </div>
       ))}
       {composition.markers.map((m) => {
@@ -94,7 +122,10 @@ export function Ruler({ composition, fps, zoomPxPerSec, scrollUs, viewportPx, wi
             title={m.label === "" ? "Marker" : m.label}
             aria-label={`Marker${m.label === "" ? "" : ` ${m.label}`} at ${formatTimecode(at, fps)}`}
             className="absolute bottom-0 -ml-1.5 h-3 w-3 cursor-grab rounded-sm"
-            style={{ left: usToPx(at, zoomPxPerSec), backgroundColor: `rgb(${String(m.color.r * 255)} ${String(m.color.g * 255)} ${String(m.color.b * 255)})` }}
+            style={{
+              left: usToPx(at, zoomPxPerSec),
+              backgroundColor: `rgb(${String(m.color.r * 255)} ${String(m.color.g * 255)} ${String(m.color.b * 255)})`,
+            }}
             onPointerDown={(e) => {
               e.stopPropagation();
               if (e.button !== 0) return;

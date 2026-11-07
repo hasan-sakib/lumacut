@@ -82,7 +82,7 @@ try {
   const gpu = await capture("gpu", server.url, "perf_v1", FRAME);
   for (const c of [soft, gpu]) {
     console.log(
-      `${c.backend.padEnd(11)} ${c.width}×${c.height}  barcode=${String(c.barcode)}  render=${c.renderMs.toFixed(0)} ms  diagnostics=${String(c.diagnostics)}\n            ${c.renderer}`,
+      `${c.backend.padEnd(11)} ${String(c.width)}×${String(c.height)}  barcode=${String(c.barcode)}  render=${c.renderMs.toFixed(0)} ms  diagnostics=${String(c.diagnostics)}\n            ${c.renderer}`,
     );
     if (c.barcode !== FRAME) {
       console.error(
@@ -108,6 +108,16 @@ try {
     console.error(`FAIL: SSIM ${similarity.toFixed(5)} < ${String(MIN_SSIM)}`);
     failed = true;
   }
+  // The same comparison for a still image: no video decoder involved, so any difference here is the
+  // compositor (colour handling, filtering) and not WebCodecs. This separates the two causes.
+  const softImage = await capture("swiftshader", server.url, "perf_i2", 0);
+  const gpuImage = await capture("gpu", server.url, "perf_i2", 0);
+  const imageSsim = ssim(softImage.pixels, gpuImage.pixels, softImage.width, softImage.height);
+  const imageDiff = maxChannelDiff(softImage.pixels, gpuImage.pixels);
+  const imageHist = diffHistogram(softImage.pixels, gpuImage.pixels);
+  console.log(
+    `\nCompositor only (image, no decoder): SSIM = ${imageSsim.toFixed(5)}, max channel difference = ${String(imageDiff)}/255\n  pixels differing by more than 2: ${imageHist.over2.toFixed(3)}%  ·  more than 8: ${imageHist.over8.toFixed(3)}%  ·  mean ${imageHist.mean.toFixed(4)}`,
+  );
   if (/swiftshader/i.test(gpu.renderer)) {
     console.error('FAIL: the "gpu" backend is also running on SwiftShader (no GPU in this Chrome)');
     failed = true;

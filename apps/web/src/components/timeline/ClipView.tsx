@@ -28,15 +28,38 @@ interface ClipViewProps {
 }
 
 /** One clip on a lane: a box from its start to its end, with a grab zone at each edge for trimming. */
-export function ClipView({ clip, asset, trackKind, zoomPxPerSec, selected, invalid, cursor, viewFromPx, viewToPx, onPointerDown, onContextMenu }: ClipViewProps) {
+export function ClipView({
+  clip,
+  asset,
+  trackKind,
+  zoomPxPerSec,
+  selected,
+  invalid,
+  cursor,
+  viewFromPx,
+  viewToPx,
+  onPointerDown,
+  onContextMenu,
+}: ClipViewProps) {
   const left = usToPx(clip.startUs, zoomPxPerSec);
   const width = Math.max(2, usToPx(endOf(clip) - clip.startUs, zoomPxPerSec));
   const height = LANE_HEIGHT - 8;
-  const onScreen = (viewToPx === undefined || left < viewToPx + 200) && (viewFromPx === undefined || left + width > viewFromPx - 200);
+  const onScreen =
+    (viewToPx === undefined || left < viewToPx + 200) &&
+    (viewFromPx === undefined || left + width > viewFromPx - 200);
   const media = useClipMedia(clip.assetId, onScreen);
-  const visible = viewFromPx === undefined || viewToPx === undefined ? undefined : { fromPx: Math.max(0, viewFromPx - left - 100), toPx: viewToPx - left + 100 };
-  const tiles = trackKind === "visual" && onScreen && media.thumbIndex !== null ? filmstripTiles(clip, media.thumbIndex, width, height, visible) : [];
-  const bars = trackKind === "audio" && onScreen && media.waveform !== null ? waveformSlice(clip, media.waveform, Math.max(8, Math.min(400, Math.floor(width / 3)))) : [];
+  const visible =
+    viewFromPx === undefined || viewToPx === undefined
+      ? undefined
+      : { fromPx: Math.max(0, viewFromPx - left - 100), toPx: viewToPx - left + 100 };
+  const tiles =
+    trackKind === "visual" && onScreen && media.thumbIndex !== null
+      ? filmstripTiles(clip, media.thumbIndex, width, height, visible)
+      : [];
+  const bars =
+    trackKind === "audio" && onScreen && media.waveform !== null
+      ? waveformSlice(clip, media.waveform, Math.max(8, Math.min(400, Math.floor(width / 3))))
+      : [];
   const tone = invalid
     ? "border-red-400 bg-red-900/70"
     : selected
@@ -68,17 +91,28 @@ export function ClipView({ clip, asset, trackKind, zoomPxPerSec, selected, inval
       }}
     >
       {tiles.length > 0 && media.thumbIndex !== null && (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-70" aria-hidden="true" data-testid="filmstrip">
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden opacity-70"
+          aria-hidden="true"
+          data-testid="filmstrip"
+        >
           {tiles.map((t) => {
             const src = media.sheets[t.sheet];
             return src === undefined ? null : (
-              <div key={t.left} className="absolute top-0 overflow-hidden" style={{ left: t.left, width: t.width, height }}>
+              <div
+                key={t.left}
+                className="absolute top-0 overflow-hidden"
+                style={{ left: t.left, width: t.width, height }}
+              >
                 <img
                   src={src}
                   crossOrigin="anonymous"
                   alt=""
                   className="absolute left-0 top-0 max-w-none"
-                  style={{ width: `${String((media.thumbIndex?.columns ?? 1) * 100)}%`, transform: `translate(${String((-t.col / (media.thumbIndex?.columns ?? 1)) * 100)}%, ${String((-t.row / t.rowsInSheet) * 100)}%)` }}
+                  style={{
+                    width: `${String((media.thumbIndex?.columns ?? 1) * 100)}%`,
+                    transform: `translate(${String((-t.col / (media.thumbIndex?.columns ?? 1)) * 100)}%, ${String((-t.row / t.rowsInSheet) * 100)}%)`,
+                  }}
                 />
               </div>
             );
@@ -86,12 +120,32 @@ export function ClipView({ clip, asset, trackKind, zoomPxPerSec, selected, inval
         </div>
       )}
       {trackKind === "visual" && media.kind === "image" && media.thumb !== null && (
-        <img src={media.thumb} crossOrigin="anonymous" alt="" aria-hidden="true" data-testid="image-thumb" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70" />
+        <img
+          src={media.thumb}
+          crossOrigin="anonymous"
+          alt=""
+          aria-hidden="true"
+          data-testid="image-thumb"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70"
+        />
       )}
       {bars.length > 0 && (
-        <svg className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 w-full" viewBox={`0 0 ${String(bars.length)} 100`} preserveAspectRatio="none" aria-hidden="true" data-testid="clip-waveform">
+        <svg
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 w-full"
+          viewBox={`0 0 ${String(bars.length)} 100`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          data-testid="clip-waveform"
+        >
           {bars.map((v, i) => (
-            <rect key={i} x={i + 0.15} width={0.7} y={50 - Math.max(2, v * 100) / 2} height={Math.max(2, v * 100)} className="fill-emerald-300/80" />
+            <rect
+              key={i}
+              x={i + 0.15}
+              width={0.7}
+              y={50 - Math.max(2, v * 100) / 2}
+              height={Math.max(2, v * 100)}
+              className="fill-emerald-300/80"
+            />
           ))}
         </svg>
       )}
@@ -99,8 +153,14 @@ export function ClipView({ clip, asset, trackKind, zoomPxPerSec, selected, inval
         {clip.linkId !== undefined && <Icon name="link" className="h-3 w-3 shrink-0 opacity-70" />}
         <span className="truncate">{asset?.name ?? clip.type}</span>
       </div>
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-[7px] border-r border-white/20 bg-white/10" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-[7px] border-l border-white/20 bg-white/10" aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-[7px] border-r border-white/20 bg-white/10"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 w-[7px] border-l border-white/20 bg-white/10"
+        aria-hidden="true"
+      />
     </div>
   );
 }

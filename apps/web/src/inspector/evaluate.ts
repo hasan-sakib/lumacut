@@ -23,13 +23,23 @@ export function evaluateInput(current: number, text: string): EvalResult {
   const operator = input[0];
   if (operator === "+" || operator === "*" || operator === "/") {
     const operand = parse(input.slice(1));
-    if (operand === null) return { ok: false, message: `“${input}” isn't a number after ${operator}.` };
+    if (operand === null)
+      return { ok: false, message: `“${input}” isn't a number after ${operator}.` };
     if (operator === "/" && operand === 0) return { ok: false, message: "Can't divide by zero." };
-    const value = operator === "+" ? current + operand : operator === "*" ? current * operand : current / operand;
-    return Number.isFinite(value) ? { ok: true, value } : { ok: false, message: "That result is too large." };
+    const value =
+      operator === "+"
+        ? current + operand
+        : operator === "*"
+          ? current * operand
+          : current / operand;
+    return Number.isFinite(value)
+      ? { ok: true, value }
+      : { ok: false, message: "That result is too large." };
   }
   const value = parse(input);
-  return value === null ? { ok: false, message: `“${input}” isn't a number. Try 12, +10 or *2.` } : { ok: true, value };
+  return value === null
+    ? { ok: false, message: `“${input}” isn't a number. Try 12, +10 or *2.` }
+    : { ok: true, value };
 }
 
 /** Keeps a value inside the field's limits (either may be absent). */

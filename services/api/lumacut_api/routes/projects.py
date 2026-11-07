@@ -104,9 +104,7 @@ async def _save(
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, responses=error_responses(401, 422))
-async def create_project(
-    body: ProjectCreate, user: CurrentUser, session: SessionDep
-) -> ProjectOut:
+async def create_project(body: ProjectCreate, user: CurrentUser, session: SessionDep) -> ProjectOut:
     """Create a project with one empty composition."""
     doc = validate_document(default_document(body.name.strip() or "Untitled", body.kind))
     row = ProjectRecord(
@@ -135,9 +133,7 @@ async def list_projects(user: CurrentUser, session: SessionDep) -> ProjectList:
             .order_by(ProjectRecord.updated_at.desc(), ProjectRecord.id)
         )
     ).all()
-    return ProjectList(
-        items=[ProjectSummary.model_validate(r, from_attributes=True) for r in rows]
-    )
+    return ProjectList(items=[ProjectSummary.model_validate(r, from_attributes=True) for r in rows])
 
 
 @router.get("/{project_id}", responses=error_responses(401, 404))

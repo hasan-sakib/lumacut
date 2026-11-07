@@ -42,7 +42,8 @@ export function useShortcuts<Ctx>(
       if (action === undefined) return;
       // While typing, only modifier shortcuts apply (e.g. Mod+U), never bare keys like "/", and
       // never the ones a text field uses itself (copy, paste, undo…).
-      if (typing && (!action.shortcut?.startsWith("Mod") || TEXT_EDITING.test(action.shortcut))) return;
+      if (typing && (!action.shortcut?.startsWith("Mod") || TEXT_EDITING.test(action.shortcut)))
+        return;
       if (activatesNatively(event.target, action.shortcut)) return;
       event.preventDefault();
       if (onRunRef.current === undefined) void action.run(ctxRef.current, undefined);

@@ -32,6 +32,9 @@ export function TrackHeader({ track, selected, ctx, onSelect, onRun }: TrackHead
       <button
         type="button"
         onClick={onSelect}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
         aria-pressed={selected}
         className="flex items-center gap-1.5 truncate text-left text-sm font-medium text-neutral-100"
       >

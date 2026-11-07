@@ -1,19 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { searchActions, tokenScore, type Action } from "../src/index.ts";
 
-function action(id: string, title: string, keywords: string[], category = "Edit", description = "Does a thing for the user."): Action<null> {
+function action(
+  id: string,
+  title: string,
+  keywords: string[],
+  category = "Edit",
+  description = "Does a thing for the user.",
+): Action<null> {
   return { id, title, description, keywords, category, when: () => true, run: () => undefined };
 }
 
 const ACTIONS = [
-  action("clip.split", "Split clip at playhead", ["cut", "razor", "divide", "blade"], "Edit", "Cut the selected clip into two at the playhead."),
+  action(
+    "clip.split",
+    "Split clip at playhead",
+    ["cut", "razor", "divide", "blade"],
+    "Edit",
+    "Cut the selected clip into two at the playhead.",
+  ),
   action("clip.delete", "Delete clip", ["remove", "trash"], "Edit"),
   action("track.mute", "Mute track", ["silence", "volume off"], "Track"),
   action("project.rename", "Rename project", ["title"], "Project"),
   action("library.upload", "Upload media", ["import", "add"], "Library"),
 ];
 
-const ids = (query: string, limit?: number) => searchActions(ACTIONS, query, limit).map((h) => h.action.id);
+const ids = (query: string, limit?: number) =>
+  searchActions(ACTIONS, query, limit).map((h) => h.action.id);
 
 describe("tokenScore", () => {
   it("ranks exact word > word prefix > substring > scattered letters > nothing", () => {
@@ -69,13 +82,22 @@ describe("searchActions", () => {
   });
 
   it("an empty query lists everything by category then title, and the limit applies", () => {
-    expect(ids("")).toEqual(["clip.delete", "clip.split", "library.upload", "project.rename", "track.mute"]);
+    expect(ids("")).toEqual([
+      "clip.delete",
+      "clip.split",
+      "library.upload",
+      "project.rename",
+      "track.mute",
+    ]);
     expect(ids("", 2)).toHaveLength(2);
     expect(ids("   ")).toHaveLength(5);
   });
 
   it("breaks ties by category then title", () => {
-    const list = [action("z.b", "Same", ["same"], "Zeta"), action("a.b", "Same", ["same"], "Alpha")];
+    const list = [
+      action("z.b", "Same", ["same"], "Zeta"),
+      action("a.b", "Same", ["same"], "Alpha"),
+    ];
     expect(searchActions(list, "same").map((h) => h.action.id)).toEqual(["a.b", "z.b"]);
   });
 });

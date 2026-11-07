@@ -52,7 +52,13 @@ const INITIAL = {
 export const useEditorStore = create<EditorState>()((set) => ({
   ...INITIAL,
   setActiveComposition: (id) => {
-    set({ activeCompositionId: id, selectedClipIds: [], selectedTrackId: null, playheadUs: 0, scrollUs: 0 });
+    set({
+      activeCompositionId: id,
+      selectedClipIds: [],
+      selectedTrackId: null,
+      playheadUs: 0,
+      scrollUs: 0,
+    });
   },
   selectClips: (ids) => {
     set({ selectedClipIds: ids });

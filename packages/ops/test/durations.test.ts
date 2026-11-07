@@ -11,22 +11,36 @@ describe("durationOps", () => {
 
   it("asks for an update only when the duration differs", () => {
     const p = sampleProject(); // durationUs is 10 s, content ends at 6 s
-    expect(durationOps(p)).toEqual([{ type: "updateComposition", compositionId: "main", props: { durationUs: 6 * SEC } }]);
+    expect(durationOps(p)).toEqual([
+      { type: "updateComposition", compositionId: "main", props: { durationUs: 6 * SEC } },
+    ]);
     const synced = applyOp(p, { type: "batch", ops: durationOps(p) }).project;
     expect(durationOps(synced)).toEqual([]);
   });
 
   it("follows edits in both directions and an empty composition is zero long", () => {
-    const p = applyOp(sampleProject(), { type: "batch", ops: durationOps(sampleProject()) }).project;
-    const longer = applyOp(p, { type: "moveClip", clipId: "c3", trackId: "V1", startUs: 8 * SEC }).project;
-    expect(durationOps(longer)).toEqual([{ type: "updateComposition", compositionId: "main", props: { durationUs: 10 * SEC } }]);
+    const p = applyOp(sampleProject(), {
+      type: "batch",
+      ops: durationOps(sampleProject()),
+    }).project;
+    const longer = applyOp(p, {
+      type: "moveClip",
+      clipId: "c3",
+      trackId: "V1",
+      startUs: 8 * SEC,
+    }).project;
+    expect(durationOps(longer)).toEqual([
+      { type: "updateComposition", compositionId: "main", props: { durationUs: 10 * SEC } },
+    ]);
     const empty = createProject({
       id: "e",
       now: "2026-11-06T00:00:00Z",
       compositions: [createComposition({ id: "main", width: 10, height: 10, durationUs: 5 * SEC })],
       mainCompositionId: "main",
     });
-    expect(durationOps(empty)).toEqual([{ type: "updateComposition", compositionId: "main", props: { durationUs: 0 } }]);
+    expect(durationOps(empty)).toEqual([
+      { type: "updateComposition", compositionId: "main", props: { durationUs: 0 } },
+    ]);
   });
 
   it("leaves photo projects alone", () => {
@@ -43,7 +57,9 @@ describe("durationOps", () => {
       newCompositionName: "Nest",
       newClipId: "nc",
     }).project;
-    const ids = durationOps(nested).map((o) => (o.type === "updateComposition" ? o.compositionId : ""));
+    const ids = durationOps(nested).map((o) =>
+      o.type === "updateComposition" ? o.compositionId : "",
+    );
     expect(ids).toEqual(["main"]); // "nest" was created with exactly its content length
   });
 });

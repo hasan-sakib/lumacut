@@ -6,7 +6,8 @@ export function contentEndUs(project: Project, compositionId: string): number {
   const composition = project.compositions.find((c) => c.id === compositionId);
   if (composition === undefined) return 0;
   let end = 0;
-  for (const track of composition.tracks) for (const clip of track.clips) end = Math.max(end, endOf(clip));
+  for (const track of composition.tracks)
+    for (const clip of track.clips) end = Math.max(end, endOf(clip));
   return end;
 }
 
@@ -22,7 +23,11 @@ export function durationOps(project: Project): Op[] {
   for (const composition of project.compositions) {
     const end = contentEndUs(project, composition.id);
     if (end !== composition.durationUs) {
-      ops.push({ type: "updateComposition", compositionId: composition.id, props: { durationUs: end } });
+      ops.push({
+        type: "updateComposition",
+        compositionId: composition.id,
+        props: { durationUs: end },
+      });
     }
   }
   return ops;

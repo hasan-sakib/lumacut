@@ -1,4 +1,12 @@
-import { createClip, createComposition, createProject, createTrack, type Asset, type Op, type Project } from "@lumacut/schema";
+import {
+  createClip,
+  createComposition,
+  createProject,
+  createTrack,
+  type Asset,
+  type Op,
+  type Project,
+} from "@lumacut/schema";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { LoadedProject, ProjectClient, SaveOutcome } from "../api/projects.ts";
 import {
@@ -17,7 +25,13 @@ const video: Asset = {
   mimeType: "video/mp4",
   sizeBytes: 1,
   source: "user",
-  video: { width: 1920, height: 1080, fps: { num: 30, den: 1 }, durationUs: 10 * SEC, codec: "avc1" },
+  video: {
+    width: 1920,
+    height: 1080,
+    fps: { num: 30, den: 1 },
+    durationUs: 10 * SEC,
+    codec: "avc1",
+  },
 };
 
 function sampleProject(): Project {
@@ -35,7 +49,16 @@ function sampleProject(): Project {
           createTrack({
             id: "V1",
             kind: "visual",
-            clips: [createClip({ id: "c1", type: "media", assetId: "v1", startUs: 0, inUs: 0, outUs: 2 * SEC })],
+            clips: [
+              createClip({
+                id: "c1",
+                type: "media",
+                assetId: "v1",
+                startUs: 0,
+                inUs: 0,
+                outUs: 2 * SEC,
+              }),
+            ],
           }),
         ],
       }),
@@ -47,6 +70,9 @@ function sampleProject(): Project {
 class FakeClient implements ProjectClient {
   version = 1;
   saves: { version: number; doc: Project }[] = [];
+  /** The (fake) clock when each save was made. */
+  saveTimes: number[] = [];
+  now: () => number = () => 0;
   next: SaveOutcome[] = [];
   gate: Promise<void> | null = null;
   loadsOf = 0;
@@ -59,6 +85,7 @@ class FakeClient implements ProjectClient {
   async save(_id: string, version: number, doc: Project): Promise<SaveOutcome> {
     if (this.gate !== null) await this.gate;
     this.saves.push({ version, doc });
+    this.saveTimes.push(this.now());
     return this.next.shift() ?? { kind: "saved", version: version + 1 };
   }
 }
@@ -85,7 +112,9 @@ class FakeTime {
   async advance(ms: number): Promise<void> {
     const target = this.now + ms;
     for (;;) {
-      const due = [...this.timers.entries()].filter(([, t]) => t.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+      const due = [...this.timers.entries()]
+        .filter(([, t]) => t.at <= target)
+        .sort((a, b) => a[1].at - b[1].at)[0];
       if (due === undefined) break;
       this.timers.delete(due[0]);
       this.now = due[1].at;
@@ -101,13 +130,25 @@ let client: FakeClient;
 let time: FakeTime;
 let store: ReturnType<typeof createProjectStore>;
 const state = (): ProjectState => store.getState();
-const trim = (toSec: number): Op => ({ type: "trimClip", clipId: "c1", edge: "end", toUs: toSec * SEC });
-const clipEnd = (): number | undefined => state().project?.compositions[0]?.tracks[0]?.clips[0]?.outUs;
+const trim = (toSec: number): Op => ({
+  type: "trimClip",
+  clipId: "c1",
+  edge: "end",
+  toUs: toSec * SEC,
+});
+const clipEnd = (): number | undefined =>
+  state().project?.compositions[0]?.tracks[0]?.clips[0]?.outUs;
 
 beforeEach(async () => {
   client = new FakeClient();
   time = new FakeTime();
-  store = createProjectStore({ client, now: () => time.now, setTimer: time.setTimer, clearTimer: time.clearTimer });
+  client.now = () => time.now;
+  store = createProjectStore({
+    client,
+    now: () => time.now,
+    setTimer: time.setTimer,
+    clearTimer: time.clearTimer,
+  });
   await state().open("p");
 });
 
@@ -176,7 +217,11 @@ describe("dispatch and history", () => {
 
   it("merges rapid edits with the same key into one undo step, but not slow or different ones", () => {
     const before = structuredClone(state().project);
-    const drag = (v: number) => state().dispatch({ type: "setProps", clipId: "c1", props: { opacity: v } }, { coalesceKey: "opacity" });
+    const drag = (v: number) =>
+      state().dispatch(
+        { type: "setProps", clipId: "c1", props: { opacity: v } },
+        { coalesceKey: "opacity" },
+      );
     drag(0.9);
     time.now += COALESCE_WINDOW_MS - 1;
     drag(0.7);
@@ -190,12 +235,16 @@ describe("dispatch and history", () => {
     time.now += COALESCE_WINDOW_MS + 1;
     drag(0.2);
     expect(state().undoStack).toHaveLength(2);
-    state().dispatch({ type: "setProps", clipId: "c1", props: { opacity: 0.1 } }, { coalesceKey: "other" });
+    state().dispatch(
+      { type: "setProps", clipId: "c1", props: { opacity: 0.1 } },
+      { coalesceKey: "other" },
+    );
     expect(state().undoStack).toHaveLength(3);
   });
 
   it("caps the history length", () => {
-    for (let i = 0; i < 210; i += 1) state().dispatch({ type: "setProps", clipId: "c1", props: { opacity: (i % 10) / 10 } });
+    for (let i = 0; i < 210; i += 1)
+      state().dispatch({ type: "setProps", clipId: "c1", props: { opacity: (i % 10) / 10 } });
     expect(state().undoStack.length).toBeLessThanOrEqual(200);
   });
 });
@@ -231,8 +280,10 @@ describe("autosave", () => {
       state().dispatch({ type: "setProps", clipId: "c1", props: { opacity: (i + 1) / 10 } });
       await time.advance(AUTOSAVE_IDLE_MS - 100);
     }
+    // Edits kept arriving before the idle time ran out, so the first save came from the maximum wait.
     expect(client.saves.length).toBeGreaterThanOrEqual(1);
-    expect(time.now).toBeLessThanOrEqual(AUTOSAVE_MAX_MS + AUTOSAVE_IDLE_MS);
+    expect(client.saveTimes[0]).toBeGreaterThan(AUTOSAVE_IDLE_MS);
+    expect(client.saveTimes[0]).toBeLessThanOrEqual(AUTOSAVE_MAX_MS);
   });
 
   it("an edit made during a save is saved next, with the new version", async () => {

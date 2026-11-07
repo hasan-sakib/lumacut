@@ -26,6 +26,9 @@ from lumacut_worker.samples.media_check import (
 pytestmark = pytest.mark.samples
 
 FIXTURES = Path(os.environ.get("LUMACUT_FIXTURES_DIR", "/engine-fixtures"))
+if not (FIXTURES / "manifest.json").is_file():
+    # Outside the worker container (plain `make check`) the fixtures aren't mounted.
+    pytest.skip("engine fixtures not mounted; run `make test-samples`", allow_module_level=True)
 MANIFEST: dict[str, Any] = json.loads((FIXTURES / "manifest.json").read_text())
 ENTRIES: list[dict[str, Any]] = MANIFEST["files"]
 

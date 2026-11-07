@@ -57,7 +57,7 @@ def iso_now() -> str:
 
 
 def default_document(name: str, kind: ProjectKind) -> dict[str, Any]:
-    """A new project: one 1080p30 composition with an empty picture track and an empty audio track."""
+    """A new project: one 1080p30 composition with an empty picture and an empty audio track."""
     now = iso_now()
     black = {"r": 0, "g": 0, "b": 0, "a": 1}
 

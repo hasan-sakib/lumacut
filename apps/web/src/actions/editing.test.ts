@@ -1,7 +1,16 @@
 import { runAction } from "@lumacut/actions";
 import { applyOp } from "@lumacut/ops";
-import { createClip, createComposition, createProject, createTrack, type Asset, type Clip, type Project } from "@lumacut/schema";
+import {
+  createClip,
+  createComposition,
+  createProject,
+  createTrack,
+  type Asset,
+  type Clip,
+  type Project,
+} from "@lumacut/schema";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Attributes, ClipboardData } from "../timeline/clipboard.ts";
 import { DEFAULT_IMAGE_US, editingActions, type EditingContext } from "./editing.ts";
 
 const SEC = 1_000_000;
@@ -25,10 +34,26 @@ const audioAsset: Asset = {
   source: "user",
   audio: { sampleRate: 48_000, channels: 2, durationUs: 6 * SEC, codec: "pcm" },
 };
-const imageAsset: Asset = { id: "i1", kind: "image", name: "p.png", mimeType: "image/png", sizeBytes: 1, source: "user", image: { width: 800, height: 600 } };
+const imageAsset: Asset = {
+  id: "i1",
+  kind: "image",
+  name: "p.png",
+  mimeType: "image/png",
+  sizeBytes: 1,
+  source: "user",
+  image: { width: 800, height: 600 },
+};
 
 const media = (id: string, start: number, seconds: number, extra: Partial<Clip> = {}): Clip =>
-  createClip({ id, type: "media", assetId: "v1", startUs: start * SEC, inUs: 0, outUs: seconds * SEC, ...extra });
+  createClip({
+    id,
+    type: "media",
+    assetId: "v1",
+    startUs: start * SEC,
+    inUs: 0,
+    outUs: seconds * SEC,
+    ...extra,
+  });
 
 function projectWith(): Project {
   return createProject({
@@ -42,7 +67,11 @@ function projectWith(): Project {
         height: 1080,
         durationUs: 10 * SEC,
         tracks: [
-          createTrack({ id: "V1", kind: "visual", clips: [media("c1", 0, 2, { linkId: "L" }), media("c2", 2, 2)] }),
+          createTrack({
+            id: "V1",
+            kind: "visual",
+            clips: [media("c1", 0, 2, { linkId: "L" }), media("c2", 2, 2)],
+          }),
           createTrack({ id: "A1", kind: "audio", clips: [media("a1c", 0, 2, { linkId: "L" })] }),
         ],
       }),
@@ -55,12 +84,21 @@ let counter = 0;
 let project: Project;
 const undo = vi.fn();
 const redo = vi.fn();
-const clipboardService = { setClips: vi.fn(), setAttributes: vi.fn() };
+const clipboardService = {
+  setClips: vi.fn<(data: ClipboardData | null) => void>(),
+  setAttributes: vi.fn<(attributes: Attributes | null) => void>(),
+};
 const openPalette = vi.fn();
 const showShortcuts = vi.fn();
 const togglePlay = vi.fn();
 const seek = vi.fn();
-const editor = { setTool: vi.fn(), zoomBy: vi.fn(), zoomFit: vi.fn(), toggleSnapping: vi.fn(), selectClips: vi.fn() };
+const editor = {
+  setTool: vi.fn(),
+  zoomBy: vi.fn(),
+  zoomFit: vi.fn(),
+  toggleSnapping: vi.fn(),
+  selectClips: vi.fn(),
+};
 
 function ctx(partial: Partial<EditingContext> = {}): EditingContext {
   return {
@@ -100,8 +138,10 @@ async function perform(id: string, context: EditingContext, args?: unknown): Pro
   });
 }
 
-const clipsOn = (trackId: string): string[] => project.compositions[0]?.tracks.find((t) => t.id === trackId)?.clips.map((c) => c.id) ?? [];
-const clipById = (id: string): Clip | undefined => project.compositions[0]?.tracks.flatMap((t) => t.clips).find((c) => c.id === id);
+const clipsOn = (trackId: string): string[] =>
+  project.compositions[0]?.tracks.find((t) => t.id === trackId)?.clips.map((c) => c.id) ?? [];
+const clipById = (id: string): Clip | undefined =>
+  project.compositions[0]?.tracks.flatMap((t) => t.clips).find((c) => c.id === id);
 
 beforeEach(() => {
   counter = 0;
@@ -129,14 +169,19 @@ describe("registry", () => {
 
   it("exposes a tool list for the AI with args for the actions that take them", () => {
     const tools = editingActions.toToolList();
-    expect(tools.find((t) => t.id === "timeline.addAssetAtPlayhead")?.args).toMatchObject({ properties: { asset: { type: "string" } } });
+    expect(tools.find((t) => t.id === "timeline.addAssetAtPlayhead")?.args).toMatchObject({
+      properties: { asset: { type: "string" } },
+    });
     expect(tools.find((t) => t.id === "clip.split")?.args).toBeNull();
   });
 
   it("is searchable by synonym", () => {
     const c = ctx({ playheadUs: 1 * SEC });
-    expect(editingActions.search("razor", c)[0]?.action.id).toBe("clip.split");
-    expect(editingActions.search("silence", ctx({ selectedTrackId: "A1" }))[0]?.action.id).toBe("track.toggleMute");
+    // ("razor" would rightly find the Razor tool first; "divide" is only a keyword of the split action)
+    expect(editingActions.search("divide", c)[0]?.action.id).toBe("clip.split");
+    expect(editingActions.search("silence", ctx({ selectedTrackId: "A1" }))[0]?.action.id).toBe(
+      "track.toggleMute",
+    );
   });
 });
 
@@ -173,11 +218,25 @@ describe("clip.split", () => {
   });
 
   it("is unavailable when the playhead is on an edge or a gap, or the track is locked", () => {
-    expect(editingActions.available(ctx({ playheadUs: 2 * SEC })).map((a) => a.id)).not.toContain("clip.split");
-    expect(editingActions.available(ctx({ playheadUs: 9 * SEC })).map((a) => a.id)).not.toContain("clip.split");
-    project = applyOp(project, { type: "setTrackProps", trackId: "V1", props: { locked: true } }).project;
-    project = applyOp(project, { type: "setTrackProps", trackId: "A1", props: { locked: true } }).project;
-    expect(editingActions.available(ctx({ playheadUs: 1 * SEC })).map((a) => a.id)).not.toContain("clip.split");
+    expect(editingActions.available(ctx({ playheadUs: 2 * SEC })).map((a) => a.id)).not.toContain(
+      "clip.split",
+    );
+    expect(editingActions.available(ctx({ playheadUs: 9 * SEC })).map((a) => a.id)).not.toContain(
+      "clip.split",
+    );
+    project = applyOp(project, {
+      type: "setTrackProps",
+      trackId: "V1",
+      props: { locked: true },
+    }).project;
+    project = applyOp(project, {
+      type: "setTrackProps",
+      trackId: "A1",
+      props: { locked: true },
+    }).project;
+    expect(editingActions.available(ctx({ playheadUs: 1 * SEC })).map((a) => a.id)).not.toContain(
+      "clip.split",
+    );
   });
 });
 
@@ -211,21 +270,27 @@ describe("clip.delete / rippleDelete / duplicate", () => {
   });
 
   it("duplicate is refused (with a reason) when the copy wouldn't fit", async () => {
-    await expect(perform("clip.duplicate", ctx({ selectedClipIds: ["c1"] }))).rejects.toThrow(/overlaps/);
+    await expect(perform("clip.duplicate", ctx({ selectedClipIds: ["c1"] }))).rejects.toThrow(
+      /overlaps/,
+    );
     expect(clipsOn("V1")).toEqual(["c1", "c2"]);
   });
 });
 
 describe("links", () => {
   it("link needs two clips; unlink dissolves the group", async () => {
-    expect(editingActions.available(ctx({ selectedClipIds: ["c2"] })).map((a) => a.id)).not.toContain("clip.link");
+    expect(
+      editingActions.available(ctx({ selectedClipIds: ["c2"] })).map((a) => a.id),
+    ).not.toContain("clip.link");
     await perform("clip.link", ctx({ selectedClipIds: ["c2", "c1"] }));
     expect(clipById("c2")?.linkId).toBe("n1");
     expect(clipById("c1")?.linkId).toBe("n1");
     await perform("clip.unlink", ctx({ selectedClipIds: ["c1"] }));
     expect(clipById("c1")?.linkId).toBeUndefined();
     expect(clipById("c2")?.linkId).toBeUndefined();
-    expect(editingActions.available(ctx({ selectedClipIds: ["c1"] })).map((a) => a.id)).not.toContain("clip.unlink");
+    expect(
+      editingActions.available(ctx({ selectedClipIds: ["c1"] })).map((a) => a.id),
+    ).not.toContain("clip.unlink");
   });
 });
 
@@ -268,7 +333,9 @@ describe("markers", () => {
     expect(project.compositions[0]?.markers).toMatchObject([{ tUs: 3 * SEC, label: "Intro" }]);
     await perform("marker.add", ctx({ playheadUs: 4 * SEC })); // args are optional
     expect(project.compositions[0]?.markers).toHaveLength(2);
-    expect(editingActions.available(ctx({ playheadUs: 5 * SEC })).map((a) => a.id)).not.toContain("marker.remove");
+    expect(editingActions.available(ctx({ playheadUs: 5 * SEC })).map((a) => a.id)).not.toContain(
+      "marker.remove",
+    );
     await perform("marker.remove", ctx({ playheadUs: 3 * SEC }));
     expect(project.compositions[0]?.markers.map((m) => m.tUs)).toEqual([4 * SEC]);
   });
@@ -284,7 +351,10 @@ describe("timeline.addAssetAtPlayhead", () => {
           id: "main",
           width: 1920,
           height: 1080,
-          tracks: [createTrack({ id: "V1", kind: "visual" }), createTrack({ id: "A1", kind: "audio" })],
+          tracks: [
+            createTrack({ id: "V1", kind: "visual" }),
+            createTrack({ id: "A1", kind: "audio" }),
+          ],
         }),
       ],
       mainCompositionId: "main",
@@ -313,16 +383,20 @@ describe("timeline.addAssetAtPlayhead", () => {
 
   it("audio goes on an audio track alone; an image gets the default length and no sound", async () => {
     await perform("timeline.addAssetAtPlayhead", ctx({ playheadUs: 6 * SEC }), { asset: "a1" });
-    expect(clipById("n1")).toMatchObject({ asset: "a1", outUs: 6 * SEC });
+    expect(clipById("n1")).toMatchObject({ assetId: "a1", outUs: 6 * SEC });
     expect(clipById("n1")?.linkId).toBeUndefined();
     await perform("timeline.addAssetAtPlayhead", ctx({ playheadUs: 6 * SEC }), { asset: "i1" });
-    const still = project.compositions[0]?.tracks.flatMap((t) => t.clips).find((c) => c.assetId === "i1");
+    const still = project.compositions[0]?.tracks
+      .flatMap((t) => t.clips)
+      .find((c) => c.assetId === "i1");
     expect(still?.outUs).toBe(DEFAULT_IMAGE_US);
     expect(project.assets.map((a) => a.id)).toEqual(expect.arrayContaining(["v1", "a1", "i1"]));
   });
 
   it("explains when the asset isn't ready", async () => {
-    await expect(perform("timeline.addAssetAtPlayhead", ctx(), { asset: "nope" })).rejects.toThrow(/No ready asset matches/);
+    await expect(perform("timeline.addAssetAtPlayhead", ctx(), { asset: "nope" })).rejects.toThrow(
+      /No ready asset matches/,
+    );
     await expect(perform("timeline.addAssetAtPlayhead", ctx(), {})).rejects.toThrow();
   });
 });
@@ -354,7 +428,9 @@ describe("tools and view", () => {
   });
 
   it("are unavailable without a composition", () => {
-    const ids = editingActions.available(ctx({ project: null, compositionId: null })).map((a) => a.id);
+    const ids = editingActions
+      .available(ctx({ project: null, compositionId: null }))
+      .map((a) => a.id);
     expect(ids.some((id) => id.startsWith("tool.") || id.startsWith("timeline."))).toBe(false);
   });
 });
@@ -408,14 +484,20 @@ describe("marker jumps", () => {
     expect(seek).toHaveBeenLastCalledWith(5 * SEC);
     await perform("marker.previous", ctx({ playheadUs: 3 * SEC }));
     expect(seek).toHaveBeenLastCalledWith(2 * SEC);
-    expect(editingActions.available(ctx({ playheadUs: 9 * SEC })).map((a) => a.id)).not.toContain("marker.next");
-    expect(editingActions.available(ctx({ playheadUs: 1 * SEC })).map((a) => a.id)).not.toContain("marker.previous");
+    expect(editingActions.available(ctx({ playheadUs: 9 * SEC })).map((a) => a.id)).not.toContain(
+      "marker.next",
+    );
+    expect(editingActions.available(ctx({ playheadUs: 1 * SEC })).map((a) => a.id)).not.toContain(
+      "marker.previous",
+    );
   });
 });
 
 describe("adding media by name", () => {
   it("accepts the asset's name from the palette as well as its id", async () => {
-    await perform("timeline.addAssetAtPlayhead", ctx({ playheadUs: 6 * SEC }), { asset: "song.wav" });
+    await perform("timeline.addAssetAtPlayhead", ctx({ playheadUs: 6 * SEC }), {
+      asset: "song.wav",
+    });
     expect(clipById("n1")).toMatchObject({ assetId: "a1" });
   });
 });
@@ -424,7 +506,9 @@ describe("clipboard", () => {
   it("copy stores the selection with its linked partners; the project is unchanged", async () => {
     const before = structuredClone(project);
     await perform("clip.copy", ctx({ selectedClipIds: ["c1"] }));
-    const data = clipboardService.setClips.mock.calls[0]?.[0] as { clips: { clip: { id: string } }[] };
+    const data = clipboardService.setClips.mock.calls[0]?.[0] as {
+      clips: { clip: { id: string } }[];
+    };
     expect(data.clips.map((c) => c.clip.id).sort()).toEqual(["a1c", "c1"]);
     expect(project).toEqual(before);
   });
@@ -438,7 +522,7 @@ describe("clipboard", () => {
   it("paste needs something on the clipboard and puts the clips at the playhead", async () => {
     expect(editingActions.available(ctx()).map((a) => a.id)).not.toContain("clip.paste");
     await perform("clip.copy", ctx({ selectedClipIds: ["c2"] }));
-    const data = clipboardService.setClips.mock.calls[0]?.[0];
+    const data = clipboardService.setClips.mock.calls[0]?.[0] ?? null;
     const c = ctx({ playheadUs: 8 * SEC, hasClipboard: true, clipboard: data });
     expect(editingActions.available(c).map((a) => a.id)).toContain("clip.paste");
     await perform("clip.paste", c);
@@ -449,16 +533,20 @@ describe("clipboard", () => {
   it("copy and paste attributes move the look of one clip to others", async () => {
     project = applyOp(project, { type: "setProps", clipId: "c1", props: { opacity: 0.3 } }).project;
     await perform("clip.copyAttributes", ctx({ selectedClipIds: ["c1"] }));
-    const attrs = clipboardService.setAttributes.mock.calls[0]?.[0];
-    expect(attrs.picture).toMatchObject({ opacity: 0.3 });
+    const attrs = clipboardService.setAttributes.mock.calls[0]?.[0] ?? null;
+    expect(attrs?.picture).toMatchObject({ opacity: 0.3 });
     const c = ctx({ selectedClipIds: ["c2"], hasAttributes: true, attributes: attrs });
     await perform("clip.pasteAttributes", c);
     expect(clipById("c2")?.opacity).toBe(0.3);
-    expect(editingActions.available(ctx({ selectedClipIds: ["c2"] })).map((a) => a.id)).not.toContain("clip.pasteAttributes");
+    expect(
+      editingActions.available(ctx({ selectedClipIds: ["c2"] })).map((a) => a.id),
+    ).not.toContain("clip.pasteAttributes");
   });
 
   it("have the usual shortcuts", () => {
-    expect(["clip.copy", "clip.cut", "clip.paste"].map((id) => editingActions.get(id).shortcut)).toEqual(["Mod+C", "Mod+X", "Mod+V"]);
+    expect(
+      ["clip.copy", "clip.cut", "clip.paste"].map((id) => editingActions.get(id).shortcut),
+    ).toEqual(["Mod+C", "Mod+X", "Mod+V"]);
   });
 });
 
@@ -470,7 +558,9 @@ describe("palette equivalents of timeline gestures", () => {
     expect(editor.selectClips).toHaveBeenLastCalledWith(["c2"]);
     await perform("selection.clipAtPlayhead", ctx({ playheadUs: 1 * SEC }), { track: "A1" });
     expect(editor.selectClips).toHaveBeenLastCalledWith(["a1c"]);
-    await expect(perform("selection.clipAtPlayhead", ctx({ playheadUs: 9 * SEC }))).rejects.toThrow(/no clip at the playhead/i);
+    await expect(perform("selection.clipAtPlayhead", ctx({ playheadUs: 9 * SEC }))).rejects.toThrow(
+      /no clip at the playhead/i,
+    );
   });
 
   it("step to the next and previous clip start", async () => {
@@ -479,14 +569,20 @@ describe("palette equivalents of timeline gestures", () => {
     expect(seek).toHaveBeenLastCalledWith(2 * SEC);
     await perform("selection.previousClip", ctx({ playheadUs: 3 * SEC }));
     expect(seek).toHaveBeenLastCalledWith(2 * SEC);
-    expect(editingActions.available(ctx({ playheadUs: 0 })).map((a) => a.id)).not.toContain("selection.previousClip");
-    expect(editingActions.available(ctx({ playheadUs: 2 * SEC })).map((a) => a.id)).not.toContain("selection.nextClip");
+    expect(editingActions.available(ctx({ playheadUs: 0 })).map((a) => a.id)).not.toContain(
+      "selection.previousClip",
+    );
+    expect(editingActions.available(ctx({ playheadUs: 2 * SEC })).map((a) => a.id)).not.toContain(
+      "selection.nextClip",
+    );
   });
 
   it("move by shifts the selection and its linked partners, and refuses a collision", async () => {
     await perform("clip.moveBy", ctx({ selectedClipIds: ["c2"] }), { seconds: 3 });
     expect(clipById("c2")?.startUs).toBe(5 * SEC);
-    await expect(perform("clip.moveBy", ctx({ selectedClipIds: ["c2"] }), { seconds: -4 })).rejects.toThrow(/overlaps/);
+    await expect(
+      perform("clip.moveBy", ctx({ selectedClipIds: ["c2"] }), { seconds: -4 }),
+    ).rejects.toThrow(/overlaps/);
     await perform("clip.moveBy", ctx({ selectedClipIds: ["c1"] }), { seconds: -100 }); // clamped at the start
     expect(clipById("c1")?.startUs).toBe(0);
     expect(clipById("a1c")?.startUs).toBe(0);
@@ -513,7 +609,9 @@ describe("palette and help", () => {
 
 describe("no project", () => {
   it("offers only the actions that need no project", () => {
-    const ids = editingActions.available(ctx({ project: null, compositionId: null })).map((a) => a.id);
+    const ids = editingActions
+      .available(ctx({ project: null, compositionId: null }))
+      .map((a) => a.id);
     expect(ids.sort()).toEqual(["help.shortcuts", "palette.open"]);
   });
 });

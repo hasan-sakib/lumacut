@@ -1,4 +1,5 @@
 import { frameToUs, usToFrame, type Rational } from "@lumacut/schema";
+import { must } from "../lib/must.ts";
 
 export const US_PER_SECOND = 1_000_000;
 export const MIN_PX_PER_SEC = 2;
@@ -6,7 +7,8 @@ export const MAX_PX_PER_SEC = 4000;
 export const DEFAULT_PX_PER_SEC = 100;
 
 export const usToPx = (us: number, pxPerSec: number): number => (us / US_PER_SECOND) * pxPerSec;
-export const pxToUs = (px: number, pxPerSec: number): number => Math.round((px / pxPerSec) * US_PER_SECOND);
+export const pxToUs = (px: number, pxPerSec: number): number =>
+  Math.round((px / pxPerSec) * US_PER_SECOND);
 
 export const clampZoom = (pxPerSec: number): number =>
   Math.min(MAX_PX_PER_SEC, Math.max(MIN_PX_PER_SEC, pxPerSec));
@@ -42,13 +44,13 @@ export function roundToFrame(us: number, fps: Rational): number {
 
 /** Spacing of ruler ticks: the smallest "nice" step (1, 2, 5 × 10ⁿ) that is at least `minPx` wide. */
 const STEPS_US = [
-  1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000, 200_000, 500_000,
-  1_000_000, 2_000_000, 5_000_000, 10_000_000, 15_000_000, 30_000_000, 60_000_000,
-  120_000_000, 300_000_000, 600_000_000, 1_800_000_000, 3_600_000_000,
+  1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000,
+  5_000_000, 10_000_000, 15_000_000, 30_000_000, 60_000_000, 120_000_000, 300_000_000, 600_000_000,
+  1_800_000_000, 3_600_000_000,
 ];
 
 export function tickStepUs(pxPerSec: number, minPx = 80): number {
-  return STEPS_US.find((step) => usToPx(step, pxPerSec) >= minPx) ?? (STEPS_US.at(-1) as number);
+  return STEPS_US.find((step) => usToPx(step, pxPerSec) >= minPx) ?? must(STEPS_US.at(-1));
 }
 
 export interface Tick {
@@ -58,7 +60,12 @@ export interface Tick {
 }
 
 /** Ticks covering the visible window, from the scroll position across `widthPx`. */
-export function rulerTicks(scrollUs: number, widthPx: number, pxPerSec: number, minPx = 80): Tick[] {
+export function rulerTicks(
+  scrollUs: number,
+  widthPx: number,
+  pxPerSec: number,
+  minPx = 80,
+): Tick[] {
   const step = tickStepUs(pxPerSec, minPx);
   const half = step / 2;
   const endUs = scrollUs + pxToUs(widthPx, pxPerSec);

@@ -52,7 +52,12 @@ export interface SnapShift {
 }
 
 /** Snaps a moving span [startUs, endUs): whichever edge is closer to a point wins. */
-export function snapSpan(startUs: number, endUs: number, points: readonly number[], thresholdUs: number): SnapShift {
+export function snapSpan(
+  startUs: number,
+  endUs: number,
+  points: readonly number[],
+  thresholdUs: number,
+): SnapShift {
   const a = snap(startUs, points, thresholdUs);
   const b = snap(endUs, points, thresholdUs);
   if (a.to === null && b.to === null) return { deltaUs: 0, to: null, edge: null };

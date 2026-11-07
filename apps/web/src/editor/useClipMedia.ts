@@ -21,8 +21,14 @@ export interface ClipMedia {
 export function useClipMedia(assetId: string | undefined, enabled: boolean): ClipMedia {
   const asset = useAssetsStore((s) => (assetId === undefined ? undefined : s.byId[assetId]));
   const urls = asset?.urls;
-  const thumbIndex = useRemoteJson(urls?.thumbIndex, enabled && asset?.kind === "video") as ThumbIndex | null;
-  const waveform = useRemoteJson(urls?.waveform, enabled && (asset?.kind === "audio" || asset?.kind === "video")) as WaveformJson | null;
+  const thumbIndex = useRemoteJson(
+    urls?.thumbIndex,
+    enabled && asset?.kind === "video",
+  ) as ThumbIndex | null;
+  const waveform = useRemoteJson(
+    urls?.waveform,
+    enabled && (asset?.kind === "audio" || asset?.kind === "video"),
+  ) as WaveformJson | null;
   return {
     kind: asset?.kind ?? null,
     thumbIndex,

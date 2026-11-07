@@ -32,7 +32,8 @@ export const projectClient: ProjectClient = {
     const { data, error } = await api.GET("/api/projects/{project_id}", {
       params: { path: { project_id: id } },
     });
-    if (data === undefined) throw new ProjectLoadError(errorMessage(error, "Couldn't open this project."));
+    if (data === undefined)
+      throw new ProjectLoadError(errorMessage(error, "Couldn't open this project."));
     const parsed = Project.safeParse(data.doc);
     if (!parsed.success) {
       throw new ProjectLoadError("This project's file isn't in a format this version understands.");
@@ -57,7 +58,11 @@ export const projectClient: ProjectClient = {
         retryable: response.status >= 500 || response.status === 429,
       };
     } catch {
-      return { kind: "failed", message: "You appear to be offline. Changes will save when you're back.", retryable: true };
+      return {
+        kind: "failed",
+        message: "You appear to be offline. Changes will save when you're back.",
+        retryable: true,
+      };
     }
   },
 };

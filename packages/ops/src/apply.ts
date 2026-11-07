@@ -82,7 +82,8 @@ function applyInner(project: Project, op: Op, touched: Set<string>): Step {
       const step = direct(structure.updateAsset(project, op));
       // A changed duration can invalidate the clips that use the asset.
       for (const c of project.compositions) {
-        if (c.tracks.some((t) => t.clips.some((clip) => clip.assetId === op.assetId))) touched.add(c.id);
+        if (c.tracks.some((t) => t.clips.some((clip) => clip.assetId === op.assetId)))
+          touched.add(c.id);
       }
       return step;
     }

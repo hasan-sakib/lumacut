@@ -12,7 +12,9 @@ export interface WaveformJson {
 const DEFAULT_PEAKS_PER_SECOND = 100;
 
 export const peaksPerSecond = (w: WaveformJson): number =>
-  w.sample_rate !== undefined && w.samples_per_pixel !== undefined && w.samples_per_pixel > 0 ? w.sample_rate / w.samples_per_pixel : DEFAULT_PEAKS_PER_SECOND;
+  w.sample_rate !== undefined && w.samples_per_pixel !== undefined && w.samples_per_pixel > 0
+    ? w.sample_rate / w.samples_per_pixel
+    : DEFAULT_PEAKS_PER_SECOND;
 
 /** Largest magnitude (0..1) over peak positions [from, to) of the waveform. */
 function peakBetween(w: WaveformJson, from: number, to: number): number {
@@ -21,7 +23,8 @@ function peakBetween(w: WaveformJson, from: number, to: number): number {
   const end = Math.min(w.length, Math.max(start + 1, Math.ceil(to)));
   let peak = 0;
   for (let px = start; px < end; px += 1) {
-    for (let i = 0; i < perPixel; i += 1) peak = Math.max(peak, Math.abs(w.data[px * perPixel + i] ?? 0));
+    for (let i = 0; i < perPixel; i += 1)
+      peak = Math.max(peak, Math.abs(w.data[px * perPixel + i] ?? 0));
   }
   return Math.min(1, peak / 127);
 }

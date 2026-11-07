@@ -12,7 +12,8 @@ interface FieldRowProps {
 export function FieldRow({ field, onChange }: FieldRowProps) {
   const { def, value, mixed } = field;
   if (def.kind === "number") {
-    const shown = typeof value === "number" ? (def.toDisplay ? def.toDisplay(value) : value) : undefined;
+    const shown =
+      typeof value === "number" ? (def.toDisplay ? def.toDisplay(value) : value) : undefined;
     return (
       <ScrubNumber
         label={def.label}

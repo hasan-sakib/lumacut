@@ -2,6 +2,7 @@ import { ActionRegistry } from "@lumacut/actions";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as z from "zod";
+import { must } from "../../lib/must.ts";
 import { ActionContextMenu } from "./ActionContextMenu.tsx";
 import { CommandPalette } from "./CommandPalette.tsx";
 import { ShortcutHelp } from "./ShortcutHelp.tsx";
@@ -13,8 +14,24 @@ interface Ctx {
 function registry(): ActionRegistry<Ctx> {
   const r = new ActionRegistry<Ctx>();
   const base = { category: "Edit", keywords: ["x"], when: () => true, run: () => undefined };
-  r.register({ ...base, id: "clip.split", title: "Split clip at playhead", description: "Cut the selected clip into two.", keywords: ["razor", "cut"], icon: "split", shortcut: "S" });
-  r.register({ ...base, id: "clip.delete", title: "Delete clip", description: "Remove the selected clip.", keywords: ["trash"], shortcut: "Delete", when: (c) => c.selected });
+  r.register({
+    ...base,
+    id: "clip.split",
+    title: "Split clip at playhead",
+    description: "Cut the selected clip into two.",
+    keywords: ["razor", "cut"],
+    icon: "split",
+    shortcut: "S",
+  });
+  r.register({
+    ...base,
+    id: "clip.delete",
+    title: "Delete clip",
+    description: "Remove the selected clip.",
+    keywords: ["trash"],
+    shortcut: "Delete",
+    when: (c) => c.selected,
+  });
   r.register({
     ...base,
     id: "marker.add",
@@ -22,17 +39,30 @@ function registry(): ActionRegistry<Ctx> {
     description: "Drop a marker at the playhead.",
     keywords: ["flag"],
     category: "Timeline",
-    argsSchema: z.object({ label: z.string(), loud: z.boolean().optional() }) as unknown as z.ZodType<undefined>,
+    argsSchema: z.object({
+      label: z.string(),
+      loud: z.boolean().optional(),
+    }) as unknown as z.ZodType<undefined>,
   });
   return r;
 }
 
 afterEach(cleanup);
 
-function setup(over: { run?: (id: string, args?: unknown) => Promise<string | null>; ctx?: Ctx } = {}) {
+function setup(
+  over: { run?: (id: string, args?: unknown) => Promise<string | null>; ctx?: Ctx } = {},
+) {
   const run = vi.fn(over.run ?? (() => Promise.resolve(null)));
   const onOpenChange = vi.fn();
-  render(<CommandPalette registry={registry()} ctx={over.ctx ?? { selected: true }} open onOpenChange={onOpenChange} run={run} />);
+  render(
+    <CommandPalette
+      registry={registry()}
+      ctx={over.ctx ?? { selected: true }}
+      open
+      onOpenChange={onOpenChange}
+      run={run}
+    />,
+  );
   return { run, onOpenChange, input: screen.getByRole("combobox", { name: "Search commands" }) };
 }
 
@@ -78,7 +108,11 @@ describe("CommandPalette", () => {
 
   it("clicking a result runs it", async () => {
     const { run } = setup();
-    fireEvent.click(screen.getAllByRole("option").find((o) => o.getAttribute("data-action") === "clip.delete") as HTMLElement);
+    fireEvent.click(
+      must(
+        screen.getAllByRole("option").find((o) => o.getAttribute("data-action") === "clip.delete"),
+      ),
+    );
     await waitFor(() => {
       expect(run).toHaveBeenCalledWith("clip.delete", undefined);
     });
@@ -118,7 +152,9 @@ describe("CommandPalette", () => {
   });
 
   it("shows the message when running fails and stays open", async () => {
-    const { onOpenChange, input } = setup({ run: () => Promise.resolve("Track “Video 1” is locked.") });
+    const { onOpenChange, input } = setup({
+      run: () => Promise.resolve("Track “Video 1” is locked."),
+    });
     fireEvent.change(input, { target: { value: "split" } });
     fireEvent.keyDown(input, { key: "Enter" });
     const alert = await screen.findByRole("alert");
@@ -156,7 +192,12 @@ describe("ActionContextMenu", () => {
 
   it("can be limited to some actions", async () => {
     render(
-      <ActionContextMenu registry={registry()} ctx={{ selected: true }} onRun={() => undefined} actionIds={["clip.delete"]}>
+      <ActionContextMenu
+        registry={registry()}
+        ctx={{ selected: true }}
+        onRun={() => undefined}
+        actionIds={["clip.delete"]}
+      >
         <div data-testid="area">area</div>
       </ActionContextMenu>,
     );

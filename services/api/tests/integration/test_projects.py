@@ -1,19 +1,40 @@
 """Projects API against the running stack: CRUD, optimistic concurrency, snapshots, asset guard."""
 
-import base64
 import copy
+import struct
 import time
+import zlib
 from typing import Any
 
+import httpx2
 import pytest
 from api_testkit import LoggedIn, upload_bytes
 
 pytestmark = pytest.mark.integration
 
-# A valid 1x1 PNG.
-PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="
-)
+
+def make_png(width: int = 8, height: int = 8) -> bytes:
+    """A small valid RGB PNG, built with the standard library (no pasted constants to get wrong)."""
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    rows = b"".join(
+        b"\x00" + bytes((x * 30 % 256, y * 30 % 256, 128)) * width
+        for x in range(1)
+        for y in range(height)
+    )
+    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(rows))
+        + chunk(b"IEND", b"")
+    )
+
+
+PNG = make_png()
 
 
 def create(user: LoggedIn, name: str = "My edit", kind: str = "video") -> dict[str, Any]:
@@ -22,7 +43,9 @@ def create(user: LoggedIn, name: str = "My edit", kind: str = "video") -> dict[s
     return dict(res.json())
 
 
-def save(user: LoggedIn, project: dict[str, Any], doc: dict[str, Any], version: int | None = None):
+def save(
+    user: LoggedIn, project: dict[str, Any], doc: dict[str, Any], version: int | None = None
+) -> httpx2.Response:
     headers = {**user.auth, "If-Match": str(project["version"] if version is None else version)}
     return user.client.put(f"/api/projects/{project['id']}", json={"doc": doc}, headers=headers)
 
@@ -45,10 +68,16 @@ def test_list_get_and_ownership(user: LoggedIn, other_user: LoggedIn) -> None:
     listed = user.client.get("/api/projects", headers=user.auth).json()["items"]
     assert [p["id"] for p in listed] == [mine["id"]]
     assert "doc" not in listed[0]
-    assert user.client.get(f"/api/projects/{mine['id']}", headers=user.auth).json()["doc"]["name"] == "Mine"
+    assert (
+        user.client.get(f"/api/projects/{mine['id']}", headers=user.auth).json()["doc"]["name"]
+        == "Mine"
+    )
     foreign = other_user.client.get(f"/api/projects/{mine['id']}", headers=other_user.auth)
     assert foreign.status_code == 404
-    assert other_user.client.delete(f"/api/projects/{mine['id']}", headers=other_user.auth).status_code == 404
+    assert (
+        other_user.client.delete(f"/api/projects/{mine['id']}", headers=other_user.auth).status_code
+        == 404
+    )
     assert user.client.get("/api/projects").status_code == 401
 
 
@@ -58,7 +87,13 @@ def test_save_bumps_the_version_and_keeps_the_document(user: LoggedIn) -> None:
     doc["name"] = "Renamed"
     comp = doc["compositions"][0]
     comp["markers"].append(
-        {"id": "m1", "tUs": 1000, "durationUs": 0, "label": "A", "color": {"r": 1, "g": 0, "b": 0, "a": 1}}
+        {
+            "id": "m1",
+            "tUs": 1000,
+            "durationUs": 0,
+            "label": "A",
+            "color": {"r": 1, "g": 0, "b": 0, "a": 1},
+        }
     )
     res = save(user, project, doc)
     assert res.status_code == 200, res.text
@@ -78,7 +113,9 @@ def test_stale_save_is_refused_with_the_current_version(user: LoggedIn) -> None:
     assert stale.json()["error"]["code"] == "version_conflict"
     assert stale.headers["etag"] == "2"
     # Nothing was overwritten.
-    assert user.client.get(f"/api/projects/{project['id']}", headers=user.auth).json()["version"] == 2
+    assert (
+        user.client.get(f"/api/projects/{project['id']}", headers=user.auth).json()["version"] == 2
+    )
 
 
 def test_if_match_is_required_and_must_be_a_number(user: LoggedIn) -> None:
@@ -103,7 +140,9 @@ def test_invalid_documents_are_rejected_with_a_readable_message(user: LoggedIn) 
     extra = copy.deepcopy(project["doc"])
     extra["surprise"] = True
     assert save(user, project, extra).status_code == 422
-    assert user.client.get(f"/api/projects/{project['id']}", headers=user.auth).json()["version"] == 1
+    assert (
+        user.client.get(f"/api/projects/{project['id']}", headers=user.auth).json()["version"] == 1
+    )
 
 
 def test_snapshots_can_be_listed_and_restored(user: LoggedIn) -> None:
@@ -115,7 +154,9 @@ def test_snapshots_can_be_listed_and_restored(user: LoggedIn) -> None:
     doc = copy.deepcopy(project["doc"])
     doc["name"] = "Changed"
     saved = save(user, project, doc).json()
-    listed = user.client.get(f"/api/projects/{project['id']}/snapshots", headers=user.auth).json()["items"]
+    listed = user.client.get(f"/api/projects/{project['id']}/snapshots", headers=user.auth).json()[
+        "items"
+    ]
     assert [s["label"] for s in listed] == ["before"] and listed[0]["version"] == 1
     restore = user.client.post(
         f"/api/projects/{project['id']}/snapshots/{snap.json()['id']}/restore",
@@ -139,9 +180,14 @@ def test_snapshots_can_be_listed_and_restored(user: LoggedIn) -> None:
 def test_delete_removes_the_project_and_its_snapshots(user: LoggedIn) -> None:
     project = create(user)
     user.client.post(f"/api/projects/{project['id']}/snapshots", json={}, headers=user.auth)
-    assert user.client.delete(f"/api/projects/{project['id']}", headers=user.auth).status_code == 204
+    assert (
+        user.client.delete(f"/api/projects/{project['id']}", headers=user.auth).status_code == 204
+    )
     assert user.client.get(f"/api/projects/{project['id']}", headers=user.auth).status_code == 404
-    assert user.client.get(f"/api/projects/{project['id']}/snapshots", headers=user.auth).status_code == 404
+    assert (
+        user.client.get(f"/api/projects/{project['id']}/snapshots", headers=user.auth).status_code
+        == 404
+    )
 
 
 def test_an_asset_used_by_a_project_can_not_be_deleted(user: LoggedIn) -> None:
@@ -164,7 +210,7 @@ def test_an_asset_used_by_a_project_can_not_be_deleted(user: LoggedIn) -> None:
             "mimeType": "image/png",
             "sizeBytes": len(PNG),
             "source": "user",
-            "image": {"width": 1, "height": 1},
+            "image": {"width": 8, "height": 8},
         }
     )
     saved = save(user, project, doc).json()

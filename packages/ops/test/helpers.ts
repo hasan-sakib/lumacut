@@ -20,7 +20,13 @@ export const videoAsset: Asset = {
   mimeType: "video/mp4",
   sizeBytes: 1,
   source: "user",
-  video: { width: 1920, height: 1080, fps: { num: 30, den: 1 }, durationUs: 10 * SEC, codec: "avc1" },
+  video: {
+    width: 1920,
+    height: 1080,
+    fps: { num: 30, den: 1 },
+    durationUs: 10 * SEC,
+    codec: "avc1",
+  },
   audio: { sampleRate: 48_000, channels: 2, durationUs: 10 * SEC, codec: "aac" },
 };
 export const audioAsset: Asset = {
@@ -43,7 +49,12 @@ export const imageAsset: Asset = {
 };
 
 /** A media clip of the 10 s video: `seconds` long on the timeline, from source second `from`. */
-export function clip(id: string, startSec: number, seconds: number, extra: Partial<Clip> = {}): Clip {
+export function clip(
+  id: string,
+  startSec: number,
+  seconds: number,
+  extra: Partial<Clip> = {},
+): Clip {
   const from = extra.inUs ?? 0;
   return createClip({
     id,
@@ -75,7 +86,11 @@ export function sampleProject(): Project {
           createTrack({
             id: "V1",
             kind: "visual",
-            clips: [clip("c1", 0, 2), clip("c2", 2, 2, { inUs: 2 * SEC }), clip("c3", 4, 2, { inUs: 4 * SEC })],
+            clips: [
+              clip("c1", 0, 2),
+              clip("c2", 2, 2, { inUs: 2 * SEC }),
+              clip("c3", 4, 2, { inUs: 4 * SEC }),
+            ],
           }),
           createTrack({ id: "V2", kind: "visual" }),
           createTrack({
@@ -99,7 +114,8 @@ export function trackClips(project: Project, trackId: string): Clip[] {
 }
 
 export function getClip(project: Project, id: string): Clip {
-  for (const c of project.compositions) for (const t of c.tracks) for (const k of t.clips) if (k.id === id) return k;
+  for (const c of project.compositions)
+    for (const t of c.tracks) for (const k of t.clips) if (k.id === id) return k;
   throw new Error(`no clip ${id}`);
 }
 

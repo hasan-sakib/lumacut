@@ -36,9 +36,15 @@ export function describeArgs(schema: z.ZodType): ArgField[] | null {
   const fields: ArgField[] = [];
   for (const [name, prop] of Object.entries(json.properties)) {
     let field: ArgField;
-    if (prop.enum !== undefined && prop.enum.every((o) => typeof o === "string")) {
-      field = { name, kind: "enum", optional: !required.has(name), options: prop.enum as string[] };
-    } else if (prop.type === "string" || prop.type === "number" || prop.type === "integer" || prop.type === "boolean") {
+    const options = prop.enum?.filter((o): o is string => typeof o === "string");
+    if (options !== undefined && options.length === prop.enum?.length) {
+      field = { name, kind: "enum", optional: !required.has(name), options };
+    } else if (
+      prop.type === "string" ||
+      prop.type === "number" ||
+      prop.type === "integer" ||
+      prop.type === "boolean"
+    ) {
       field = { name, kind: prop.type, optional: !required.has(name) };
     } else {
       return null;

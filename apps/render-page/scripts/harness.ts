@@ -27,7 +27,7 @@ export interface Session {
   page: Page;
   info: PageInfo;
   /** Runs an API call inside the page. */
-  call: <T>(fn: (api: LumacutApi) => Promise<T>) => Promise<T>;
+  call: <T, A = undefined>(fn: (api: LumacutApi, arg: A) => Promise<T>, arg?: A) => Promise<T>;
   close: () => Promise<void>;
 }
 
@@ -45,6 +45,7 @@ async function launch(backend: Backend): Promise<Browser> {
   } catch (error) {
     throw new Error(
       `Couldn't start the installed Google Chrome (needed for the GPU backend): ${String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -57,8 +58,18 @@ export async function openSession(backend: Backend, url: string): Promise<Sessio
   });
   await page.goto(url);
   await page.waitForFunction(() => window.__lumacut !== undefined, undefined, { timeout: 60_000 });
-  const call = <T>(fn: (api: LumacutApi) => Promise<T>): Promise<T> =>
-    page.evaluate(`(${fn.toString()})(window.__lumacut)`) as Promise<T>;
+  // The function runs in the page, so it can't see this script's variables: data goes in `arg`.
+  const call = <T, A = undefined>(
+    fn: (api: LumacutApi, arg: A) => Promise<T>,
+    arg?: A,
+  ): Promise<T> =>
+    page.evaluate<T, [string, A | undefined]>(
+      ([source, argument]) => {
+        const run = (0, eval)(`(${source})`) as (api: unknown, arg: unknown) => Promise<T>;
+        return run(window.__lumacut, argument);
+      },
+      [fn.toString(), arg],
+    );
   const info = await call((api) => api.info());
   return { backend, page, info, call, close: () => browser.close() };
 }

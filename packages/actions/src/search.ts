@@ -5,7 +5,8 @@ export interface SearchHit<Ctx> {
   score: number;
 }
 
-const normalize = (text: string): string => text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
+const normalize = (text: string): string =>
+  text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
 
 /** How well one query word matches one field: exact word 100, word prefix 80, substring 60, scattered letters 10-30, else 0. */
 export function tokenScore(token: string, field: string): number {
@@ -56,7 +57,10 @@ export function searchActions<Ctx>(
     }
     let total = 0;
     for (const token of tokens) {
-      const best = Math.max(0, ...fieldsOf(action).map(([text, weight]) => tokenScore(token, text) * weight));
+      const best = Math.max(
+        0,
+        ...fieldsOf(action).map(([text, weight]) => tokenScore(token, text) * weight),
+      );
       if (best === 0) {
         total = 0;
         break;

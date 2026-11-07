@@ -8,7 +8,12 @@ const other: Op = { type: "removeClip", clipId: "c" };
 
 function registry(): ActionRegistry<{ ok: boolean }> {
   const r = new ActionRegistry<{ ok: boolean }>();
-  const base = { description: "Does something useful.", keywords: ["k"], category: "Edit", when: (c: { ok: boolean }) => c.ok } satisfies Partial<Action<{ ok: boolean }>>;
+  const base = {
+    description: "Does something useful.",
+    keywords: ["k"],
+    category: "Edit",
+    when: (c: { ok: boolean }) => c.ok,
+  } satisfies Partial<Action<{ ok: boolean }>>;
   r.register({ ...base, id: "t.none", title: "Nothing", run: () => undefined });
   r.register({ ...base, id: "t.one", title: "One op", run: () => trim });
   r.register({ ...base, id: "t.many", title: "Many ops", run: () => [trim, other] });
@@ -29,7 +34,10 @@ describe("runAction", () => {
     await runAction(registry(), "t.one", { ok: true }, undefined, apply);
     expect(apply).toHaveBeenLastCalledWith(trim, "One op");
     await runAction(registry(), "t.many", { ok: true }, undefined, apply);
-    expect(apply).toHaveBeenLastCalledWith({ type: "batch", label: "Many ops", ops: [trim, other] }, "Many ops");
+    expect(apply).toHaveBeenLastCalledWith(
+      { type: "batch", label: "Many ops", ops: [trim, other] },
+      "Many ops",
+    );
   });
 
   it("does nothing for actions that return nothing", async () => {
@@ -43,7 +51,11 @@ describe("runAction", () => {
     const apply = vi.fn();
     await runAction(registry(), "t.args", { ok: true }, { to: 5 }, apply);
     expect(apply).toHaveBeenLastCalledWith({ ...trim, toUs: 5 }, "With args");
-    await expect(runAction(registry(), "t.args", { ok: true }, { to: "x" }, apply)).rejects.toThrow();
-    await expect(runAction(registry(), "t.one", { ok: false }, undefined, apply)).rejects.toThrow(ActionError);
+    await expect(
+      runAction(registry(), "t.args", { ok: true }, { to: "x" }, apply),
+    ).rejects.toThrow();
+    await expect(runAction(registry(), "t.one", { ok: false }, undefined, apply)).rejects.toThrow(
+      ActionError,
+    );
   });
 });

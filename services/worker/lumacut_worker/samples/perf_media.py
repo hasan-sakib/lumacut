@@ -38,7 +38,12 @@ MANIFEST_NAME = "perf-media.json"
 
 
 def _entry(spec: PerfSource, kind: str, media: dict[str, Any], file: Path) -> dict[str, Any]:
-    entry: dict[str, Any] = {"id": spec.name, "source": spec.source, "kind": kind, "file": file.name}
+    entry: dict[str, Any] = {
+        "id": spec.name,
+        "source": spec.source,
+        "kind": kind,
+        "file": file.name,
+    }
     if kind == "video":
         entry["width"] = media["video"]["width"]
         entry["height"] = media["video"]["height"]

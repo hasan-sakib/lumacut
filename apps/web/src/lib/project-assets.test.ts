@@ -21,7 +21,13 @@ function out(over: Partial<AssetOut>): AssetOut {
     updatedAt: "2026-11-06T00:00:00Z",
     readyAt: "2026-11-06T00:00:00Z",
     media: {
-      video: { width: 1920, height: 1080, fps: { num: 30, den: 1 }, durationUs: 5_000_000, codec: "h264" },
+      video: {
+        width: 1920,
+        height: 1080,
+        fps: { num: 30, den: 1 },
+        durationUs: 5_000_000,
+        codec: "h264",
+      },
       audio: { sampleRate: 48000, channels: 2, durationUs: 5_000_000, codec: "aac" },
     },
     urls: { thumbSheets: [] },
@@ -32,10 +38,23 @@ function out(over: Partial<AssetOut>): AssetOut {
 describe("toProjectAsset", () => {
   it("maps video (with sound), audio and image to valid project assets", () => {
     const video = toProjectAsset(out({}));
-    expect(video).toMatchObject({ id: "a1", kind: "video", source: "user", video: { width: 1920 }, audio: { channels: 2 } });
-    const audio = toProjectAsset(out({ kind: "audio", media: { audio: { sampleRate: 48000, channels: 1, durationUs: 1, codec: "aac" } } }));
+    expect(video).toMatchObject({
+      id: "a1",
+      kind: "video",
+      source: "user",
+      video: { width: 1920 },
+      audio: { channels: 2 },
+    });
+    const audio = toProjectAsset(
+      out({
+        kind: "audio",
+        media: { audio: { sampleRate: 48000, channels: 1, durationUs: 1, codec: "aac" } },
+      }),
+    );
     expect(audio?.kind).toBe("audio");
-    const image = toProjectAsset(out({ kind: "image", media: { image: { width: 10, height: 20 } } }));
+    const image = toProjectAsset(
+      out({ kind: "image", media: { image: { width: 10, height: 20 } } }),
+    );
     expect(image?.image).toEqual({ width: 10, height: 20 });
     for (const a of [video, audio, image]) expect(Asset.safeParse(a).success).toBe(true);
   });
@@ -78,9 +97,17 @@ describe("resolveAssetQuery", () => {
 
   it("refuses to guess: ambiguous, missing, not ready and empty queries explain themselves", () => {
     const ambiguous = resolveAssetQuery(library, "beach");
-    expect(ambiguous).toMatchObject({ error: expect.stringMatching(/matches 2 assets.*Beach sunset.*Beach walk/) });
-    expect(resolveAssetQuery(library, "zebra")).toEqual({ error: "No ready asset matches “zebra”." });
-    expect(resolveAssetQuery(library, "pending")).toMatchObject({ error: expect.stringMatching(/No ready asset/) });
-    expect(resolveAssetQuery(library, "  ")).toMatchObject({ error: expect.stringMatching(/Say which asset/) });
+    expect("error" in ambiguous ? ambiguous.error : "").toMatch(
+      /matches 2 assets.*Beach sunset.*Beach walk/,
+    );
+    expect(resolveAssetQuery(library, "zebra")).toEqual({
+      error: "No ready asset matches “zebra”.",
+    });
+    const message = (query: string) => {
+      const found = resolveAssetQuery(library, query);
+      return "error" in found ? found.error : "";
+    };
+    expect(message("pending")).toMatch(/No ready asset/);
+    expect(message("  ")).toMatch(/Say which asset/);
   });
 });

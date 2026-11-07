@@ -1,5 +1,4 @@
 import type { Op } from "@lumacut/schema";
-import type * as z from "zod";
 import * as z from "zod";
 import { searchActions, type SearchHit } from "./search.ts";
 import { normalizeShortcut, shortcutFromEvent, type KeyEventLike } from "./shortcuts.ts";
@@ -127,7 +126,10 @@ export class ActionRegistry<Ctx> {
       keywords: a.keywords,
       category: a.category,
       ...(a.shortcut === undefined ? {} : { shortcut: a.shortcut }),
-      args: a.argsSchema === undefined ? null : (z.toJSONSchema(a.argsSchema) as Record<string, unknown>),
+      args:
+        a.argsSchema === undefined
+          ? null
+          : (z.toJSONSchema(a.argsSchema) as Record<string, unknown>),
     }));
   }
 

@@ -4,12 +4,15 @@ import { card, registerNewUser, sample } from "./helpers.ts";
 test.describe.configure({ timeout: 300_000 });
 
 const clips = (page: Page) => page.locator("[data-clip]");
-const clipLeft = async (page: Page, index: number): Promise<number> => (await clips(page).nth(index).boundingBox())?.x ?? Number.NaN;
+const clipLeft = async (page: Page, index: number): Promise<number> =>
+  (await clips(page).nth(index).boundingBox())?.x ?? Number.NaN;
 
 async function projectWithVideo(page: Page): Promise<void> {
   await registerNewUser(page);
   await page.getByTestId("upload-input").setInputFiles([sample("fn_1080p30.mp4")]);
-  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", { timeout: 240_000 });
+  await expect(card(page, "fn_1080p30.mp4").getByTestId("asset-status")).toHaveText("Ready", {
+    timeout: 240_000,
+  });
   await page.getByRole("button", { name: "New project" }).click();
   await page.waitForURL(/\/project\//);
   await page.getByRole("tab", { name: /add media/i }).click();
@@ -18,7 +21,9 @@ async function projectWithVideo(page: Page): Promise<void> {
   await expect(clips(page)).toHaveCount(2); // the picture and its linked sound
 }
 
-test("the timeline edits with the mouse and the keyboard, and every edit undoes", async ({ page }) => {
+test("the timeline edits with the mouse and the keyboard, and every edit undoes", async ({
+  page,
+}) => {
   await projectWithVideo(page);
 
   // Cut at 2 s: both linked clips are cut and the halves stay linked.
@@ -27,19 +32,20 @@ test("the timeline edits with the mouse and the keyboard, and every edit undoes"
   await page.keyboard.press("s");
   await expect(clips(page)).toHaveCount(4);
 
-  // Drag the second half of the picture 150 px (1.5 s) to the right.
-  const before = await clipLeft(page, 2);
-  const box = await clips(page).nth(2).boundingBox();
+  // Drag the second half of the picture 150 px (1.5 s) to the right. (Clips are in DOM order:
+  // the audio lane first, so the picture's halves are the 3rd and 4th.)
+  const before = await clipLeft(page, 3);
+  const box = await clips(page).nth(3).boundingBox();
   if (box === null) throw new Error("clip has no box");
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 150, box.y + box.height / 2, { steps: 8 });
   await page.mouse.up();
-  await expect.poll(() => clipLeft(page, 2)).toBeGreaterThan(before + 100);
+  await expect.poll(() => clipLeft(page, 3)).toBeGreaterThan(before + 100);
 
   // Undo the move, then the cut.
   await page.keyboard.press("ControlOrMeta+z");
-  await expect.poll(() => clipLeft(page, 2)).toBeCloseTo(before, -1);
+  await expect.poll(() => clipLeft(page, 3)).toBeCloseTo(before, -1);
   await page.keyboard.press("ControlOrMeta+z");
   await expect(clips(page)).toHaveCount(2);
 });
@@ -60,7 +66,9 @@ test("Space plays the preview and the playhead follows", async ({ page }) => {
   await projectWithVideo(page);
   await expect(page.getByTestId("timecode")).toHaveText("00:00:00:00");
   await page.keyboard.press("Space");
-  await expect.poll(async () => (await page.getByTestId("timecode").textContent()) ?? "", { timeout: 15_000 }).not.toBe("00:00:00:00");
+  await expect
+    .poll(async () => (await page.getByTestId("timecode").textContent()) ?? "", { timeout: 15_000 })
+    .not.toBe("00:00:00:00");
   await page.keyboard.press("Space");
   const stopped = await page.getByTestId("timecode").textContent();
   await page.waitForTimeout(600);
@@ -71,8 +79,13 @@ test("a header switch mutes a track and zoom changes the clip width", async ({ p
   await projectWithVideo(page);
   const header = page.locator('[data-testid="track-header"]').first();
   await header.getByRole("button", { name: "Mute / unmute track" }).click();
-  await expect(header.getByRole("button", { name: "Mute / unmute track" })).toHaveAttribute("aria-pressed", "true");
+  await expect(header.getByRole("button", { name: "Mute / unmute track" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   const width = (await clips(page).first().boundingBox())?.width ?? 0;
   await page.keyboard.press("=");
-  await expect.poll(async () => (await clips(page).first().boundingBox())?.width ?? 0).toBeGreaterThan(width * 1.3);
+  await expect
+    .poll(async () => (await clips(page).first().boundingBox())?.width ?? 0)
+    .toBeGreaterThan(width * 1.3);
 });

@@ -1,5 +1,5 @@
 import { runAction, type AnyAction } from "@lumacut/actions";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { editingActions, type EditingContext, type EditingServices } from "../actions/editing.ts";
 import { newId } from "../lib/ids.ts";
 import { fitZoom, zoomBy } from "../timeline/geometry.ts";
@@ -48,7 +48,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       redo: () => {
         projectStore.getState().redo();
       },
-      resolveAsset: (query) => resolveAssetQuery(Object.values(useAssetsStore.getState().byId), query),
+      resolveAsset: (query) =>
+        resolveAssetQuery(Object.values(useAssetsStore.getState().byId), query),
       clipboard: {
         setClips: (data) => {
           useEditorStore.getState().setClipboard(data);
@@ -70,7 +71,9 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         },
         zoomFit: () => {
           const editor = useEditorStore.getState();
-          const comp = projectStore.getState().project?.compositions.find((c) => c.id === editor.activeCompositionId);
+          const comp = projectStore
+            .getState()
+            .project?.compositions.find((c) => c.id === editor.activeCompositionId);
           editor.setZoom(fitZoom(comp?.durationUs ?? 0, editor.viewportPx));
           editor.setScroll(0);
         },
@@ -101,11 +104,24 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       attributes,
       services,
     }),
-    [project, activeCompositionId, selectedClipIds, selectedTrackId, playheadUs, canUndo, canRedo, clipboard, attributes, services],
+    [
+      project,
+      activeCompositionId,
+      selectedClipIds,
+      selectedTrackId,
+      playheadUs,
+      canUndo,
+      canRedo,
+      clipboard,
+      attributes,
+      services,
+    ],
   );
 
   const latest = useRef(ctx);
-  latest.current = ctx;
+  useEffect(() => {
+    latest.current = ctx;
+  });
 
   const run = useCallback(async (id: string, args?: unknown): Promise<string | null> => {
     try {

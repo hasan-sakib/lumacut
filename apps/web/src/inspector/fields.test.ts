@@ -1,5 +1,13 @@
 import { applyOp } from "@lumacut/ops";
-import { createClip, createComposition, createProject, createTrack, type Asset, type Clip, type Project } from "@lumacut/schema";
+import {
+  createClip,
+  createComposition,
+  createProject,
+  createTrack,
+  type Asset,
+  type Clip,
+  type Project,
+} from "@lumacut/schema";
 import { describe, expect, it } from "vitest";
 import { FIELDS, MIN_DB, fieldById, type ClipInfo } from "./fields.ts";
 
@@ -11,7 +19,13 @@ const video: Asset = {
   mimeType: "video/mp4",
   sizeBytes: 1,
   source: "user",
-  video: { width: 1920, height: 1080, fps: { num: 30, den: 1 }, durationUs: 10 * SEC, codec: "avc1" },
+  video: {
+    width: 1920,
+    height: 1080,
+    fps: { num: 30, den: 1 },
+    durationUs: 10 * SEC,
+    codec: "avc1",
+  },
   audio: { sampleRate: 48_000, channels: 2, durationUs: 10 * SEC, codec: "aac" },
 };
 
@@ -27,8 +41,34 @@ function project(): Project {
         height: 1080,
         durationUs: 4 * SEC,
         tracks: [
-          createTrack({ id: "V1", kind: "visual", clips: [createClip({ id: "pic", type: "media", assetId: "v1", startUs: 0, inUs: 1 * SEC, outUs: 3 * SEC })] }),
-          createTrack({ id: "A1", kind: "audio", clips: [createClip({ id: "snd", type: "media", assetId: "v1", startUs: 0, inUs: 0, outUs: 2 * SEC })] }),
+          createTrack({
+            id: "V1",
+            kind: "visual",
+            clips: [
+              createClip({
+                id: "pic",
+                type: "media",
+                assetId: "v1",
+                startUs: 0,
+                inUs: 1 * SEC,
+                outUs: 3 * SEC,
+              }),
+            ],
+          }),
+          createTrack({
+            id: "A1",
+            kind: "audio",
+            clips: [
+              createClip({
+                id: "snd",
+                type: "media",
+                assetId: "v1",
+                startUs: 0,
+                inUs: 0,
+                outUs: 2 * SEC,
+              }),
+            ],
+          }),
         ],
       }),
     ],
@@ -46,12 +86,22 @@ const infoOf = (p: Project, id: string): ClipInfo => {
 const clipOf = (p: Project, id: string): Clip => infoOf(p, id).clip;
 
 /** Applies a field edit the way the inspector does and returns the new project. */
-function edit(p: Project, fieldId: string, shown: number | string | boolean, clipId: string): Project {
+function edit(
+  p: Project,
+  fieldId: string,
+  shown: number | string | boolean,
+  clipId: string,
+): Project {
   const def = fieldById(fieldId);
   const info = infoOf(p, clipId);
   const stored = typeof shown === "number" && def.fromDisplay ? def.fromDisplay(shown) : shown;
   const patch = def.set(info.clip, stored);
-  return applyOp(p, { type: "setProps", clipId, props: patch.props, ...(patch.unset ? { unset: patch.unset } : {}) }).project;
+  return applyOp(p, {
+    type: "setProps",
+    clipId,
+    props: patch.props,
+    ...(patch.unset ? { unset: patch.unset } : {}),
+  }).project;
 }
 
 describe("field catalogue", () => {
@@ -86,7 +136,15 @@ describe("setting a field changes only that field, and the result is a valid cli
     p = edit(p, "rotation", 15, "pic");
     p = edit(p, "anchorX", 10, "pic");
     p = edit(p, "skew", 5, "pic");
-    expect(clipOf(p, "pic").transform).toMatchObject({ x: 120, y: -40, rotation: 15, anchorX: 10, skew: 5, scaleX: 1, scaleY: 1 });
+    expect(clipOf(p, "pic").transform).toMatchObject({
+      x: 120,
+      y: -40,
+      rotation: 15,
+      anchorX: 10,
+      skew: 5,
+      scaleX: 1,
+      scaleY: 1,
+    });
   });
 
   it("uniform scale sets both axes; X and Y are separate; shown in percent", () => {
@@ -102,7 +160,11 @@ describe("setting a field changes only that field, and the result is a valid cli
     p = edit(p, "blendMode", "multiply", "pic");
     p = edit(p, "cropLeft", 10, "pic");
     p = edit(p, "cropBottom", 25, "pic");
-    expect(clipOf(p, "pic")).toMatchObject({ opacity: 0.4, blendMode: "multiply", crop: { left: 0.1, bottom: 0.25, top: 0, right: 0 } });
+    expect(clipOf(p, "pic")).toMatchObject({
+      opacity: 0.4,
+      blendMode: "multiply",
+      crop: { left: 0.1, bottom: 0.25, top: 0, right: 0 },
+    });
     expect(() => fieldById("blendMode").set(clipOf(p0, "pic"), "not-a-mode")).toThrow();
   });
 

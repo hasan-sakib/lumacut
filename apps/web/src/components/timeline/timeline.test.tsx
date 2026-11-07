@@ -1,10 +1,19 @@
-import { createClip, createComposition, createProject, createTrack, type Asset, type Clip, type Project } from "@lumacut/schema";
+import {
+  createClip,
+  createComposition,
+  createProject,
+  createTrack,
+  type Asset,
+  type Clip,
+  type Project,
+} from "@lumacut/schema";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Tooltip } from "radix-ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EditingContext } from "../../actions/editing.ts";
 import { useAssetsStore } from "../../stores/assets.ts";
 import { Timeline, type TimelineProps } from "./Timeline.tsx";
+import { must } from "../../lib/must.ts";
 
 const SEC = 1_000_000;
 const video: Asset = {
@@ -14,11 +23,25 @@ const video: Asset = {
   mimeType: "video/mp4",
   sizeBytes: 1,
   source: "user",
-  video: { width: 1920, height: 1080, fps: { num: 30, den: 1 }, durationUs: 10 * SEC, codec: "avc1" },
+  video: {
+    width: 1920,
+    height: 1080,
+    fps: { num: 30, den: 1 },
+    durationUs: 10 * SEC,
+    codec: "avc1",
+  },
   audio: { sampleRate: 48_000, channels: 2, durationUs: 10 * SEC, codec: "aac" },
 };
 const media = (id: string, start: number, len: number, extra: Partial<Clip> = {}): Clip =>
-  createClip({ id, type: "media", assetId: "v1", startUs: start * SEC, inUs: extra.inUs ?? 0, outUs: (extra.inUs ?? 0) + len * SEC, ...extra });
+  createClip({
+    id,
+    type: "media",
+    assetId: "v1",
+    startUs: start * SEC,
+    inUs: extra.inUs ?? 0,
+    outUs: (extra.inUs ?? 0) + len * SEC,
+    ...extra,
+  });
 
 function sampleProject(): Project {
   return createProject({
@@ -31,9 +54,25 @@ function sampleProject(): Project {
         width: 1920,
         height: 1080,
         durationUs: 10 * SEC,
-        markers: [{ id: "m1", tUs: 5 * SEC, durationUs: 0, label: "Beat", color: { r: 1, g: 0.5, b: 0, a: 1 } }],
+        markers: [
+          {
+            id: "m1",
+            tUs: 5 * SEC,
+            durationUs: 0,
+            label: "Beat",
+            color: { r: 1, g: 0.5, b: 0, a: 1 },
+          },
+        ],
         tracks: [
-          createTrack({ id: "V1", kind: "visual", clips: [media("c1", 0, 2, { linkId: "L" }), media("c2", 2, 2, { inUs: 2 * SEC }), media("c3", 6, 2, { inUs: 4 * SEC })] }),
+          createTrack({
+            id: "V1",
+            kind: "visual",
+            clips: [
+              media("c1", 0, 2, { linkId: "L" }),
+              media("c2", 2, 2, { inUs: 2 * SEC }),
+              media("c3", 6, 2, { inUs: 4 * SEC }),
+            ],
+          }),
           createTrack({ id: "V2", kind: "visual" }),
           createTrack({ id: "A1", kind: "audio", clips: [media("a1", 0, 2, { linkId: "L" })] }),
         ],
@@ -47,8 +86,20 @@ function sampleProject(): Project {
 function installRects() {
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
     const el = this as HTMLElement;
-    const box = (left: number, top: number, width: number, height: number) => ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
-    if (el.dataset.clip !== undefined) return box(parseFloat(el.style.left) || 0, 0, parseFloat(el.style.width) || 0, 48);
+    const box = (left: number, top: number, width: number, height: number) =>
+      ({
+        left,
+        top,
+        width,
+        height,
+        right: left + width,
+        bottom: top + height,
+        x: left,
+        y: top,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    if (el.dataset.clip !== undefined)
+      return box(parseFloat(el.style.left) || 0, 0, parseFloat(el.style.width) || 0, 48);
     if (el.dataset.lane !== undefined) {
       const index = Array.from(document.querySelectorAll("[data-lane]")).indexOf(el);
       return box(0, index * 56, 2000, 56);
@@ -79,7 +130,13 @@ function ctxFor(project: Project): EditingContext {
       openPalette: vi.fn(),
       showShortcuts: vi.fn(),
       playback: { togglePlay: vi.fn(), seek: vi.fn() },
-      editor: { setTool: vi.fn(), zoomBy: vi.fn(), zoomFit: vi.fn(), toggleSnapping: vi.fn(), selectClips: vi.fn() },
+      editor: {
+        setTool: vi.fn(),
+        zoomBy: vi.fn(),
+        zoomFit: vi.fn(),
+        toggleSnapping: vi.fn(),
+        selectClips: vi.fn(),
+      },
     },
   };
 }
@@ -89,7 +146,7 @@ function setup(over: Partial<TimelineProps> = {}) {
   const project = over.project ?? sampleProject();
   const props: TimelineProps = {
     project,
-    composition: project.compositions[0] as NonNullable<(typeof project.compositions)[0]>,
+    composition: must(project.compositions[0]),
     ctx: ctxFor(project),
     tool: "select",
     zoomPxPerSec: 100,
@@ -115,12 +172,15 @@ function setup(over: Partial<TimelineProps> = {}) {
       <Timeline {...props} />
     </Tooltip.Provider>,
   );
-  const clip = (id: string) => view.container.querySelector(`[data-clip="${id}"]`) as HTMLElement;
+  const clip = (id: string) =>
+    must(view.container.querySelector<HTMLElement>(`[data-clip="${id}"]`));
   return { props, clip, ...view };
 }
 
-const down = (el: Element, x: number, extra: Record<string, unknown> = {}) => fireEvent.pointerDown(el, { clientX: x, clientY: 20, button: 0, pointerId: 1, ...extra });
-const move = (x: number, y = 20) => fireEvent.pointerMove(window, { clientX: x, clientY: y, pointerId: 1 });
+const down = (el: Element, x: number, extra: Record<string, unknown> = {}) =>
+  fireEvent.pointerDown(el, { clientX: x, clientY: 20, button: 0, pointerId: 1, ...extra });
+const move = (x: number, y = 20) =>
+  fireEvent.pointerMove(window, { clientX: x, clientY: y, pointerId: 1 });
 const up = () => fireEvent.pointerUp(window, { pointerId: 1 });
 
 beforeEach(() => {
@@ -140,7 +200,9 @@ describe("drawing", () => {
     expect(clip("c2").style.left).toBe("200px");
     expect(clip("c3").style.left).toBe("600px");
     setup({ zoomPxPerSec: 50 });
-    expect(document.querySelectorAll('[data-clip="c3"]')[1]?.getAttribute("style")).toContain("left: 300px");
+    expect(document.querySelectorAll('[data-clip="c3"]')[1]?.getAttribute("style")).toContain(
+      "left: 300px",
+    );
   });
 
   it("lists tracks top-down with the last track on top, with headers", () => {
@@ -156,7 +218,12 @@ describe("drawing", () => {
   });
 
   it("says so when there are no tracks", () => {
-    const empty = createProject({ id: "e", now: "2026-11-06T00:00:00Z", compositions: [createComposition({ id: "main", width: 10, height: 10 })], mainCompositionId: "main" });
+    const empty = createProject({
+      id: "e",
+      now: "2026-11-06T00:00:00Z",
+      compositions: [createComposition({ id: "main", width: 10, height: 10 })],
+      mainCompositionId: "main",
+    });
     setup({ project: empty });
     expect(screen.getByText(/no tracks/i)).toBeTruthy();
   });
@@ -186,7 +253,7 @@ describe("selection", () => {
 
   it("clicking empty lane clears the selection and selects the track", () => {
     const { props } = setup({ selectedClipIds: ["c2"] });
-    const lane = document.querySelector('[data-lane="V2"]') as HTMLElement;
+    const lane = must(document.querySelector('[data-lane="V2"]'));
     down(lane, 300);
     expect(props.onSelectClips).toHaveBeenCalledWith([]);
     expect(props.onSelectTrack).toHaveBeenCalledWith("V2");
@@ -194,11 +261,11 @@ describe("selection", () => {
 
   it("clicking a track header selects the track, clicking again deselects it", () => {
     const first = setup();
-    fireEvent.click(screen.getAllByRole("button", { name: /^V1$/ })[0] as HTMLElement);
+    fireEvent.click(must(screen.getAllByRole("button", { name: /^V1$/ })[0]));
     expect(first.props.onSelectTrack).toHaveBeenCalledWith("V1");
     cleanup();
     const second = setup({ selectedTrackId: "V1" });
-    fireEvent.click(screen.getAllByRole("button", { name: /^V1$/ })[0] as HTMLElement);
+    fireEvent.click(must(screen.getAllByRole("button", { name: /^V1$/ })[0]));
     expect(second.props.onSelectTrack).toHaveBeenCalledWith(null);
   });
 });
@@ -210,10 +277,16 @@ describe("moving clips by dragging", () => {
     move(100 + 800); // 8 s to the right
     up();
     expect(props.onCommit).toHaveBeenCalledTimes(1);
-    const [op, label] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [{ type: string; ops?: { clipId: string; startUs: number }[] }, string];
+    const [op, label] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      { type: string; ops?: { clipId: string; startUs: number }[] },
+      string,
+    ];
     expect(label).toBe("Move clips");
     expect(op.type).toBe("batch");
-    expect(op.ops?.map((o) => [o.clipId, o.startUs]).sort()).toEqual([["a1", 8 * SEC], ["c1", 8 * SEC]]);
+    expect(op.ops?.map((o) => [o.clipId, o.startUs]).sort()).toEqual([
+      ["a1", 8 * SEC],
+      ["c1", 8 * SEC],
+    ]);
   });
 
   it("shows the result while dragging, and changes nothing until release", () => {
@@ -261,7 +334,9 @@ describe("moving clips by dragging", () => {
     move(700 - 195); // start lands 5 px from c2's end (4 s)
     expect(screen.getByTestId("snap-line")).toBeTruthy();
     up();
-    const [op] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [{ type: string; startUs: number }];
+    const [op] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      { type: string; startUs: number },
+    ];
     expect(op).toMatchObject({ type: "moveClip", startUs: 4 * SEC });
   });
 });
@@ -272,7 +347,34 @@ describe("trimming", () => {
     down(clip("c3"), 797); // inside the 7 px end handle of c3 [600, 800)
     move(797 + 100);
     up();
-    expect(props.onCommit).toHaveBeenCalledWith({ type: "trimClip", clipId: "c3", edge: "end", toUs: 9 * SEC }, "Trim clip");
+    expect(props.onCommit).toHaveBeenCalledWith(
+      { type: "trimClip", clipId: "c3", edge: "end", toUs: 9 * SEC },
+      "Trim clip",
+    );
+  });
+
+  it("dragging the edge of a linked clip trims its partner too; Alt-click leaves the partner alone", () => {
+    const { props, clip } = setup();
+    down(clip("c1"), 197); // c1's end handle: c1 is linked to a1
+    move(197 - 50);
+    up();
+    const [op] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      { type: string; ops: { clipId: string; toUs: number }[] },
+    ];
+    expect(op.type).toBe("batch");
+    expect(op.ops.map((o) => [o.clipId, o.toUs])).toEqual([
+      ["c1", 1_500_000],
+      ["a1", 1_500_000],
+    ]);
+    cleanup();
+    const alone = setup();
+    down(alone.clip("c1"), 197, { altKey: true });
+    move(197 - 50);
+    up();
+    expect(alone.props.onCommit).toHaveBeenCalledWith(
+      { type: "trimClip", clipId: "c1", edge: "end", toUs: 1_500_000 },
+      "Trim clip",
+    );
   });
 
   it("the ripple tool uses rippleTrim", () => {
@@ -280,7 +382,10 @@ describe("trimming", () => {
     down(clip("c3"), 797);
     move(797 - 100);
     up();
-    expect(props.onCommit).toHaveBeenCalledWith({ type: "rippleTrim", clipId: "c3", edge: "end", toUs: 7 * SEC }, "Trim clip");
+    expect(props.onCommit).toHaveBeenCalledWith(
+      { type: "rippleTrim", clipId: "c3", edge: "end", toUs: 7 * SEC },
+      "Trim clip",
+    );
   });
 
   it("the ripple tool ignores a drag on the body of a clip", () => {
@@ -298,7 +403,10 @@ describe("other tools", () => {
     down(clip("c1"), 197); // end handle of c1, which touches c2
     move(197 - 50);
     up();
-    expect(props.onCommit).toHaveBeenCalledWith({ type: "rollEdit", leftClipId: "c1", rightClipId: "c2", toUs: 1_500_000 }, "Roll edit");
+    expect(props.onCommit).toHaveBeenCalledWith(
+      { type: "rollEdit", leftClipId: "c1", rightClipId: "c2", toUs: 1_500_000 },
+      "Roll edit",
+    );
   });
 
   it("roll does nothing at an edge with no neighbour", () => {
@@ -314,7 +422,10 @@ describe("other tools", () => {
     down(clip("c2"), 300);
     move(300 + 50);
     up();
-    expect(props.onCommit).toHaveBeenCalledWith({ type: "slipClip", clipId: "c2", deltaUs: -500_000 }, "Slip clip");
+    expect(props.onCommit).toHaveBeenCalledWith(
+      { type: "slipClip", clipId: "c2", deltaUs: -500_000 },
+      "Slip clip",
+    );
   });
 
   it("slide moves the clip along the track", () => {
@@ -322,14 +433,20 @@ describe("other tools", () => {
     down(clip("c2"), 300);
     move(300 + 50);
     up();
-    expect(props.onCommit).toHaveBeenCalledWith({ type: "slideClip", clipId: "c2", deltaUs: 500_000 }, "Slide clip");
+    expect(props.onCommit).toHaveBeenCalledWith(
+      { type: "slideClip", clipId: "c2", deltaUs: 500_000 },
+      "Slide clip",
+    );
   });
 
   it("the razor cuts where you click, clips linked to it too, in one op", () => {
     const { props, clip } = setup({ tool: "razor" });
     down(clip("c1"), 100); // 1 s
     expect(props.onCommit).toHaveBeenCalledTimes(1);
-    const [op, label] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [{ type: string; ops: { type: string; atUs?: number }[] }, string];
+    const [op, label] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      { type: string; ops: { type: string; atUs?: number }[] },
+      string,
+    ];
     expect(label).toBe("Split clips");
     expect(op.ops.filter((o) => o.type === "splitClip").map((o) => o.atUs)).toEqual([SEC, SEC]);
     expect(props.onSelectClips).not.toHaveBeenCalled();
@@ -345,20 +462,41 @@ describe("other tools", () => {
 describe("track headers, ruler and markers", () => {
   it("a header switch runs the same action as the palette, aimed at its own track", () => {
     const { props } = setup();
-    const header = document.querySelector('[data-track="V1"]') as HTMLElement;
-    fireEvent.click(header.querySelector('button[aria-label="Mute / unmute track"]') as HTMLElement);
-    const [action, args] = (props.onRunAction as ReturnType<typeof vi.fn>).mock.calls[0] as [{ id: string }, unknown];
+    const header = must(document.querySelector('[data-track="V1"]'));
+    fireEvent.click(must(header.querySelector('button[aria-label="Mute / unmute track"]')));
+    const [action, args] = (props.onRunAction as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      { id: string },
+      unknown,
+    ];
     expect(action.id).toBe("track.toggleMute");
     expect(args).toEqual({ trackId: "V1" });
   });
 
   it("shows which switches are on", () => {
     const base = sampleProject();
-    const muted = { ...base, compositions: [{ ...(base.compositions[0] as NonNullable<(typeof base.compositions)[0]>), tracks: (base.compositions[0]?.tracks ?? []).map((t) => (t.id === "A1" ? { ...t, muted: true } : t)) }] };
+    const muted = {
+      ...base,
+      compositions: [
+        {
+          ...must(base.compositions[0]),
+          tracks: (base.compositions[0]?.tracks ?? []).map((t) =>
+            t.id === "A1" ? { ...t, muted: true } : t,
+          ),
+        },
+      ],
+    };
     setup({ project: muted });
-    const header = document.querySelector('[data-track="A1"]') as HTMLElement;
-    expect(header.querySelector('button[aria-label="Mute / unmute track"]')?.getAttribute("aria-pressed")).toBe("true");
-    expect(header.querySelector('button[aria-label="Lock / unlock track"]')?.getAttribute("aria-pressed")).toBe("false");
+    const header = must(document.querySelector('[data-track="A1"]'));
+    expect(
+      header
+        .querySelector('button[aria-label="Mute / unmute track"]')
+        ?.getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      header
+        .querySelector('button[aria-label="Lock / unlock track"]')
+        ?.getAttribute("aria-pressed"),
+    ).toBe("false");
   });
 
   it("pressing on the ruler moves the playhead to that frame, and dragging scrubs", () => {
@@ -375,11 +513,18 @@ describe("track headers, ruler and markers", () => {
 
   it("dragging a marker commits one updateMarker", () => {
     const { props } = setup();
-    const marker = document.querySelector('[data-marker="m1"]') as HTMLElement;
+    const marker = must(document.querySelector('[data-marker="m1"]'));
     down(marker, 500);
     move(600);
     up();
-    expect(props.onCommit).toHaveBeenCalledWith(expect.objectContaining({ type: "updateMarker", compositionId: "main", marker: expect.objectContaining({ id: "m1", tUs: 6 * SEC }) }), "Move marker");
+    expect(props.onCommit).toHaveBeenCalledTimes(1);
+    const [op, label] = (props.onCommit as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      { type: string; compositionId: string; marker: { id: string; tUs: number } },
+      string,
+    ];
+    expect(label).toBe("Move marker");
+    expect(op).toMatchObject({ type: "updateMarker", compositionId: "main" });
+    expect(op.marker).toMatchObject({ id: "m1", tUs: 6 * SEC });
   });
 });
 
@@ -395,23 +540,56 @@ describe("right-click and media on clips", () => {
   });
 
   it("draws a filmstrip on picture clips and a waveform on sound clips from the library renditions", async () => {
-    const index = { intervalUs: SEC, tileWidth: 80, tileHeight: 45, columns: 4, rows: 2, count: 10 };
-    const wave = { channels: 1, length: 1000, data: Array.from({ length: 2000 }, (_, i) => (i % 2 === 0 ? -50 : 50)) };
-    vi.stubGlobal("fetch", (url: string) => Promise.resolve({ ok: true, json: () => Promise.resolve(url.includes("index") ? index : wave) }));
+    const index = {
+      intervalUs: SEC,
+      tileWidth: 80,
+      tileHeight: 45,
+      columns: 4,
+      rows: 2,
+      count: 10,
+    };
+    const wave = {
+      channels: 1,
+      length: 1000,
+      data: Array.from({ length: 2000 }, (_, i) => (i % 2 === 0 ? -50 : 50)),
+    };
+    vi.stubGlobal("fetch", (url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(url.includes("index") ? index : wave),
+      }),
+    );
     useAssetsStore.setState({
       order: ["v1"],
       byId: {
         v1: {
-          id: "v1", kind: "video", name: "clip.mp4", mimeType: "video/mp4", sizeBytes: 1, status: "ready", stage: null, progress: 1,
-          errorCode: null, errorMessage: null, attempts: 1, createdAt: "2026-11-06T00:00:00Z", updatedAt: "2026-11-06T00:00:00Z", readyAt: "2026-11-06T00:00:00Z", media: null,
-          urls: { thumbSheets: ["https://s3/m3b2/sheet0.jpg"], thumbIndex: "https://s3/m3b2/thumbs/index.json?sig=1", waveform: "https://s3/m3b2/wave.json?sig=1" },
+          id: "v1",
+          kind: "video",
+          name: "clip.mp4",
+          mimeType: "video/mp4",
+          sizeBytes: 1,
+          status: "ready",
+          stage: null,
+          progress: 1,
+          errorCode: null,
+          errorMessage: null,
+          attempts: 1,
+          createdAt: "2026-11-06T00:00:00Z",
+          updatedAt: "2026-11-06T00:00:00Z",
+          readyAt: "2026-11-06T00:00:00Z",
+          media: null,
+          urls: {
+            thumbSheets: ["https://s3/m3b2/sheet0.jpg"],
+            thumbIndex: "https://s3/m3b2/thumbs/index.json?sig=1",
+            waveform: "https://s3/m3b2/wave.json?sig=1",
+          },
         },
       },
     });
     setup();
     expect((await screen.findAllByTestId("filmstrip")).length).toBeGreaterThan(0);
     expect((await screen.findAllByTestId("clip-waveform")).length).toBeGreaterThan(0);
-    const tile = document.querySelector('[data-testid="filmstrip"] img') as HTMLImageElement;
+    const tile = must(document.querySelector<HTMLImageElement>('[data-testid="filmstrip"] img'));
     expect(tile.getAttribute("crossorigin")).toBe("anonymous");
     expect(tile.src).toContain("sheet0.jpg");
     // the sound clip is on the audio lane, the pictures on the visual lanes

@@ -18,14 +18,18 @@ export function findPlaced(comp: Composition, clipId: string): Placed | undefine
 /** The ids plus every clip linked to one of them (a linked pair is edited as one). */
 export function withLinked(comp: Composition, ids: readonly string[]): string[] {
   const all = placedClips(comp);
-  const links = new Set(all.filter((p) => ids.includes(p.clip.id) && p.clip.linkId).map((p) => p.clip.linkId));
+  const links = new Set(
+    all.filter((p) => ids.includes(p.clip.id) && p.clip.linkId).map((p) => p.clip.linkId),
+  );
   const out = new Set(ids.filter((id) => all.some((p) => p.clip.id === id)));
-  for (const p of all) if (p.clip.linkId !== undefined && links.has(p.clip.linkId)) out.add(p.clip.id);
+  for (const p of all)
+    if (p.clip.linkId !== undefined && links.has(p.clip.linkId)) out.add(p.clip.id);
   return [...out];
 }
 
 /** True when the clip's time span strictly contains `tUs` (cutting there makes two real clips). */
-export const containsStrictly = (clip: Clip, tUs: number): boolean => clip.startUs < tUs && tUs < endOf(clip);
+export const containsStrictly = (clip: Clip, tUs: number): boolean =>
+  clip.startUs < tUs && tUs < endOf(clip);
 
 /**
  * The ops that cut these clips at `atUs`. The second halves of clips that were linked to each

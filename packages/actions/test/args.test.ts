@@ -16,7 +16,13 @@ describe("describeArgs", () => {
     expect(fields).toEqual([
       { name: "label", kind: "string", optional: false, description: "Marker label" },
       { name: "seconds", kind: "number", optional: false, min: 0, max: 60 },
-      { name: "count", kind: "integer", optional: false, min: -9007199254740991, max: 9007199254740991 },
+      {
+        name: "count",
+        kind: "integer",
+        optional: false,
+        min: -9007199254740991,
+        max: 9007199254740991,
+      },
       { name: "loud", kind: "boolean", optional: true },
       { name: "mode", kind: "enum", optional: false, options: ["fast", "slow"] },
     ]);

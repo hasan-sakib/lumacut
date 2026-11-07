@@ -1,4 +1,11 @@
-import { BlendMode, type Asset, type Clip, type ClipPatch, type ClipUnsettable, type Track } from "@lumacut/schema";
+import {
+  BlendMode,
+  type Asset,
+  type Clip,
+  type ClipPatch,
+  type ClipUnsettable,
+  type Track,
+} from "@lumacut/schema";
 
 export type SectionId = "transform" | "blend" | "crop" | "time" | "audio";
 
@@ -55,17 +62,27 @@ export interface FieldDef {
 
 const isMedia = ({ clip }: ClipInfo): boolean => clip.type === "media";
 const onPicture = ({ track }: ClipInfo): boolean => track?.kind !== "audio";
-const onAudio = ({ track, clip }: ClipInfo): boolean => track?.kind === "audio" && clip.type === "media";
+const onAudio = ({ track, clip }: ClipInfo): boolean =>
+  track?.kind === "audio" && clip.type === "media";
 
-const percent = { unit: "%", toDisplay: (v: number) => v * 100, fromDisplay: (v: number) => v / 100 };
-const seconds = { unit: "s", toDisplay: (v: number) => v / 1_000_000, fromDisplay: (v: number) => Math.round(v * 1_000_000) };
+const percent = {
+  unit: "%",
+  toDisplay: (v: number) => v * 100,
+  fromDisplay: (v: number) => v / 100,
+};
+const seconds = {
+  unit: "s",
+  toDisplay: (v: number) => v / 1_000_000,
+  fromDisplay: (v: number) => Math.round(v * 1_000_000),
+};
 
 const DEFAULT_AUDIO = { volume: 1, pan: 0, fadeInUs: 0, fadeOutUs: 0, effects: [] };
 const audioOf = (clip: Clip) => clip.audio ?? DEFAULT_AUDIO;
 
 /** Linear gain ↔ decibels, with silence at the bottom of the range. */
 export const MIN_DB = -60;
-const dbOf = (gain: number): number => (gain <= 0 ? MIN_DB : Math.max(MIN_DB, 20 * Math.log10(gain)));
+const dbOf = (gain: number): number =>
+  gain <= 0 ? MIN_DB : Math.max(MIN_DB, 20 * Math.log10(gain));
 const gainOf = (db: number): number => (db <= MIN_DB ? 0 : 10 ** (db / 20));
 
 function transformField(
@@ -104,8 +121,16 @@ function cropField(id: string, label: string, edge: "left" | "top" | "right" | "
 }
 
 export const FIELDS: readonly FieldDef[] = [
-  transformField("positionX", "Position X", "x", { keywords: ["move", "horizontal", "left right"], unit: "px", step: 1 }),
-  transformField("positionY", "Position Y", "y", { keywords: ["move", "vertical", "up down"], unit: "px", step: 1 }),
+  transformField("positionX", "Position X", "x", {
+    keywords: ["move", "horizontal", "left right"],
+    unit: "px",
+    step: 1,
+  }),
+  transformField("positionY", "Position Y", "y", {
+    keywords: ["move", "vertical", "up down"],
+    unit: "px",
+    step: 1,
+  }),
   {
     id: "scale",
     label: "Scale",
@@ -120,7 +145,9 @@ export const FIELDS: readonly FieldDef[] = [
     fromDisplay: (v) => v / 100,
     appliesTo: onPicture,
     get: (clip) => clip.transform.scaleX,
-    set: (clip, value) => ({ props: { transform: { ...clip.transform, scaleX: Number(value), scaleY: Number(value) } } }),
+    set: (clip, value) => ({
+      props: { transform: { ...clip.transform, scaleX: Number(value), scaleY: Number(value) } },
+    }),
   },
   {
     id: "scaleX",
@@ -156,10 +183,29 @@ export const FIELDS: readonly FieldDef[] = [
     get: (clip) => clip.transform.scaleY,
     set: (clip, value) => ({ props: { transform: { ...clip.transform, scaleY: Number(value) } } }),
   },
-  transformField("rotation", "Rotation", "rotation", { keywords: ["turn", "spin", "angle", "degrees"], unit: "°", step: 1 }),
-  transformField("anchorX", "Anchor X", "anchorX", { advanced: true, keywords: ["pivot", "origin", "centre point"], unit: "px", step: 1 }),
-  transformField("anchorY", "Anchor Y", "anchorY", { advanced: true, keywords: ["pivot", "origin", "centre point"], unit: "px", step: 1 }),
-  transformField("skew", "Skew", "skew", { advanced: true, keywords: ["slant", "shear", "italic"], unit: "°", step: 1 }),
+  transformField("rotation", "Rotation", "rotation", {
+    keywords: ["turn", "spin", "angle", "degrees"],
+    unit: "°",
+    step: 1,
+  }),
+  transformField("anchorX", "Anchor X", "anchorX", {
+    advanced: true,
+    keywords: ["pivot", "origin", "centre point"],
+    unit: "px",
+    step: 1,
+  }),
+  transformField("anchorY", "Anchor Y", "anchorY", {
+    advanced: true,
+    keywords: ["pivot", "origin", "centre point"],
+    unit: "px",
+    step: 1,
+  }),
+  transformField("skew", "Skew", "skew", {
+    advanced: true,
+    keywords: ["slant", "shear", "italic"],
+    unit: "°",
+    step: 1,
+  }),
 
   {
     id: "opacity",
@@ -226,10 +272,35 @@ export const FIELDS: readonly FieldDef[] = [
     appliesTo: isMedia,
     get: (clip) => clip.freezeAtUs !== undefined,
     // Freezing holds the first frame of the visible part; unfreezing removes the field.
-    set: (clip, value) => (value === true ? { props: { freezeAtUs: clip.inUs } } : { props: {}, unset: ["freezeAtUs"] }),
+    set: (clip, value) =>
+      value === true ? { props: { freezeAtUs: clip.inUs } } : { props: {}, unset: ["freezeAtUs"] },
   },
-  { id: "sourceIn", label: "Source in", section: "time", advanced: true, kind: "number", readOnly: true, keywords: ["start point", "in point"], ...seconds, appliesTo: isMedia, get: (clip) => clip.inUs, set: () => ({ props: {} }) },
-  { id: "sourceOut", label: "Source out", section: "time", advanced: true, kind: "number", readOnly: true, keywords: ["end point", "out point"], ...seconds, appliesTo: isMedia, get: (clip) => clip.outUs, set: () => ({ props: {} }) },
+  {
+    id: "sourceIn",
+    label: "Source in",
+    section: "time",
+    advanced: true,
+    kind: "number",
+    readOnly: true,
+    keywords: ["start point", "in point"],
+    ...seconds,
+    appliesTo: isMedia,
+    get: (clip) => clip.inUs,
+    set: () => ({ props: {} }),
+  },
+  {
+    id: "sourceOut",
+    label: "Source out",
+    section: "time",
+    advanced: true,
+    kind: "number",
+    readOnly: true,
+    keywords: ["end point", "out point"],
+    ...seconds,
+    appliesTo: isMedia,
+    get: (clip) => clip.outUs,
+    set: () => ({ props: {} }),
+  },
   {
     id: "duration",
     label: "Duration",

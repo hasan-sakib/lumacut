@@ -1,5 +1,12 @@
 import type { Op } from "@lumacut/schema";
-import { FIELDS, SECTIONS, type ClipInfo, type FieldDef, type FieldValue, type SectionId } from "./fields.ts";
+import {
+  FIELDS,
+  SECTIONS,
+  type ClipInfo,
+  type FieldDef,
+  type FieldValue,
+  type SectionId,
+} from "./fields.ts";
 
 /** One row of the inspector: a field and the value the selected clips share. */
 export interface FieldState {
@@ -36,7 +43,10 @@ function matches(def: FieldDef, sectionTitle: string, tokens: readonly string[])
  * filtered by the search text, advanced fields hidden until asked for (a search shows them all).
  * Fields whose values differ between the clips are marked mixed.
  */
-export function buildInspector(items: readonly ClipInfo[], options: InspectorOptions): SectionState[] {
+export function buildInspector(
+  items: readonly ClipInfo[],
+  options: InspectorOptions,
+): SectionState[] {
   const tokens = options.query.toLowerCase().split(/\s+/).filter(Boolean);
   const searching = tokens.length > 0;
   const sections: SectionState[] = [];
@@ -58,7 +68,8 @@ export function buildInspector(items: readonly ClipInfo[], options: InspectorOpt
       const mixed = values.some((v) => v !== first);
       fields.push({ def, value: mixed ? undefined : first, mixed, count: applicable.length });
     }
-    if (fields.length > 0) sections.push({ id: section.id, title: section.title, fields, hasAdvanced, hiddenAdvanced });
+    if (fields.length > 0)
+      sections.push({ id: section.id, title: section.title, fields, hasAdvanced, hiddenAdvanced });
   }
   return sections;
 }
@@ -81,8 +92,14 @@ export function opsForField(def: FieldDef, stored: FieldValue, items: readonly C
 }
 
 /** One undo step for a field change across the selection. */
-export function opForField(def: FieldDef, stored: FieldValue, items: readonly ClipInfo[]): Op | null {
+export function opForField(
+  def: FieldDef,
+  stored: FieldValue,
+  items: readonly ClipInfo[],
+): Op | null {
   const ops = opsForField(def, stored, items);
   if (ops.length === 0) return null;
-  return ops.length === 1 && ops[0] !== undefined ? ops[0] : { type: "batch", label: `Change ${def.label.toLowerCase()}`, ops };
+  return ops.length === 1 && ops[0] !== undefined
+    ? ops[0]
+    : { type: "batch", label: `Change ${def.label.toLowerCase()}`, ops };
 }

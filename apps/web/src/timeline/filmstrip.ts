@@ -45,7 +45,9 @@ export function filmstripTiles(
   const lengthUs = clipTimelineDurationUs(clip);
   const perSheet = index.columns * index.rows;
   const first = visible === undefined ? 0 : Math.max(0, Math.floor(visible.fromPx / tileWidth));
-  const last = Math.ceil((visible === undefined ? clipWidthPx : Math.min(clipWidthPx, visible.toPx)) / tileWidth);
+  const last = Math.ceil(
+    (visible === undefined ? clipWidthPx : Math.min(clipWidthPx, visible.toPx)) / tileWidth,
+  );
   const tiles: FilmstripTile[] = [];
   for (let k = first; k < last; k += 1) {
     const left = k * tileWidth;

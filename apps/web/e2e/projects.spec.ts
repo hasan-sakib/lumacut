@@ -22,7 +22,9 @@ async function newProject(page: Page): Promise<string> {
   return page.url();
 }
 
-test("a command from the palette edits the project, autosaves, survives a reload and can be undone", async ({ page }) => {
+test("a command from the palette edits the project, autosaves, survives a reload and can be undone", async ({
+  page,
+}) => {
   await newProject(page);
   await expect(tracks(page)).toHaveCount(2); // Video 1, Audio 1
 
@@ -36,14 +38,16 @@ test("a command from the palette edits the project, autosaves, survives a reload
   await expect(status(page)).not.toHaveAttribute("data-state", "saved");
   await expect(status(page)).toHaveAttribute("data-state", "saved", { timeout: 20_000 });
 
-  await page.reload();
-  await expect(tracks(page)).toHaveCount(3);
-  await expect(page.getByText("Video 2")).toBeVisible();
-
+  // Undo and redo (the history isn't kept across a reload, so this comes before it).
   await page.keyboard.press("ControlOrMeta+Z");
   await expect(tracks(page)).toHaveCount(2);
   await page.keyboard.press("ControlOrMeta+Shift+Z");
   await expect(tracks(page)).toHaveCount(3);
+  await expect(status(page)).toHaveAttribute("data-state", "saved", { timeout: 20_000 });
+
+  await page.reload();
+  await expect(tracks(page)).toHaveCount(3);
+  await expect(page.getByText("Video 2")).toBeVisible();
 });
 
 test("a command that takes arguments asks for them in the palette", async ({ page }) => {
@@ -60,11 +64,17 @@ test("the shortcut list and the right-click menu come from the same actions", as
   await expect(page.getByRole("heading", { name: "Keyboard shortcuts" })).toBeVisible();
   await expect(page.getByText("Split clip at playhead")).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByTestId("lane").first().click({ button: "right", position: { x: 5, y: 5 } });
+  await page
+    .getByTestId("lane")
+    .first()
+    .click({ button: "right", position: { x: 5, y: 5 } });
   await expect(page.getByRole("menuitem", { name: /Add video track/ })).toBeVisible();
 });
 
-test("editing in two tabs: the second save is refused and the user chooses", async ({ page, context }) => {
+test("editing in two tabs: the second save is refused and the user chooses", async ({
+  page,
+  context,
+}) => {
   const url = await newProject(page);
   const other = await context.newPage();
   await other.goto(url);
@@ -73,7 +83,9 @@ test("editing in two tabs: the second save is refused and the user chooses", asy
   await expect(status(other)).toHaveAttribute("data-state", "saved", { timeout: 20_000 });
 
   await runFromPalette(page, "audio track");
-  await expect(page.getByRole("alert").filter({ hasText: "changed somewhere else" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("alert").filter({ hasText: "changed somewhere else" })).toBeVisible({
+    timeout: 20_000,
+  });
   await expect(status(page)).toHaveAttribute("data-state", "conflict");
 
   await page.getByRole("button", { name: "Load the other version" }).click();

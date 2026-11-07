@@ -22,7 +22,14 @@ import {
 } from "../../timeline/gestures.ts";
 import { snapPoints } from "../../timeline/snapping.ts";
 import { ClipView, type ClipZone } from "./ClipView.tsx";
-import { DRAG_THRESHOLD_PX, HEADER_WIDTH, LANE_HEIGHT, RULER_HEIGHT, SNAP_PX, TAIL_US } from "./layout.ts";
+import {
+  DRAG_THRESHOLD_PX,
+  HEADER_WIDTH,
+  LANE_HEIGHT,
+  RULER_HEIGHT,
+  SNAP_PX,
+  TAIL_US,
+} from "./layout.ts";
 import { Ruler } from "./Ruler.tsx";
 import { TrackHeader } from "./TrackHeader.tsx";
 
@@ -89,7 +96,11 @@ const CURSORS: Record<Tool, string> = {
 /** The neighbour whose edge touches this edge of the clip, if any (for roll edits). */
 function adjacent(comp: Composition, clip: Clip, edge: "start" | "end"): Clip | undefined {
   const placed = findPlaced(comp, clip.id);
-  return placed?.track.clips.find((c) => c.id !== clip.id && (edge === "start" ? endOf(c) === clip.startUs : c.startUs === endOf(clip)));
+  return placed?.track.clips.find(
+    (c) =>
+      c.id !== clip.id &&
+      (edge === "start" ? endOf(c) === clip.startUs : c.startUs === endOf(clip)),
+  );
 }
 
 /**
@@ -98,14 +109,27 @@ function adjacent(comp: Composition, clip: Clip, edge: "start" | "end"): Clip | 
  * functions in `timeline/gestures.ts`. Nothing here edits the document directly.
  */
 export function Timeline(props: TimelineProps) {
-  const { project, composition, tool, zoomPxPerSec: zoom, scrollUs, snapping, playheadUs, playing, selectedClipIds, selectedTrackId } = props;
+  const {
+    project,
+    composition,
+    tool,
+    zoomPxPerSec: zoom,
+    scrollUs,
+    snapping,
+    playheadUs,
+    playing,
+    selectedClipIds,
+    selectedTrackId,
+  } = props;
   const scroller = useRef<HTMLDivElement>(null);
   const laneRefs = useRef(new Map<string, HTMLDivElement>());
   const [viewportPx, setViewportPx] = useState(0);
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const live = useRef(props);
-  live.current = props;
+  useEffect(() => {
+    live.current = props;
+  });
 
   // --- Viewport, scrolling, zoom ----------------------------------------------------------------
   useEffect(() => {
@@ -151,7 +175,8 @@ export function Timeline(props: TimelineProps) {
   useEffect(() => {
     if (!playing || viewportPx === 0) return;
     const x = usToPx(playheadUs - scrollUs, zoom);
-    if (x < 0 || x > viewportPx - 40) live.current.onScroll(Math.max(0, playheadUs - pxToUs(80, zoom)));
+    if (x < 0 || x > viewportPx - 40)
+      live.current.onScroll(Math.max(0, playheadUs - pxToUs(80, zoom)));
   }, [playing, playheadUs, scrollUs, zoom, viewportPx]);
 
   // --- Gestures ---------------------------------------------------------------------------------
@@ -172,7 +197,11 @@ export function Timeline(props: TimelineProps) {
     return undefined;
   };
 
-  function compute(d: Drag, clientX: number, clientY: number): { result: GestureResult | null; preview: Preview | null } {
+  function compute(
+    d: Drag,
+    clientX: number,
+    clientY: number,
+  ): { result: GestureResult | null; preview: Preview | null } {
     const p = live.current;
     const deltaUs = pxToUs(clientX - d.startX, p.zoomPxPerSec);
     const env = envFor(d.points);
@@ -180,11 +209,29 @@ export function Timeline(props: TimelineProps) {
     let result: GestureResult | null = null;
     if (placed !== undefined) {
       const edgeUs = d.edge === "start" ? placed.clip.startUs : endOf(placed.clip);
-      if (d.kind === "move") result = moveGesture(env, { clipId: d.clipId, selectedIds: d.selectedIds, deltaUs, targetTrackId: laneAt(clientY) });
-      else if (d.kind === "trim" && d.edge) result = trimGesture(env, { clipId: d.clipId, edge: d.edge, toUs: edgeUs + deltaUs, ripple: d.ripple === true });
+      if (d.kind === "move")
+        result = moveGesture(env, {
+          clipId: d.clipId,
+          selectedIds: d.selectedIds,
+          deltaUs,
+          targetTrackId: laneAt(clientY),
+        });
+      else if (d.kind === "trim" && d.edge)
+        result = trimGesture(env, {
+          clipId: d.clipId,
+          edge: d.edge,
+          toUs: edgeUs + deltaUs,
+          ripple: d.ripple === true,
+          selectedIds: d.selectedIds,
+        });
       else if (d.kind === "roll" && d.rollLeft && d.rollRight) {
         const left = findPlaced(p.composition, d.rollLeft);
-        if (left !== undefined) result = rollGesture(env, { leftClipId: d.rollLeft, rightClipId: d.rollRight, toUs: endOf(left.clip) + deltaUs });
+        if (left !== undefined)
+          result = rollGesture(env, {
+            leftClipId: d.rollLeft,
+            rightClipId: d.rollRight,
+            toUs: endOf(left.clip) + deltaUs,
+          });
       } else if (d.kind === "slip") result = slipGesture(env, { clipId: d.clipId, deltaUs });
       else if (d.kind === "slide") result = slideGesture(env, { clipId: d.clipId, deltaUs });
     }
@@ -196,7 +243,12 @@ export function Timeline(props: TimelineProps) {
     const move = (e: PointerEvent) => {
       const d = dragRef.current;
       if (d === null) return;
-      if (!d.moved && Math.abs(e.clientX - d.startX) < DRAG_THRESHOLD_PX && Math.abs(e.clientY - d.startY) < DRAG_THRESHOLD_PX) return;
+      if (
+        !d.moved &&
+        Math.abs(e.clientX - d.startX) < DRAG_THRESHOLD_PX &&
+        Math.abs(e.clientY - d.startY) < DRAG_THRESHOLD_PX
+      )
+        return;
       const next: Drag = { ...d, moved: true, ...compute(d, e.clientX, e.clientY) };
       dragRef.current = next;
       setDrag(next);
@@ -205,7 +257,8 @@ export function Timeline(props: TimelineProps) {
       const d = dragRef.current;
       dragRef.current = null;
       setDrag(null);
-      if (commit && d?.moved && d.result !== null && d.preview?.error === null) live.current.onCommit(d.result.op, LABELS[d.kind]);
+      if (commit && d?.moved && d.result !== null && d.preview?.error === null)
+        live.current.onCommit(d.result.op, LABELS[d.kind]);
     };
     const up = () => {
       finish(true);
@@ -241,7 +294,10 @@ export function Timeline(props: TimelineProps) {
     const modifier = e.shiftKey || e.ctrlKey || e.metaKey;
     const group = e.altKey ? [clip.id] : withLinked(composition, [clip.id]);
     let ids = [...selectedClipIds];
-    if (modifier) ids = group.every((id) => ids.includes(id)) ? ids.filter((id) => !group.includes(id)) : [...new Set([...ids, ...group])];
+    if (modifier)
+      ids = group.every((id) => ids.includes(id))
+        ? ids.filter((id) => !group.includes(id))
+        : [...new Set([...ids, ...group])];
     else if (!ids.includes(clip.id)) ids = group;
     if (ids.join() !== selectedClipIds.join()) props.onSelectClips(ids);
     if (!ids.includes(clip.id)) return;
@@ -281,7 +337,10 @@ export function Timeline(props: TimelineProps) {
       startY: e.clientY,
       originLeft,
       moved: false,
-      points: snapPoints(composition, { excludeClipIds: snapExclusions(composition, kind, clip.id, ids), playheadUs }),
+      points: snapPoints(composition, {
+        excludeClipIds: snapExclusions(composition, kind, clip.id, ids),
+        playheadUs,
+      }),
       selectedIds: ids,
       result: null,
       preview: null,
@@ -296,7 +355,10 @@ export function Timeline(props: TimelineProps) {
     return after?.compositions.find((c) => c.id === composition.id) ?? composition;
   }, [drag, composition]);
   const invalid = useMemo(
-    () => (drag?.preview?.error ? new Set(snapExclusions(composition, drag.kind, drag.clipId, drag.selectedIds)) : new Set<string>()),
+    () =>
+      drag?.preview?.error
+        ? new Set(snapExclusions(composition, drag.kind, drag.clipId, drag.selectedIds))
+        : new Set<string>(),
     [drag, composition],
   );
   const contentPx = usToPx(Math.max(shown.durationUs + TAIL_US, pxToUs(viewportPx, zoom)), zoom);
@@ -306,7 +368,11 @@ export function Timeline(props: TimelineProps) {
   return (
     <div className="relative flex h-full min-h-0 flex-col" data-testid="timeline" data-tool={tool}>
       {drag?.preview?.error && (
-        <p role="status" data-testid="drag-error" className="absolute right-3 top-8 z-40 rounded bg-red-950 px-2 py-1 text-xs text-red-200 shadow">
+        <p
+          role="status"
+          data-testid="drag-error"
+          className="absolute right-3 top-8 z-40 rounded bg-red-950 px-2 py-1 text-xs text-red-200 shadow"
+        >
           {drag.preview.error.message}
         </p>
       )}
@@ -319,7 +385,10 @@ export function Timeline(props: TimelineProps) {
       >
         <div className="relative" style={{ width: HEADER_WIDTH + contentPx, minWidth: "100%" }}>
           <div className="sticky top-0 z-30 flex">
-            <div className="sticky left-0 z-40 border-b border-r border-neutral-700 bg-neutral-900" style={{ width: HEADER_WIDTH, height: RULER_HEIGHT }} />
+            <div
+              className="sticky left-0 z-40 border-b border-r border-neutral-700 bg-neutral-900"
+              style={{ width: HEADER_WIDTH, height: RULER_HEIGHT }}
+            />
             <Ruler
               composition={shown}
               fps={fps}
@@ -332,7 +401,11 @@ export function Timeline(props: TimelineProps) {
             />
           </div>
 
-          {rows.length === 0 && <p className="p-4 text-sm text-neutral-500">This composition has no tracks. Add one from the command palette.</p>}
+          {rows.length === 0 && (
+            <p className="p-4 text-sm text-neutral-500">
+              This composition has no tracks. Add one from the command palette.
+            </p>
+          )}
           {rows.map((track) => (
             <div key={track.id} className="flex">
               <div className="sticky left-0 z-20 border-r border-neutral-700">
@@ -375,7 +448,8 @@ export function Timeline(props: TimelineProps) {
                     viewToPx={usToPx(scrollUs, zoom) + Math.max(viewportPx, 1200)}
                     onPointerDown={onClipPointerDown}
                     onContextMenu={(c) => {
-                      if (!selectedClipIds.includes(c.id)) props.onSelectClips(withLinked(composition, [c.id]));
+                      if (!selectedClipIds.includes(c.id))
+                        props.onSelectClips(withLinked(composition, [c.id]));
                     }}
                   />
                 ))}
@@ -387,7 +461,10 @@ export function Timeline(props: TimelineProps) {
             <div
               data-testid="snap-line"
               className="pointer-events-none absolute bottom-0 z-30 w-px bg-amber-400"
-              style={{ left: HEADER_WIDTH + usToPx(drag.result.snappedTo, zoom), top: RULER_HEIGHT }}
+              style={{
+                left: HEADER_WIDTH + usToPx(drag.result.snappedTo, zoom),
+                top: RULER_HEIGHT,
+              }}
             />
           )}
           <div

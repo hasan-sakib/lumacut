@@ -1,23 +1,6 @@
-import type {
-  Asset,
-  AssetPatch,
-  AssetUnsettable,
-  Composition,
-  CompositionPatch,
-  Marker,
-  Op,
-  Project,
-  Track,
-  TrackPatch,
-} from "@lumacut/schema";
+import type { Asset, AssetUnsettable, Marker, Op, Project } from "@lumacut/schema";
 import { fail } from "./errors.ts";
-import {
-  allClips,
-  assertUnlocked,
-  needComposition,
-  needTrack,
-  setComposition,
-} from "./model.ts";
+import { allClips, assertUnlocked, needComposition, needTrack, setComposition } from "./model.ts";
 
 type OpOf<T extends Op["type"]> = Extract<Op, { type: T }>;
 
@@ -30,12 +13,19 @@ export interface Structural {
 
 function insertAt<T>(list: readonly T[], item: T, index: number | undefined, what: string): T[] {
   const at = index ?? list.length;
-  if (at > list.length) fail("invalid_range", `Can't insert the ${what} at position ${String(at)}; there are only ${String(list.length)}.`);
+  if (at > list.length)
+    fail(
+      "invalid_range",
+      `Can't insert the ${what} at position ${String(at)}; there are only ${String(list.length)}.`,
+    );
   return [...list.slice(0, at), item, ...list.slice(at)];
 }
 
 /** Previous values for the keys a patch touches, so applying them again undoes it. */
-function previousValues<T extends object>(current: T, patch: Partial<T>): { props: Partial<T>; unset: string[] } {
+function previousValues<T extends object>(
+  current: T,
+  patch: Partial<T>,
+): { props: Partial<T>; unset: string[] } {
   const props: Record<string, unknown> = {};
   const unset: string[] = [];
   const before = current as Record<string, unknown>;
@@ -63,13 +53,22 @@ export function addComposition(project: Project, op: OpOf<"addComposition">): St
 export function removeComposition(project: Project, op: OpOf<"removeComposition">): Structural {
   const { composition, index } = needComposition(project, op.compositionId);
   if (project.mainCompositionId === composition.id) {
-    fail("composition_in_use", `"${composition.name}" is the project's main composition and can't be removed.`);
+    fail(
+      "composition_in_use",
+      `"${composition.name}" is the project's main composition and can't be removed.`,
+    );
   }
   if (allClips(project).some((c) => c.compositionId === composition.id)) {
-    fail("composition_in_use", `"${composition.name}" is used as a nested composition. Remove those clips first.`);
+    fail(
+      "composition_in_use",
+      `"${composition.name}" is used as a nested composition. Remove those clips first.`,
+    );
   }
   return {
-    project: { ...project, compositions: project.compositions.filter((c) => c.id !== composition.id) },
+    project: {
+      ...project,
+      compositions: project.compositions.filter((c) => c.id !== composition.id),
+    },
     inverse: { type: "addComposition", composition, index },
     touched: [],
   };
@@ -77,13 +76,13 @@ export function removeComposition(project: Project, op: OpOf<"removeComposition"
 
 export function updateComposition(project: Project, op: OpOf<"updateComposition">): Structural {
   const { composition, index } = needComposition(project, op.compositionId);
-  const { props } = previousValues(composition as Composition, op.props);
+  const { props } = previousValues(composition, op.props);
   return {
     project: setComposition(project, index, { ...composition, ...op.props }),
     inverse: {
       type: "updateComposition",
       compositionId: composition.id,
-      props: props as CompositionPatch,
+      props: props,
     },
     touched: [composition.id],
   };
@@ -93,7 +92,10 @@ export function updateComposition(project: Project, op: OpOf<"updateComposition"
 
 export function addTrack(project: Project, op: OpOf<"addTrack">): Structural {
   const { composition, index } = needComposition(project, op.compositionId);
-  if (composition.tracks.some((t) => t.id === op.track.id) || project.compositions.some((c) => c.tracks.some((t) => t.id === op.track.id))) {
+  if (
+    composition.tracks.some((t) => t.id === op.track.id) ||
+    project.compositions.some((c) => c.tracks.some((t) => t.id === op.track.id))
+  ) {
     fail("duplicate_id", `A track with the id "${op.track.id}" already exists.`);
   }
   const tracks = insertAt(composition.tracks, op.track, op.index, "track");
@@ -106,7 +108,8 @@ export function addTrack(project: Project, op: OpOf<"addTrack">): Structural {
 
 export function removeTrack(project: Project, op: OpOf<"removeTrack">): Structural {
   const { composition, compIndex, track, trackIndex } = needTrack(project, op.trackId);
-  if (composition.id !== op.compositionId) fail("unknown_track", `Track "${op.trackId}" isn't in composition "${op.compositionId}".`);
+  if (composition.id !== op.compositionId)
+    fail("unknown_track", `Track "${op.trackId}" isn't in composition "${op.compositionId}".`);
   assertUnlocked(track);
   return {
     project: setComposition(project, compIndex, {
@@ -120,28 +123,37 @@ export function removeTrack(project: Project, op: OpOf<"removeTrack">): Structur
 
 export function reorderTrack(project: Project, op: OpOf<"reorderTrack">): Structural {
   const { composition, compIndex, track, trackIndex } = needTrack(project, op.trackId);
-  if (composition.id !== op.compositionId) fail("unknown_track", `Track "${op.trackId}" isn't in composition "${op.compositionId}".`);
+  if (composition.id !== op.compositionId)
+    fail("unknown_track", `Track "${op.trackId}" isn't in composition "${op.compositionId}".`);
   if (op.toIndex >= composition.tracks.length) {
-    fail("invalid_range", `There is no position ${String(op.toIndex)}; the composition has ${String(composition.tracks.length)} tracks.`);
+    fail(
+      "invalid_range",
+      `There is no position ${String(op.toIndex)}; the composition has ${String(composition.tracks.length)} tracks.`,
+    );
   }
   const rest = composition.tracks.filter((t) => t.id !== track.id);
   const tracks = [...rest.slice(0, op.toIndex), track, ...rest.slice(op.toIndex)];
   return {
     project: setComposition(project, compIndex, { ...composition, tracks }),
-    inverse: { type: "reorderTrack", compositionId: composition.id, trackId: track.id, toIndex: trackIndex },
+    inverse: {
+      type: "reorderTrack",
+      compositionId: composition.id,
+      trackId: track.id,
+      toIndex: trackIndex,
+    },
     touched: [composition.id],
   };
 }
 
 export function setTrackProps(project: Project, op: OpOf<"setTrackProps">): Structural {
   const { composition, compIndex, track, trackIndex } = needTrack(project, op.trackId);
-  const { props } = previousValues(track as Track, op.props);
+  const { props } = previousValues(track, op.props);
   return {
     project: setComposition(project, compIndex, {
       ...composition,
       tracks: composition.tracks.map((t, i) => (i === trackIndex ? { ...t, ...op.props } : t)),
     }),
-    inverse: { type: "setTrackProps", trackId: track.id, props: props as TrackPatch },
+    inverse: { type: "setTrackProps", trackId: track.id, props: props },
     touched: [composition.id],
   };
 }
@@ -177,20 +189,25 @@ export function updateAsset(project: Project, op: OpOf<"updateAsset">): Structur
   const index = project.assets.findIndex((a) => a.id === op.assetId);
   const asset = project.assets[index];
   if (asset === undefined) fail("unknown_asset", `There is no asset "${op.assetId}".`);
-  const { props, unset } = previousValues(asset as Asset, op.props);
-  const next = { ...asset, ...op.props } as Record<string, unknown>;
-  for (const key of op.unset ?? []) delete next[key];
+  const { props, unset } = previousValues(asset, op.props);
+  const drop = new Set<string>(op.unset ?? []);
+  const merged: Record<string, unknown> = { ...asset, ...op.props };
+  const next = Object.fromEntries(Object.entries(merged).filter(([key]) => !drop.has(key)));
   // Undoing must also restore anything this update removed.
-  for (const key of op.unset ?? []) {
-    const previous = (asset as Record<string, unknown>)[key];
-    if (previous !== undefined) (props as Record<string, unknown>)[key] = previous;
+  const before: Record<string, unknown> = { ...asset };
+  const restore: Record<string, unknown> = { ...props };
+  for (const key of drop) {
+    if (before[key] !== undefined) restore[key] = before[key];
   }
   return {
-    project: { ...project, assets: project.assets.map((a, i) => (i === index ? (next as unknown as Asset) : a)) },
+    project: {
+      ...project,
+      assets: project.assets.map((a, i) => (i === index ? (next as unknown as Asset) : a)),
+    },
     inverse: {
       type: "updateAsset",
       assetId: asset.id,
-      props: props as AssetPatch,
+      props: restore,
       ...(unset.length > 0 ? { unset: unset as AssetUnsettable[] } : {}),
     },
     touched: [],
@@ -199,10 +216,11 @@ export function updateAsset(project: Project, op: OpOf<"updateAsset">): Structur
 
 // --- Markers ----------------------------------------------------------------------------------
 
-function markerIndex(markers: readonly Marker[], id: string): number {
+function findMarker(markers: readonly Marker[], id: string): { index: number; marker: Marker } {
   const index = markers.findIndex((m) => m.id === id);
-  if (index < 0) fail("unknown_marker", `There is no marker "${id}".`);
-  return index;
+  const marker = markers[index];
+  if (marker === undefined) fail("unknown_marker", `There is no marker "${id}".`);
+  return { index, marker };
 }
 
 export function addMarker(project: Project, op: OpOf<"addMarker">): Structural {
@@ -220,8 +238,7 @@ export function addMarker(project: Project, op: OpOf<"addMarker">): Structural {
 
 export function updateMarker(project: Project, op: OpOf<"updateMarker">): Structural {
   const { composition, index } = needComposition(project, op.compositionId);
-  const at = markerIndex(composition.markers, op.marker.id);
-  const previous = composition.markers[at] as Marker;
+  const { index: at, marker: previous } = findMarker(composition.markers, op.marker.id);
   return {
     project: setComposition(project, index, {
       ...composition,
@@ -234,8 +251,7 @@ export function updateMarker(project: Project, op: OpOf<"updateMarker">): Struct
 
 export function removeMarker(project: Project, op: OpOf<"removeMarker">): Structural {
   const { composition, index } = needComposition(project, op.compositionId);
-  const at = markerIndex(composition.markers, op.markerId);
-  const marker = composition.markers[at] as Marker;
+  const { index: at, marker } = findMarker(composition.markers, op.markerId);
   return {
     project: setComposition(project, index, {
       ...composition,

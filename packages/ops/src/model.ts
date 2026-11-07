@@ -1,4 +1,10 @@
-import { clipTimelineDurationUs, type Clip, type Composition, type Project, type Track } from "@lumacut/schema";
+import {
+  clipTimelineDurationUs,
+  type Clip,
+  type Composition,
+  type Project,
+  type Track,
+} from "@lumacut/schema";
 import { fail } from "./errors.ts";
 
 /** Timeline length of a clip; refuses clips whose timing is unusable. */
@@ -7,10 +13,16 @@ export function lengthOf(clip: Clip): number {
     fail("invalid_speed", `Clip ${clip.id} has speed ${String(clip.speed)}; it must be above 0.`);
   }
   if (!Number.isSafeInteger(clip.inUs) || !Number.isSafeInteger(clip.outUs) || clip.inUs < 0) {
-    fail("invalid_time", `Clip ${clip.id} has a source range that isn't whole non-negative microseconds.`);
+    fail(
+      "invalid_time",
+      `Clip ${clip.id} has a source range that isn't whole non-negative microseconds.`,
+    );
   }
   if (clip.outUs <= clip.inUs) {
-    fail("invalid_range", `Clip ${clip.id} must end after it starts in its source (in ${String(clip.inUs)}, out ${String(clip.outUs)}).`);
+    fail(
+      "invalid_range",
+      `Clip ${clip.id} must end after it starts in its source (in ${String(clip.inUs)}, out ${String(clip.outUs)}).`,
+    );
   }
   const length = clipTimelineDurationUs(clip);
   if (length < 1) fail("invalid_range", `Clip ${clip.id} would be shorter than one microsecond.`);
@@ -76,14 +88,22 @@ export function needClip(project: Project, clipId: string): ClipRef {
 }
 
 export function assertUnlocked(track: Track): void {
-  if (track.locked) fail("track_locked", `Track "${track.name}" is locked. Unlock it to edit its clips.`);
+  if (track.locked)
+    fail("track_locked", `Track "${track.name}" is locked. Unlock it to edit its clips.`);
 }
 
 export function setComposition(project: Project, index: number, composition: Composition): Project {
-  return { ...project, compositions: project.compositions.map((c, i) => (i === index ? composition : c)) };
+  return {
+    ...project,
+    compositions: project.compositions.map((c, i) => (i === index ? composition : c)),
+  };
 }
 
-export function setTrack(project: Project, ref: { compIndex: number; trackIndex: number }, track: Track): Project {
+export function setTrack(
+  project: Project,
+  ref: { compIndex: number; trackIndex: number },
+  track: Track,
+): Project {
   const composition = project.compositions[ref.compIndex];
   if (composition === undefined) return project;
   return setComposition(project, ref.compIndex, {
@@ -122,7 +142,9 @@ export function deepEqual(a: unknown, b: unknown): boolean {
 
 /** The track with its clips ordered by start time; the same object when already ordered. */
 export function sortTrack(track: Track): Track {
-  const ordered = track.clips.every((c, i) => i === 0 || (track.clips[i - 1]?.startUs ?? 0) <= c.startUs);
+  const ordered = track.clips.every(
+    (c, i) => i === 0 || (track.clips[i - 1]?.startUs ?? 0) <= c.startUs,
+  );
   if (ordered) return track;
   return { ...track, clips: [...track.clips].sort((a, b) => a.startUs - b.startUs) };
 }

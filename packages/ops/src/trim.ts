@@ -19,7 +19,8 @@ function checked(clip: Clip): Clip {
  */
 export function withStart(clip: Clip, toUs: number): Clip {
   assertTime(toUs, "The new start");
-  if (toUs >= endOf(clip)) fail("invalid_range", `The start of clip ${clip.id} must stay before its end.`);
+  if (toUs >= endOf(clip))
+    fail("invalid_range", `The start of clip ${clip.id} must stay before its end.`);
   const source = toSource(toUs - clip.startUs, clip.speed);
   const next: Clip = { ...clip, startUs: toUs };
   if (clip.reversed) next.outUs = clip.outUs - source;
@@ -30,7 +31,8 @@ export function withStart(clip: Clip, toUs: number): Clip {
 /** Moves the end edge to `toUs` without moving the start. */
 export function withEnd(clip: Clip, toUs: number): Clip {
   assertTime(toUs, "The new end");
-  if (toUs <= clip.startUs) fail("invalid_range", `The end of clip ${clip.id} must stay after its start.`);
+  if (toUs <= clip.startUs)
+    fail("invalid_range", `The end of clip ${clip.id} must stay after its start.`);
   const source = toSource(toUs - clip.startUs, clip.speed);
   const next: Clip = { ...clip };
   if (clip.reversed) next.inUs = clip.outUs - source;

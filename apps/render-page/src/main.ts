@@ -26,13 +26,12 @@ function info(): Promise<PageInfo> {
   const gl = new OffscreenCanvas(1, 1).getContext("webgl2");
   const debug = gl?.getExtension("WEBGL_debug_renderer_info");
   const renderer =
-    gl === null || gl === undefined
+    gl === null
       ? "no WebGL2"
       : String(gl.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
   return Promise.resolve({
     renderer,
-    maxTextureSize:
-      gl === null || gl === undefined ? 0 : Number(gl.getParameter(gl.MAX_TEXTURE_SIZE)),
+    maxTextureSize: gl === null ? 0 : Number(gl.getParameter(gl.MAX_TEXTURE_SIZE)),
     crossOriginIsolated,
     userAgent: navigator.userAgent,
     textureBudgetBytes: DEFAULT_LIMITS.textureBudgetBytes,

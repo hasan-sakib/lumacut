@@ -6,7 +6,7 @@ import { useEditorStore } from "../stores/editor.ts";
 
 export interface Preview {
   /** Attach to the element the picture is drawn into (the canvas is created inside it). */
-  stageRef: React.RefObject<HTMLDivElement | null>;
+  attachStage: (element: HTMLDivElement | null) => void;
   ready: boolean;
   playing: boolean;
   /** Things the engine could not draw on the last frame. */
@@ -24,7 +24,7 @@ export interface Preview {
  * change of the playhead shows that frame.
  */
 export function usePreview(project: Project | null, compositionId: string | null): Preview {
-  const stageRef = useRef<HTMLDivElement>(null);
+  const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const sessionRef = useRef<PlaybackSession | null>(null);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -33,12 +33,11 @@ export function usePreview(project: Project | null, compositionId: string | null
 
   // The session. The canvas is made here, not in JSX: its control can be handed to the worker only once.
   useEffect(() => {
-    const host = stageRef.current;
-    if (host === null || compositionId === null) return;
+    if (stage === null || compositionId === null) return;
     const canvas = document.createElement("canvas");
     canvas.setAttribute("aria-label", "Composition preview");
     canvas.className = "h-full w-full object-contain";
-    host.append(canvas);
+    stage.append(canvas);
     let disposed = false;
     let created: PlaybackSession | null = null;
     void PlaybackSession.create({
@@ -79,7 +78,7 @@ export function usePreview(project: Project | null, compositionId: string | null
       void created?.dispose();
       canvas.remove();
     };
-  }, [compositionId]);
+  }, [compositionId, stage]);
 
   // Give the engine each new version of the project; edits made meanwhile coalesce into the next push.
   const pending = useRef<Project | null>(null);
@@ -127,7 +126,8 @@ export function usePreview(project: Project | null, compositionId: string | null
       useEditorStore.subscribe((state, previous) => {
         const session = sessionRef.current;
         if (session === null || state.playheadUs === previous.playheadUs) return;
-        if (!session.playing && session.timeUs !== state.playheadUs) void session.seek(state.playheadUs);
+        if (!session.playing && session.timeUs !== state.playheadUs)
+          void session.seek(state.playheadUs);
       }),
     [],
   );
@@ -154,5 +154,5 @@ export function usePreview(project: Project | null, compositionId: string | null
     if (session?.playing) void session.seek(Math.max(0, Math.round(us)));
   }, []);
 
-  return { stageRef, ready, playing, diagnostics, error, togglePlay, seek };
+  return { attachStage: setStage, ready, playing, diagnostics, error, togglePlay, seek };
 }

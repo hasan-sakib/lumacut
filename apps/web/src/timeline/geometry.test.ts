@@ -78,8 +78,13 @@ describe("ruler", () => {
 
   it("makes ticks across the window: majors on the step, minors on its halves", () => {
     const ticks = rulerTicks(0, 500, 100);
-    expect(ticks.map((t) => t.us)).toEqual([0, 500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 3_500_000, 4_000_000, 4_500_000, 5_000_000]);
-    expect(ticks.filter((t) => t.major).map((t) => t.us)).toEqual([0, 1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000]);
+    expect(ticks.map((t) => t.us)).toEqual([
+      0, 500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000, 3_500_000, 4_000_000,
+      4_500_000, 5_000_000,
+    ]);
+    expect(ticks.filter((t) => t.major).map((t) => t.us)).toEqual([
+      0, 1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000,
+    ]);
   });
 
   it("starts at or before the scroll position so the left edge is never bare", () => {

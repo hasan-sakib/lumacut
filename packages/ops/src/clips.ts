@@ -27,10 +27,15 @@ import { splitClipAt, withEnd, withStart } from "./trim.ts";
 type OpOf<T extends Op["type"]> = Extract<Op, { type: T }>;
 
 function assertFreeId(project: Project, id: string): void {
-  if (allClips(project).some((c) => c.id === id)) fail("duplicate_id", `A clip with the id "${id}" already exists.`);
+  if (allClips(project).some((c) => c.id === id))
+    fail("duplicate_id", `A clip with the id "${id}" already exists.`);
 }
 
-function withClips(project: Project, ref: { compIndex: number; trackIndex: number; track: Track }, clips: Clip[]): Project {
+function withClips(
+  project: Project,
+  ref: { compIndex: number; trackIndex: number; track: Track },
+  clips: Clip[],
+): Project {
   return setTrack(project, ref, { ...ref.track, clips });
 }
 
@@ -50,7 +55,11 @@ export function removeClip(project: Project, op: OpOf<"removeClip">): Edit {
   const ref = needClip(project, op.clipId);
   assertUnlocked(ref.track);
   return {
-    project: withClips(project, ref, ref.track.clips.filter((c) => c.id !== op.clipId)),
+    project: withClips(
+      project,
+      ref,
+      ref.track.clips.filter((c) => c.id !== op.clipId),
+    ),
     touched: [ref.composition.id],
   };
 }
@@ -65,7 +74,11 @@ export function moveClip(project: Project, op: OpOf<"moveClip">): Edit {
   if (from.track.id === to.track.id) {
     return { project: mapClip(project, from, () => moved), touched: [from.composition.id] };
   }
-  const removed = withClips(project, from, from.track.clips.filter((c) => c.id !== op.clipId));
+  const removed = withClips(
+    project,
+    from,
+    from.track.clips.filter((c) => c.id !== op.clipId),
+  );
   // `to` was located in the original project; re-find it so a same-composition move keeps both edits.
   const target = needTrack(removed, op.trackId);
   return {
@@ -139,7 +152,8 @@ export function slipClip(project: Project, op: OpOf<"slipClip">): Edit {
   return editClipData(project, op.clipId, (c) => {
     const inUs = c.inUs + op.deltaUs;
     const outUs = c.outUs + op.deltaUs;
-    if (inUs < 0) fail("trim_beyond_source", `Can't slip clip ${c.id} before the start of its media.`);
+    if (inUs < 0)
+      fail("trim_beyond_source", `Can't slip clip ${c.id} before the start of its media.`);
     return { ...c, inUs, outUs };
   });
 }
@@ -155,8 +169,8 @@ export function slideClip(project: Project, op: OpOf<"slideClip">): Edit {
   const next = ref.track.clips.find((c) => c.id !== clip.id && c.startUs === end);
   const clips = ref.track.clips.map((c) => {
     if (c.id === clip.id) return { ...c, startUs: newStart };
-    if (previous !== undefined && c.id === previous.id) return withEnd(c, newStart);
-    if (next !== undefined && c.id === next.id) return withStart(c, end + op.deltaUs);
+    if (c.id === previous?.id) return withEnd(c, newStart);
+    if (c.id === next?.id) return withStart(c, end + op.deltaUs);
     return c;
   });
   return { project: withClips(project, ref, clips), touched: [ref.composition.id] };
@@ -179,7 +193,8 @@ function rippleDeleteClips(project: Project, compositionId: string, clipIds: str
   let next = project;
   for (const id of doomed) {
     const ref = needClip(project, id);
-    if (ref.composition.id !== compositionId) fail("unknown_clip", `Clip "${id}" isn't in composition "${compositionId}".`);
+    if (ref.composition.id !== compositionId)
+      fail("unknown_clip", `Clip "${id}" isn't in composition "${compositionId}".`);
     assertUnlocked(ref.track);
   }
   for (const track of composition.tracks) {
@@ -188,7 +203,9 @@ function rippleDeleteClips(project: Project, compositionId: string, clipIds: str
     const kept = track.clips
       .filter((c) => !doomed.has(c.id))
       .map((c) => {
-        const gap = removed.filter((r) => endOf(r) <= c.startUs).reduce((sum, r) => sum + lengthOf(r), 0);
+        const gap = removed
+          .filter((r) => endOf(r) <= c.startUs)
+          .reduce((sum, r) => sum + lengthOf(r), 0);
         return gap === 0 ? c : { ...c, startUs: c.startUs - gap };
       });
     const ref = needTrack(next, track.id);
@@ -211,7 +228,8 @@ function rippleDeleteRange(
   let next = project;
   for (const trackId of trackIds) {
     const ref = needTrack(next, trackId);
-    if (ref.composition.id !== compositionId) fail("unknown_track", `Track "${trackId}" isn't in composition "${compositionId}".`);
+    if (ref.composition.id !== compositionId)
+      fail("unknown_track", `Track "${trackId}" isn't in composition "${compositionId}".`);
     assertUnlocked(ref.track);
     const clips: Clip[] = [];
     for (const c of ref.track.clips) {
@@ -222,7 +240,8 @@ function rippleDeleteRange(
       else if (cs >= startUs && ce <= endUs) continue;
       else if (cs < startUs && ce > endUs) {
         const tailId = `${c.id}-r${String(endUs)}`.slice(0, 64);
-        if (allClips(next).some((x) => x.id === tailId)) fail("duplicate_id", `A clip with the id "${tailId}" already exists.`);
+        if (allClips(next).some((x) => x.id === tailId))
+          fail("duplicate_id", `A clip with the id "${tailId}" already exists.`);
         const [head, tail] = splitClipAt(c, startUs, tailId);
         clips.push(head, { ...withStart(tail, endUs), startUs });
       } else if (cs < startUs) clips.push(withEnd(c, startUs));
@@ -245,9 +264,11 @@ export function rippleDelete(project: Project, op: OpOf<"rippleDelete">): Edit {
 
 export function setProps(project: Project, op: OpOf<"setProps">): Edit {
   return editClipData(project, op.clipId, (c) => {
-    const next = { ...c, ...op.props } as Record<string, unknown>;
-    for (const key of op.unset ?? []) delete next[key];
-    return next as unknown as Clip;
+    const drop = new Set<string>(op.unset ?? []);
+    const merged: Record<string, unknown> = { ...c, ...op.props };
+    return Object.fromEntries(
+      Object.entries(merged).filter(([key]) => !drop.has(key)),
+    ) as unknown as Clip;
   });
 }
 
@@ -303,7 +324,8 @@ export function precompose(project: Project, op: OpOf<"precompose">): Precompose
   const chosen = new Set(op.clipIds);
   for (const id of chosen) {
     const ref = needClip(project, id);
-    if (ref.composition.id !== composition.id) fail("unknown_clip", `Clip "${id}" isn't in composition "${composition.id}".`);
+    if (ref.composition.id !== composition.id)
+      fail("unknown_clip", `Clip "${id}" isn't in composition "${composition.id}".`);
     assertUnlocked(ref.track);
   }
   const involved = composition.tracks.filter((t) => t.clips.some((c) => chosen.has(c.id)));
@@ -312,7 +334,10 @@ export function precompose(project: Project, op: OpOf<"precompose">): Precompose
   const maxEnd = Math.max(...picked.map((c) => endOf(c)));
   const host = involved.find((t) => t.kind === "visual");
   if (host === undefined) {
-    fail("wrong_track_kind", "Precompose needs at least one picture clip: a nested composition is a picture clip.");
+    fail(
+      "wrong_track_kind",
+      "Precompose needs at least one picture clip: a nested composition is a picture clip.",
+    );
   }
 
   const innerTracks = involved.map((t, i) =>
@@ -320,7 +345,9 @@ export function precompose(project: Project, op: OpOf<"precompose">): Precompose
       id: `${op.newCompositionId.slice(0, 56)}-t${String(i)}`,
       name: t.name,
       kind: t.kind,
-      clips: t.clips.filter((c) => chosen.has(c.id)).map((c) => ({ ...clone(c), startUs: c.startUs - minStart })),
+      clips: t.clips
+        .filter((c) => chosen.has(c.id))
+        .map((c) => ({ ...clone(c), startUs: c.startUs - minStart })),
     }),
   );
   const inner = createComposition({
@@ -346,7 +373,11 @@ export function precompose(project: Project, op: OpOf<"precompose">): Precompose
     ...composition,
     tracks: composition.tracks.map((t) => {
       const kept = t.clips.filter((c) => !chosen.has(c.id));
-      return t.id === host.id ? { ...t, clips: [...kept, nested] } : kept.length === t.clips.length ? t : { ...t, clips: kept };
+      return t.id === host.id
+        ? { ...t, clips: [...kept, nested] }
+        : kept.length === t.clips.length
+          ? t
+          : { ...t, clips: kept };
     }),
   };
   const withoutNew = setComposition(project, index, outer);

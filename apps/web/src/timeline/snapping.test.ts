@@ -20,12 +20,18 @@ const comp = createComposition({
 
 describe("snapPoints", () => {
   it("collects 0, clip edges, markers and the playhead, sorted and unique", () => {
-    expect(snapPoints(comp, { playheadUs: 3 * SEC })).toEqual([0, 1, 3, 5, 6, 8].map((s) => s * SEC));
+    expect(snapPoints(comp, { playheadUs: 3 * SEC })).toEqual(
+      [0, 1, 3, 5, 6, 8].map((s) => s * SEC),
+    );
   });
 
   it("leaves out excluded clips and can skip markers", () => {
-    expect(snapPoints(comp, { excludeClipIds: ["a", "c"] })).toEqual([0, 5, 6, 8].map((s) => s * SEC));
-    expect(snapPoints(comp, { includeMarkers: false })).toEqual([0, 1, 3, 5, 6].map((s) => s * SEC));
+    expect(snapPoints(comp, { excludeClipIds: ["a", "c"] })).toEqual(
+      [0, 5, 6, 8].map((s) => s * SEC),
+    );
+    expect(snapPoints(comp, { includeMarkers: false })).toEqual(
+      [0, 1, 3, 5, 6].map((s) => s * SEC),
+    );
   });
 });
 
@@ -52,7 +58,11 @@ describe("snapSpan", () => {
 
   it("shifts so the closer edge lands on a point", () => {
     // span [3.95, 5.95): the start is 0.05 from 4, the end is 3.05 from 9
-    expect(snapSpan(3_950_000, 5_950_000, points, 100_000)).toEqual({ deltaUs: 50_000, to: 4 * SEC, edge: "start" });
+    expect(snapSpan(3_950_000, 5_950_000, points, 100_000)).toEqual({
+      deltaUs: 50_000,
+      to: 4 * SEC,
+      edge: "start",
+    });
     // span [6.95, 8.95): the end is 0.05 from 9
     const end = snapSpan(6_950_000, 8_950_000, points, 100_000);
     expect(end.edge).toBe("end");
@@ -61,7 +71,11 @@ describe("snapSpan", () => {
   });
 
   it("does nothing when neither edge is close", () => {
-    expect(snapSpan(5 * SEC, 6 * SEC, points, 0.1 * SEC)).toEqual({ deltaUs: 0, to: null, edge: null });
+    expect(snapSpan(5 * SEC, 6 * SEC, points, 0.1 * SEC)).toEqual({
+      deltaUs: 0,
+      to: null,
+      edge: null,
+    });
   });
 
   it("when both edges could snap, the nearer one wins", () => {

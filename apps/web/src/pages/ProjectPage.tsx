@@ -46,8 +46,14 @@ export function ProjectPage() {
   const [tab, setTab] = useState<"inspector" | "media" | "history">("inspector");
 
   const compositionId = editor.activeCompositionId ?? project?.mainCompositionId ?? null;
-  const preview = usePreview(project, compositionId);
-  const { togglePlay, seek } = preview;
+  const {
+    attachStage,
+    playing,
+    diagnostics: previewDiagnostics,
+    error: previewError,
+    togglePlay,
+    seek,
+  } = usePreview(project, compositionId);
 
   const ui = useMemo(
     () => ({
@@ -118,7 +124,9 @@ export function ProjectPage() {
   }, []);
 
   const commitField = useCallback((op: Op, coalesceKey: string | undefined) => {
-    const result = projectStore.getState().dispatch(op, coalesceKey === undefined ? {} : { coalesceKey });
+    const result = projectStore
+      .getState()
+      .dispatch(op, coalesceKey === undefined ? {} : { coalesceKey });
     setNotice(result.ok ? null : result.message);
   }, []);
 
@@ -127,7 +135,15 @@ export function ProjectPage() {
     if (composition === undefined || project === null) return [];
     return editor.selectedClipIds.flatMap((id) => {
       const placed = findPlaced(composition, id);
-      return placed === undefined ? [] : [{ clip: placed.clip, track: placed.track, asset: project.assets.find((a) => a.id === placed.clip.assetId) }];
+      return placed === undefined
+        ? []
+        : [
+            {
+              clip: placed.clip,
+              track: placed.track,
+              asset: project.assets.find((a) => a.id === placed.clip.assetId),
+            },
+          ];
     });
   }, [composition, project, editor.selectedClipIds]);
   const library = assetOrder.map((id) => assets[id]).filter((a) => a?.status === "ready");
@@ -143,17 +159,37 @@ export function ProjectPage() {
         </h1>
         <SaveStatus state={saveState} detail={saveError} />
         <div className="ml-auto flex items-center gap-1">
-          <ActionButton action={editingActions.get("help.shortcuts")} ctx={host.ctx} variant="icon" onRun={host.runAction} className="text-neutral-200 hover:bg-neutral-800" />
+          <ActionButton
+            action={editingActions.get("help.shortcuts")}
+            ctx={host.ctx}
+            variant="icon"
+            onRun={host.runAction}
+            className="text-neutral-200 hover:bg-neutral-800"
+          />
         </div>
       </header>
 
       {saveState === "conflict" && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-red-900 bg-red-950/60 px-4 py-2 text-sm">
-          <span>This project was changed somewhere else (version {serverVersion ?? "?"}). Your edits here are kept, but not saved yet.</span>
-          <button type="button" onClick={() => void projectStore.getState().resolveConflict("reload")} className="rounded bg-neutral-800 px-3 py-1 hover:bg-neutral-700">
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-3 border-b border-red-900 bg-red-950/60 px-4 py-2 text-sm"
+        >
+          <span>
+            This project was changed somewhere else (version {serverVersion ?? "?"}). Your edits
+            here are kept, but not saved yet.
+          </span>
+          <button
+            type="button"
+            onClick={() => void projectStore.getState().resolveConflict("reload")}
+            className="rounded bg-neutral-800 px-3 py-1 hover:bg-neutral-700"
+          >
             Load the other version
           </button>
-          <button type="button" onClick={() => void projectStore.getState().resolveConflict("overwrite")} className="rounded bg-red-700 px-3 py-1 hover:bg-red-600">
+          <button
+            type="button"
+            onClick={() => void projectStore.getState().resolveConflict("overwrite")}
+            className="rounded bg-red-700 px-3 py-1 hover:bg-red-600"
+          >
             Keep mine and save
           </button>
         </div>
@@ -161,8 +197,14 @@ export function ProjectPage() {
 
       {loading && <p className="p-4 text-neutral-400">Opening project…</p>}
       {loadError !== null && (
-        <p role="alert" className="m-4 rounded-md border border-red-800 bg-red-950/40 px-3 py-2 text-sm">
-          {loadError} <Link to="/" className="underline">Back to the library</Link>
+        <p
+          role="alert"
+          className="m-4 rounded-md border border-red-800 bg-red-950/40 px-3 py-2 text-sm"
+        >
+          {loadError}{" "}
+          <Link to="/" className="underline">
+            Back to the library
+          </Link>
         </p>
       )}
 
@@ -170,15 +212,25 @@ export function ProjectPage() {
         <>
           <div className="flex min-h-0 flex-1 gap-3 p-3">
             <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col gap-2">
-              {(notice !== null || preview.error !== null) && (
-                <p role="alert" className="rounded-md border border-amber-700/60 bg-amber-950/40 px-3 py-1.5 text-sm">
-                  {notice ?? preview.error}
+              {(notice !== null || previewError !== null) && (
+                <p
+                  role="alert"
+                  className="rounded-md border border-amber-700/60 bg-amber-950/40 px-3 py-1.5 text-sm"
+                >
+                  {notice ?? previewError}
                 </p>
               )}
-              <div ref={preview.stageRef} data-testid="preview" className="min-h-0 flex-1 rounded-lg bg-black" />
-              {preview.diagnostics.length > 0 && (
-                <ul aria-label="Not shown in the preview" className="max-h-16 overflow-y-auto text-xs text-amber-300">
-                  {preview.diagnostics.map((d) => (
+              <div
+                ref={attachStage}
+                data-testid="preview"
+                className="min-h-0 flex-1 rounded-lg bg-black"
+              />
+              {previewDiagnostics.length > 0 && (
+                <ul
+                  aria-label="Not shown in the preview"
+                  className="max-h-16 overflow-y-auto text-xs text-amber-300"
+                >
+                  {previewDiagnostics.map((d) => (
                     <li key={`${d.clipId ?? "-"}:${d.code}`}>
                       <span className="font-mono">{d.code}</span> — {d.message}
                     </li>
@@ -187,14 +239,24 @@ export function ProjectPage() {
               )}
             </section>
 
-            <aside aria-label="Side panel" className="flex w-80 shrink-0 flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
-              <div role="tablist" aria-label="Panels" className="flex border-b border-neutral-800 text-xs">
+            <aside
+              aria-label="Side panel"
+              className="flex w-80 shrink-0 flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60"
+            >
+              <div
+                role="tablist"
+                aria-label="Panels"
+                className="flex border-b border-neutral-800 text-xs"
+              >
                 {(["inspector", "media", "history"] as const).map((id) => (
                   <button
                     key={id}
                     type="button"
                     role="tab"
                     aria-selected={tab === id}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                    }}
                     onClick={() => {
                       setTab(id);
                     }}
@@ -205,12 +267,20 @@ export function ProjectPage() {
                 ))}
               </div>
               <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
-                {tab === "inspector" && <Inspector composition={composition} items={selectedInfos} onChange={commitField} />}
+                {tab === "inspector" && (
+                  <Inspector
+                    composition={composition}
+                    items={selectedInfos}
+                    onChange={commitField}
+                  />
+                )}
                 {tab === "media" && (
                   <section aria-label="Add media" className="p-3">
                     <h2 className="mb-2 text-sm font-semibold">Add media at the playhead</h2>
                     {library.length === 0 ? (
-                      <p className="text-xs text-neutral-500">No ready assets. Upload some in the library.</p>
+                      <p className="text-xs text-neutral-500">
+                        No ready assets. Upload some in the library.
+                      </p>
                     ) : (
                       <ul className="flex flex-col gap-1">
                         {library.map((asset) =>
@@ -221,7 +291,12 @@ export function ProjectPage() {
                               <button
                                 type="button"
                                 aria-label={`Add ${asset.name} at the playhead`}
-                                onClick={() => void run("timeline.addAssetAtPlayhead", { asset: asset.id })}
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                }}
+                                onClick={() =>
+                                  void run("timeline.addAssetAtPlayhead", { asset: asset.id })
+                                }
                                 className="rounded bg-sky-600 px-2 py-0.5 text-white hover:bg-sky-500"
                               >
                                 Add
@@ -239,7 +314,10 @@ export function ProjectPage() {
                     {undoStack.length === 0 ? (
                       <p className="text-xs text-neutral-500">No edits yet.</p>
                     ) : (
-                      <ol className="flex flex-col-reverse gap-0.5 text-xs text-neutral-300" data-testid="history">
+                      <ol
+                        className="flex flex-col-reverse gap-0.5 text-xs text-neutral-300"
+                        data-testid="history"
+                      >
                         {undoStack.map((entry, i) => (
                           <li key={`${String(i)}-${String(entry.at)}`}>{entry.label}</li>
                         ))}
@@ -249,12 +327,21 @@ export function ProjectPage() {
                 )}
               </div>
               <p className="border-t border-neutral-800 p-2 text-[11px] text-neutral-500">
-                Mod+K: every command · V C B N Y U: tools · Space: play · S: split · Mod+C / V: copy and paste · ?: all shortcuts
+                Mod+K: every command · V C B N Y U: tools · Space: play · S: split · Mod+C / V: copy
+                and paste · ?: all shortcuts
               </p>
             </aside>
           </div>
 
-          <Toolbar ctx={host.ctx} tool={editor.tool} snapping={editor.snapping} playing={preview.playing} playheadUs={editor.playheadUs} fps={composition.fps} onRun={host.runAction} />
+          <Toolbar
+            ctx={host.ctx}
+            tool={editor.tool}
+            snapping={editor.snapping}
+            playing={playing}
+            playheadUs={editor.playheadUs}
+            fps={composition.fps}
+            onRun={host.runAction}
+          />
           <ActionContextMenu registry={editingActions} ctx={host.ctx} onRun={(id) => void run(id)}>
             <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
               <Timeline
@@ -266,7 +353,7 @@ export function ProjectPage() {
                 scrollUs={editor.scrollUs}
                 snapping={editor.snapping}
                 playheadUs={editor.playheadUs}
-                playing={preview.playing}
+                playing={playing}
                 selectedClipIds={editor.selectedClipIds}
                 selectedTrackId={editor.selectedTrackId}
                 newId={newId}
@@ -287,7 +374,13 @@ export function ProjectPage() {
         </>
       )}
 
-      <CommandPalette registry={editingActions} ctx={host.ctx} open={paletteOpen} onOpenChange={setPaletteOpen} run={run} />
+      <CommandPalette
+        registry={editingActions}
+        ctx={host.ctx}
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        run={run}
+      />
       <ShortcutHelp registry={editingActions} open={helpOpen} onOpenChange={setHelpOpen} />
     </div>
   );

@@ -10,7 +10,13 @@ beforeEach(() => {
 
 describe("editor store", () => {
   it("starts with the selection tool, snapping on, default zoom", () => {
-    expect(s()).toMatchObject({ tool: "select", snapping: true, zoomPxPerSec: DEFAULT_PX_PER_SEC, playheadUs: 0, scrollUs: 0 });
+    expect(s()).toMatchObject({
+      tool: "select",
+      snapping: true,
+      zoomPxPerSec: DEFAULT_PX_PER_SEC,
+      playheadUs: 0,
+      scrollUs: 0,
+    });
   });
 
   it("keeps the playhead and scroll whole and non-negative", () => {
@@ -37,7 +43,13 @@ describe("editor store", () => {
     s().setPlayhead(5);
     s().setScroll(9);
     s().setActiveComposition("main");
-    expect(s()).toMatchObject({ activeCompositionId: "main", selectedClipIds: [], selectedTrackId: null, playheadUs: 0, scrollUs: 0 });
+    expect(s()).toMatchObject({
+      activeCompositionId: "main",
+      selectedClipIds: [],
+      selectedTrackId: null,
+      playheadUs: 0,
+      scrollUs: 0,
+    });
   });
 
   it("holds a clipboard and a copied look, and reset empties them", () => {

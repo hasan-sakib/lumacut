@@ -9,7 +9,10 @@ export interface DiffOps {
 }
 
 /** What `setProps` must do to turn `after` back into `before` (null when nothing differs). */
-function propsDiff(before: Clip, after: Clip): { props: ClipPatch; unset: ClipUnsettable[] } | null {
+function propsDiff(
+  before: Clip,
+  after: Clip,
+): { props: ClipPatch; unset: ClipUnsettable[] } | null {
   const left = before as unknown as Record<string, unknown>;
   const right = after as unknown as Record<string, unknown>;
   const props: Record<string, unknown> = {};
@@ -20,9 +23,7 @@ function propsDiff(before: Clip, after: Clip): { props: ClipPatch; unset: ClipUn
     if (left[key] === undefined) unset.push(key as ClipUnsettable);
     else props[key] = left[key];
   }
-  return Object.keys(props).length === 0 && unset.length === 0
-    ? null
-    : { props: props as ClipPatch, unset };
+  return Object.keys(props).length === 0 && unset.length === 0 ? null : { props: props, unset };
 }
 
 /**
@@ -56,7 +57,12 @@ export function diffOps(before: Project, after: Project): DiffOps {
         continue;
       }
       if (prev.trackId !== next.trackId) {
-        out.moves.push({ type: "moveClip", clipId: id, trackId: prev.trackId, startUs: prev.clip.startUs });
+        out.moves.push({
+          type: "moveClip",
+          clipId: id,
+          trackId: prev.trackId,
+          startUs: prev.clip.startUs,
+        });
       }
       const d = propsDiff(prev.clip, next.clip);
       if (d !== null) {

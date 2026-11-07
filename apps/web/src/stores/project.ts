@@ -21,7 +21,8 @@ export interface DispatchOptions {
   coalesceKey?: string;
 }
 
-export type DispatchResult = { ok: true } | { ok: false; code: OpErrorCode | "no_project"; message: string };
+export type DispatchResult =
+  { ok: true } | { ok: false; code: OpErrorCode | "no_project"; message: string };
 
 export interface ProjectState {
   projectId: string | null;
@@ -88,7 +89,9 @@ function failure(error: unknown): DispatchResult {
   throw error;
 }
 
-export function createProjectStore(overrides: Partial<ProjectStoreDeps> = {}): StoreApi<ProjectState> {
+export function createProjectStore(
+  overrides: Partial<ProjectStoreDeps> = {},
+): StoreApi<ProjectState> {
   const deps = { ...defaultDeps, ...overrides };
   let idleTimer: unknown = null;
   let maxTimer: unknown = null;
@@ -141,7 +144,10 @@ export function createProjectStore(overrides: Partial<ProjectStoreDeps> = {}): S
           set({ project: loaded.project, version: loaded.version, loading: false });
         } catch (error) {
           if (mine !== session) return;
-          set({ loading: false, loadError: error instanceof Error ? error.message : "Couldn't open this project." });
+          set({
+            loading: false,
+            loadError: error instanceof Error ? error.message : "Couldn't open this project.",
+          });
         }
       },
 
@@ -153,7 +159,8 @@ export function createProjectStore(overrides: Partial<ProjectStoreDeps> = {}): S
 
       dispatch(op, options = {}) {
         const { project } = get();
-        if (project === null) return { ok: false, code: "no_project", message: "No project is open." };
+        if (project === null)
+          return { ok: false, code: "no_project", message: "No project is open." };
         const label = options.label ?? labelFor(op);
         let applied: Op = op;
         let result;

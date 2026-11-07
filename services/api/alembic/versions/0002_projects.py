@@ -41,7 +41,9 @@ def upgrade() -> None:
         ),
     )
     op.create_index("ix_projects_owner_id", "projects", ["owner_id"])
-    op.create_index("ix_projects_owner_updated", "projects", ["owner_id", sa.text("updated_at DESC")])
+    op.create_index(
+        "ix_projects_owner_updated", "projects", ["owner_id", sa.text("updated_at DESC")]
+    )
 
     op.create_table(
         "project_snapshots",

@@ -42,6 +42,10 @@ export function ActionButton<Ctx>({
           aria-pressed={pressed}
           aria-keyshortcuts={action.shortcut?.replace("Mod", isMacPlatform() ? "Meta" : "Control")}
           disabled={!available}
+          // A mouse click shouldn't leave focus on the button: Space and the arrows belong to playback.
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
           data-action={action.id}
           onClick={(event) => {
             event.stopPropagation();
