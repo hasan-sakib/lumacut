@@ -8,12 +8,17 @@
     "./barcode": "./src/testing/barcode.ts",
     "./ssim": "./src/testing/ssim.ts",
     "./pixels": "./src/testing/pixels.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./color": "./src/color/index.ts",
+    "./scopes": "./src/scopes/index.ts",
+    "./text": "./src/text/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@lumacut/effects": "workspace:^",
+    "@lumacut/ops": "workspace:^",
     "@lumacut/schema": "workspace:^",
     "mediabunny": "^1.65.0"
   },

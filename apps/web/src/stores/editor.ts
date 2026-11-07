@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type { Attributes, ClipboardData } from "../timeline/clipboard.ts";
 import { DEFAULT_PX_PER_SEC, clampZoom } from "../timeline/geometry.ts";
 
+export type BottomPanel = "timeline" | "graph";
+
 export type Tool = "select" | "razor" | "ripple" | "roll" | "slip" | "slide";
 
 /** Transient editor state that isn't part of the project document: selection, playhead, tool and view. */
@@ -18,6 +20,8 @@ interface EditorState {
   /** Width of the visible timeline area (set by the timeline; used for "zoom to fit"). */
   viewportPx: number;
   snapping: boolean;
+  /** What the bottom dock shows: the timeline or the graph editor. */
+  bottomPanel: BottomPanel;
   /** Copied clips and a copied look (internal: not the system clipboard). */
   clipboard: ClipboardData | null;
   attributes: Attributes | null;
@@ -30,6 +34,7 @@ interface EditorState {
   setScroll: (us: number) => void;
   setViewportPx: (px: number) => void;
   setSnapping: (on: boolean) => void;
+  setBottomPanel: (panel: BottomPanel) => void;
   setClipboard: (data: ClipboardData | null) => void;
   setAttributes: (attributes: Attributes | null) => void;
   reset: () => void;
@@ -45,6 +50,7 @@ const INITIAL = {
   scrollUs: 0,
   viewportPx: 0,
   snapping: true,
+  bottomPanel: "timeline" as BottomPanel,
   clipboard: null as ClipboardData | null,
   attributes: null as Attributes | null,
 };
@@ -80,6 +86,9 @@ export const useEditorStore = create<EditorState>()((set) => ({
   },
   setViewportPx: (px) => {
     set({ viewportPx: Math.max(0, Math.round(px)) });
+  },
+  setBottomPanel: (panel) => {
+    set({ bottomPanel: panel });
   },
   setSnapping: (on) => {
     set({ snapping: on });

@@ -188,7 +188,9 @@ function selection() {
 describe("Inspector", () => {
   it("with nothing selected shows the composition's settings and a hint", () => {
     const { composition } = selection();
-    render(<Inspector composition={composition} items={[]} onChange={() => undefined} />);
+    render(
+      <Inspector playheadUs={0} composition={composition} items={[]} onChange={() => undefined} />,
+    );
     expect(screen.getByText("Main")).toBeTruthy();
     expect(screen.getByText(/1920×1080/)).toBeTruthy();
     expect(screen.getByText(/Select a clip/)).toBeTruthy();
@@ -196,7 +198,9 @@ describe("Inspector", () => {
 
   it("shows the clip's name and only the sections that apply", () => {
     const { composition, a } = selection();
-    render(<Inspector composition={composition} items={[a]} onChange={() => undefined} />);
+    render(
+      <Inspector playheadUs={0} composition={composition} items={[a]} onChange={() => undefined} />,
+    );
     expect(screen.getByTestId("inspector-title").textContent).toBe("beach.mp4");
     for (const name of ["Transform", "Opacity & blend", "Crop", "Time"]) {
       expect(screen.getByRole("region", { name })).toBeTruthy();
@@ -207,7 +211,7 @@ describe("Inspector", () => {
   it("typing a value applies one setProps; scrubbing and stepping carry a coalesce key, typing doesn't", () => {
     const { composition, a } = selection();
     const onChange = vi.fn();
-    render(<Inspector composition={composition} items={[a]} onChange={onChange} />);
+    render(<Inspector playheadUs={0} composition={composition} items={[a]} onChange={onChange} />);
     const opacity = screen.getByRole("textbox", { name: "Opacity" });
     fireEvent.change(opacity, { target: { value: "75" } });
     fireEvent.keyDown(opacity, { key: "Enter" });
@@ -233,8 +237,11 @@ describe("Inspector", () => {
   it("a choice (blend mode) and a switch (reverse) apply immediately", () => {
     const { composition, a } = selection();
     const onChange = vi.fn();
-    render(<Inspector composition={composition} items={[a]} onChange={onChange} />);
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "multiply" } });
+    render(<Inspector playheadUs={0} composition={composition} items={[a]} onChange={onChange} />);
+    fireEvent.change(
+      within(screen.getByRole("region", { name: "Opacity & blend" })).getByRole("combobox"),
+      { target: { value: "multiply" } },
+    );
     expect(onChange).toHaveBeenLastCalledWith(
       { type: "setProps", clipId: "a", props: { blendMode: "multiply" } },
       undefined,
@@ -249,7 +256,7 @@ describe("Inspector", () => {
   it("changing nothing (same value) applies nothing", () => {
     const { composition, a } = selection();
     const onChange = vi.fn();
-    render(<Inspector composition={composition} items={[a]} onChange={onChange} />);
+    render(<Inspector playheadUs={0} composition={composition} items={[a]} onChange={onChange} />);
     const opacity = screen.getByRole("textbox", { name: "Opacity" });
     fireEvent.change(opacity, { target: { value: "50" } });
     fireEvent.keyDown(opacity, { key: "Enter" });
@@ -259,7 +266,9 @@ describe("Inspector", () => {
   it("with several clips selected, differing values show Mixed and an edit applies to all as one batch", () => {
     const { composition, a, b } = selection();
     const onChange = vi.fn();
-    render(<Inspector composition={composition} items={[a, b]} onChange={onChange} />);
+    render(
+      <Inspector playheadUs={0} composition={composition} items={[a, b]} onChange={onChange} />,
+    );
     expect(screen.getByTestId("inspector-title").textContent).toBe("2 clips selected");
     const opacity = screen.getByRole<HTMLInputElement>("textbox", { name: "Opacity" });
     expect(opacity.placeholder).toBe("Mixed");
@@ -272,7 +281,9 @@ describe("Inspector", () => {
 
   it("advanced fields hide behind a per-section switch", () => {
     const { composition, a } = selection();
-    render(<Inspector composition={composition} items={[a]} onChange={() => undefined} />);
+    render(
+      <Inspector playheadUs={0} composition={composition} items={[a]} onChange={() => undefined} />,
+    );
     expect(screen.queryByRole("textbox", { name: "Skew" })).toBeNull();
     const transform = screen.getByRole("region", { name: "Transform" });
     fireEvent.click(within(transform).getByRole("button", { name: /Advanced \(5\)/ }));
@@ -283,7 +294,9 @@ describe("Inspector", () => {
 
   it("search finds fields by what they do, including advanced ones, and says when nothing matches", () => {
     const { composition, a } = selection();
-    render(<Inspector composition={composition} items={[a]} onChange={() => undefined} />);
+    render(
+      <Inspector playheadUs={0} composition={composition} items={[a]} onChange={() => undefined} />,
+    );
     const search = screen.getByRole("searchbox", { name: "Search properties" });
     fireEvent.change(search, { target: { value: "slant" } });
     expect(screen.getByRole("textbox", { name: "Skew" })).toBeTruthy();
@@ -297,13 +310,127 @@ describe("Inspector", () => {
 
   it("sections collapse and expand", () => {
     const { composition, a } = selection();
-    render(<Inspector composition={composition} items={[a]} onChange={() => undefined} />);
+    render(
+      <Inspector playheadUs={0} composition={composition} items={[a]} onChange={() => undefined} />,
+    );
     const crop = screen.getByRole("region", { name: "Crop" });
     expect(within(crop).getByRole("textbox", { name: "Crop left" })).toBeTruthy();
-    fireEvent.click(within(crop).getByRole("button", { name: /Crop/ }));
+    fireEvent.click(within(crop).getByRole("button", { name: "Crop" }));
     expect(within(crop).queryByRole("textbox", { name: "Crop left" })).toBeNull();
-    expect(within(crop).getByRole("button", { name: /Crop/ }).getAttribute("aria-expanded")).toBe(
+    expect(within(crop).getByRole("button", { name: "Crop" }).getAttribute("aria-expanded")).toBe(
       "false",
     );
+  });
+});
+
+describe("the ◆ keyframe control", () => {
+  it("is shown on animatable fields only, with a label and a tooltip", () => {
+    const { composition, a } = selection();
+    render(
+      <Inspector
+        playheadUs={a.clip.startUs}
+        composition={composition}
+        items={[a]}
+        onChange={() => undefined}
+      />,
+    );
+    const toggle = screen.getByRole("button", { name: "Add Opacity keyframe at the playhead" });
+    expect(toggle.getAttribute("title")).toMatch(/Opacity keyframe/);
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("button", { name: /Blend mode keyframe/ })).toBeNull();
+  });
+
+  it("adds a keyframe at the playhead when clicked", () => {
+    const { composition, a } = selection();
+    const onChange = vi.fn();
+    render(
+      <Inspector
+        playheadUs={a.clip.startUs + 500_000}
+        composition={composition}
+        items={[a]}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add Opacity keyframe at the playhead" }));
+    expect(onChange).toHaveBeenCalledWith(
+      {
+        type: "addKeyframe",
+        clipId: "a",
+        path: "opacity",
+        keyframe: { tUs: 500_000, value: 0.5, interpolation: "linear" },
+      },
+      undefined,
+    );
+  });
+
+  it("shows a filled ◆ on a keyframe and removes it when clicked", () => {
+    const { composition, a } = selection();
+    const animated: ClipInfo = {
+      ...a,
+      clip: {
+        ...a.clip,
+        keyframes: { opacity: [{ tUs: 0, value: 0.25, interpolation: "linear" }] },
+      },
+    };
+    const onChange = vi.fn();
+    render(
+      <Inspector
+        playheadUs={a.clip.startUs}
+        composition={composition}
+        items={[animated]}
+        onChange={onChange}
+      />,
+    );
+    const toggle = screen.getByRole("button", { name: "Remove Opacity keyframe at the playhead" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(toggle.getAttribute("data-keyframe-state")).toBe("key");
+    expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Opacity" }).value).toBe("25");
+    fireEvent.click(toggle);
+    expect(onChange.mock.calls[0]?.[0]).toMatchObject({ type: "batch" }); // remove + keep the value
+  });
+
+  it("is disabled when the playhead is off the clip", () => {
+    const { composition, a } = selection();
+    render(
+      <Inspector
+        playheadUs={a.clip.startUs + 3_600_000_000}
+        composition={composition}
+        items={[a]}
+        onChange={() => undefined}
+      />,
+    );
+    const toggle = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Add Opacity keyframe at the playhead",
+    });
+    expect(toggle.disabled).toBe(true);
+  });
+
+  it("editing an animated field writes a keyframe, not the static value", () => {
+    const { composition, a } = selection();
+    const animated: ClipInfo = {
+      ...a,
+      clip: {
+        ...a.clip,
+        keyframes: { opacity: [{ tUs: 0, value: 0.5, interpolation: "linear" }] },
+      },
+    };
+    const onChange = vi.fn();
+    render(
+      <Inspector
+        playheadUs={a.clip.startUs}
+        composition={composition}
+        items={[animated]}
+        onChange={onChange}
+      />,
+    );
+    const opacity = screen.getByRole("textbox", { name: "Opacity" });
+    fireEvent.change(opacity, { target: { value: "80" } });
+    fireEvent.keyDown(opacity, { key: "Enter" });
+    expect(onChange.mock.calls[0]?.[0]).toMatchObject({
+      type: "updateKeyframe",
+      path: "opacity",
+      tUs: 0,
+      keyframe: { value: 0.8 },
+    });
   });
 });

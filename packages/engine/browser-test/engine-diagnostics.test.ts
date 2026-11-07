@@ -69,8 +69,8 @@ describe("clip features the engine doesn't apply yet", () => {
   it("names each ignored feature", async () => {
     const busy = media("busy", "red", {
       keyframes: {
-        opacity: [{ tUs: 0, value: 1, interpolation: "linear" }],
-        "transform.x": [{ tUs: 0, value: 5, interpolation: "hold" }],
+        // Not an animatable property (masks are M5): this one is reported.
+        "masks.m1.feather": [{ tUs: 0, value: 1, interpolation: "linear" }],
       },
       masks: [
         {
@@ -99,10 +99,9 @@ describe("clip features the engine doesn't apply yet", () => {
     const { codes } = await render([busy]);
     expect(codes).toEqual(
       [
-        "busy:ignored_keyframes", // two keyframed properties, one diagnostic
+        "busy:ignored_keyframes",
         "busy:ignored_masks",
         "busy:ignored_track_matte",
-        "busy:ignored_color",
         "busy:ignored_effects",
         "busy:ignored_motion_blur",
         "busy:ignored_transition",

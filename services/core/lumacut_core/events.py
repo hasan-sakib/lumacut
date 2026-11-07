@@ -9,7 +9,7 @@ from typing import Literal
 from lumacut_core.camel import CamelModel
 
 AssetStatus = Literal["uploading", "queued", "processing", "ready", "failed"]
-AssetKind = Literal["video", "audio", "image"]
+AssetKind = Literal["video", "audio", "image", "lut"]
 
 
 def user_assets_channel(user_id: str) -> str:

@@ -1,5 +1,12 @@
 import type { Op } from "@lumacut/schema";
 import {
+  animatedEditOp,
+  keyStateOfItems,
+  playheadOnClip,
+  shownValue,
+  type ItemKeyState,
+} from "./animation.ts";
+import {
   FIELDS,
   SECTIONS,
   type ClipInfo,
@@ -16,6 +23,10 @@ export interface FieldState {
   mixed: boolean;
   /** How many selected clips this field applies to. */
   count: number;
+  /** For an animatable property: whether it is animated at the playhead ("key" = on a keyframe). */
+  keyState?: ItemKeyState;
+  /** A keyframe can be added now (the playhead is on every selected clip it applies to). */
+  canKey?: boolean;
 }
 
 export interface SectionState {
@@ -31,6 +42,31 @@ export interface SectionState {
 export interface InspectorOptions {
   query: string;
   showAdvanced: Partial<Record<SectionId, boolean>>;
+  /** Animated properties show their value at this time, and ◆ acts here. Default 0. */
+  playheadUs?: number;
+}
+
+/** The row state for one field across the selection (values at the playhead, ◆ state). */
+export function fieldStateFor(
+  def: FieldDef,
+  items: readonly ClipInfo[],
+  playheadUs: number,
+): FieldState {
+  const applicable = items.filter((item) => def.appliesTo(item));
+  const values = applicable.map((item) => shownValue(def, item.clip, playheadUs));
+  const first = values[0];
+  const mixed = values.some((v) => v !== first);
+  const field: FieldState = {
+    def,
+    value: mixed ? undefined : first,
+    mixed,
+    count: applicable.length,
+  };
+  if (def.animation !== undefined) {
+    field.keyState = keyStateOfItems(def, items, playheadUs);
+    field.canKey = applicable.every((item) => playheadOnClip(item.clip, playheadUs));
+  }
+  return field;
 }
 
 function matches(def: FieldDef, sectionTitle: string, tokens: readonly string[]): boolean {
@@ -47,6 +83,7 @@ export function buildInspector(
   items: readonly ClipInfo[],
   options: InspectorOptions,
 ): SectionState[] {
+  const playheadUs = options.playheadUs ?? 0;
   const tokens = options.query.toLowerCase().split(/\s+/).filter(Boolean);
   const searching = tokens.length > 0;
   const sections: SectionState[] = [];
@@ -63,10 +100,7 @@ export function buildInspector(
         hiddenAdvanced += 1;
         continue;
       }
-      const values = applicable.map((item) => def.get(item.clip));
-      const first = values[0];
-      const mixed = values.some((v) => v !== first);
-      fields.push({ def, value: mixed ? undefined : first, mixed, count: applicable.length });
+      fields.push(fieldStateFor(def, items, playheadUs));
     }
     if (fields.length > 0)
       sections.push({ id: section.id, title: section.title, fields, hasAdvanced, hiddenAdvanced });
@@ -75,11 +109,22 @@ export function buildInspector(
 }
 
 /** The ops that set a field to `stored` on every selected clip it applies to (clips already at that value are skipped). */
-export function opsForField(def: FieldDef, stored: FieldValue, items: readonly ClipInfo[]): Op[] {
+export function opsForField(
+  def: FieldDef,
+  stored: FieldValue,
+  items: readonly ClipInfo[],
+  playheadUs = 0,
+): Op[] {
   const ops: Op[] = [];
   for (const item of items) {
     if (!def.appliesTo(item) || def.readOnly === true) continue;
-    if (def.get(item.clip) === stored) continue;
+    if (shownValue(def, item.clip, playheadUs) === stored) continue;
+    // An animated property changes through a keyframe at the playhead, not its static value.
+    const keyed = animatedEditOp(def, stored, item.clip, playheadUs);
+    if (keyed !== null) {
+      ops.push(keyed);
+      continue;
+    }
     const patch = def.set(item.clip, stored);
     ops.push({
       type: "setProps",
@@ -96,8 +141,9 @@ export function opForField(
   def: FieldDef,
   stored: FieldValue,
   items: readonly ClipInfo[],
+  playheadUs = 0,
 ): Op | null {
-  const ops = opsForField(def, stored, items);
+  const ops = opsForField(def, stored, items, playheadUs);
   if (ops.length === 0) return null;
   return ops.length === 1 && ops[0] !== undefined
     ? ops[0]

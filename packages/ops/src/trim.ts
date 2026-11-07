@@ -1,5 +1,6 @@
 import type { Clip } from "@lumacut/schema";
 import { assertTime, fail } from "./errors.ts";
+import { splitClipKeyframes } from "./keyframes/split.ts";
 import { clone, endOf } from "./model.ts";
 
 /** Source time that `timelineUs` of timeline covers at this clip's speed. */
@@ -67,18 +68,13 @@ export function splitClipAt(clip: Clip, atUs: number, newId: string): [Clip, Cli
   delete second.linkId;
   delete second.placeholder;
 
-  // Keyframe times are clip-local: the second half's animation restarts at its own start.
-  first.keyframes = {};
-  second.keyframes = {};
-  for (const [path, frames] of Object.entries(clip.keyframes)) {
-    const head = frames.filter((k) => k.tUs < offset);
-    const tail = frames.filter((k) => k.tUs >= offset).map((k) => ({ ...k, tUs: k.tUs - offset }));
-    if (head.length > 0) first.keyframes[path] = head;
-    if (tail.length > 0) second.keyframes[path] = tail;
-  }
+  // Keyframe times are clip-local: each half keeps its part of every animation (a segment that
+  // spans the cut is split so neither half jumps), and the second half's restarts at its own start.
+  const [head, tail] = splitClipKeyframes(clip, first, second, offset);
   if (clip.audio !== undefined) {
-    first.audio = { ...clip.audio, fadeOutUs: 0 };
-    second.audio = { ...clip.audio, fadeInUs: 0 };
+    const audio = head.audio ?? clip.audio;
+    head.audio = { ...audio, fadeOutUs: 0 };
+    tail.audio = { ...(tail.audio ?? clip.audio), fadeInUs: 0 };
   }
-  return [first, second];
+  return [head, tail];
 }

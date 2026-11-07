@@ -30,7 +30,8 @@ export function pickUrl(asset: AssetOut, kind: MediaKind): string {
   }
   // Video and audio are read from the proxy (the audio proxy is its own AAC file); images from the
   // normalized copy, never the original upload.
-  const url = kind === "image" ? asset.urls.normalized : asset.urls.proxy;
+  const url =
+    kind === "image" ? asset.urls.normalized : kind === "lut" ? asset.urls.lut : asset.urls.proxy;
   if (url === undefined || url === null) {
     throw new AssetUnavailableError(`"${asset.name}" has no ${kind} rendition`);
   }

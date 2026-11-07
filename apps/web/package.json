@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@lumacut/actions": "workspace:^",
+    "@lumacut/effects": "workspace:^",
     "@lumacut/engine": "workspace:^",
     "@lumacut/ops": "workspace:^",
     "@lumacut/schema": "workspace:^",

@@ -34,6 +34,9 @@ describe("pickUrl", () => {
     expect(pickUrl(a, "video")).toBe("https://s3/proxy.mp4?sig=1");
     expect(pickUrl(a, "audio")).toBe("https://s3/proxy.mp4?sig=1");
     expect(pickUrl(a, "image")).toBe("https://s3/normalized.png?sig=1");
+    expect(pickUrl({ ...a, urls: { ...a.urls, lut: "https://s3/lut.cube?sig=1" } }, "lut")).toBe(
+      "https://s3/lut.cube?sig=1",
+    );
   });
 
   it("explains an asset that isn't ready or lacks the rendition", () => {

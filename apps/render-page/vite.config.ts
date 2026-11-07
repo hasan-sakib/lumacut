@@ -70,6 +70,8 @@ const headers = {
 
 export default defineConfig({
   plugins: [mediaPlugin],
+  // The same bundled fonts the editor serves from /fonts/ (text and captions draw with them).
+  publicDir: root("apps/web/public"),
   worker: { format: "es" },
   server: { port: 5174, strictPort: true, headers },
   preview: { port: 4174, strictPort: true, headers },

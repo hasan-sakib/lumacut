@@ -88,7 +88,7 @@ const sectionIds = (q = "", adv: Record<string, boolean> = {}, items: ClipInfo[]
 describe("buildInspector", () => {
   it("shows only the sections that apply to the selection", () => {
     const { pic1, snd } = infos();
-    expect(sectionIds("", {}, [pic1])).toEqual(["transform", "blend", "crop", "time"]);
+    expect(sectionIds("", {}, [pic1])).toEqual(["transform", "blend", "crop", "color", "time"]);
     expect(sectionIds("", {}, [snd])).toEqual(["time", "audio"]);
     expect(sectionIds("", {}, [])).toEqual([]);
   });

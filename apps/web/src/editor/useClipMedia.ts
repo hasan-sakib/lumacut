@@ -4,7 +4,7 @@ import type { ThumbIndex } from "../timeline/filmstrip.ts";
 import type { WaveformJson } from "../timeline/waveform.ts";
 
 export interface ClipMedia {
-  kind: "video" | "audio" | "image" | null;
+  kind: "video" | "audio" | "image" | "lut" | null;
   thumbIndex: ThumbIndex | null;
   /** Sprite sheet URLs in order (video). */
   sheets: readonly string[];

@@ -9,9 +9,7 @@
 | M3a | Ops engine (`packages/ops`), projects API + autosave + undo/redo, Action Registry upgrades + command palette | done, verified 2026-11-07 (`make check`, `make test-stack`; acceptance e2e passes) | 2026-11-07 |
 | M3b-1 | Editor page: preview + playback, Pro timeline (zoom/scroll, move/trim, snapping, razor, ripple/roll/slip/slide, markers, track headers) | done, verified 2026-11-07 | 2026-11-07 |
 | M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | done, verified 2026-11-07 | 2026-11-07 |
-| M4a | Keyframes + graph editor + color pipeline + scopes + LUTs + effect system (~10 effects) | not started | — |
-| M4b | Text + captions editing + all transitions | not started | — |
-| M4c | Remaining effects (40 total) | not started | — |
+| M4 | Keyframes + graph editor + transitions + text + captions + colour pipeline + scopes + LUTs + effect system (40 effects) | **built 2026-11-07, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request (tests come after all milestones); only `tsc` and `eslint` | 2026-11-07 |
 | M5 | Motion graphics: shapes/pen, masks, mattes, text animators, precompose, presets, motion blur, paths | not started | — |
 | M6 | Photo workspace | not started | — |
 | M7 | Audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness | not started | — |
@@ -23,16 +21,20 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
-**M2 and M3 (M3a, M3b-1, M3b-2) are built and verified (2026-11-07); nothing is committed** (the owner commits). Verification run, all on this machine:
-- `make check` green (ruff, mypy --strict, ESLint with the determinism rule, tsc, prettier, schema/openapi drift, all Vitest projects incl. the `packages/ops` 95% coverage gate, pytest).
-- `make test-engine` (browser, SwiftShader) green; `make smoke-render` green.
-- `make perf` on the GPU (Apple M2, Metal via installed Chrome) passes every gate: 60.0 fps, p95 render 4.0 ms, 0% composition frames never shown, no diagnostics/errors, frames opened = closed (15 644), 0 open iterators, texture cache peak 256 MB at budget, memory growth 0.47 MB over 20 s + 2000 seeks. SwiftShader floor (reported, not gated): 8.2 fps, p95 140 ms.
-- `make test-stack`: integration 26 passed / 1 skipped; e2e 16 of 18 on the first full parallel run, and the 2 failures (`player.spec.ts` frame-exact playback → "fps > 2" got 1; `resume.spec.ts` → "Upload failed" at 95%) **pass when run alone with `--workers=1`**, i.e. CPU contention on a loaded laptop, not regressions. Treat `make test-stack` as needing a quiet machine (or `--workers=2`).
-- The M3 acceptance (`acceptance-m3.spec.ts`: palette-only vs mouse-only 5-clip edit, identical after reload) passes.
+**M4 is built as one milestone (2026-11-07) and has never been tested.** The owner asked for features first and all tests later ("finish all the milestones first"), so for M4 only `tsc` (every package) and `eslint` were run: both clean. Nothing is committed (the owner commits). M2 and M3 are verified (record below).
 
-Not run: `make test-samples` (~25 min, M1 pipeline, untouched since it last passed) and the manual browser pass (drag/trim feel, tool keys, two-tab conflict banner).
+**The first thing to do when testing M4** (in this order):
+1. `make check`. Known to need work: `packages/ops` coverage is above its gate but the new `setTransition` rules (`not_adjacent`, window fit) have **no tests** and will probably break the existing `setTransition` tests in `packages/ops/test/editing.test.ts` (they may add a transition with no touching clip); `packages/effects` has no tests; the engine and web have no tests for effects, transitions, text, captions, scopes UI wiring, or the LUT library flow. Several earlier M4 pieces *do* have tests (keyframe maths, presets, graph editor, colour reference + shader, scope maths, `.cube` parser); see below.
+2. `make test-engine`: **54 GLSL shaders (40 effects, 14 transitions) plus the source/colour/solid/adjustment/text paths have never been compiled by a GPU.** A broken shader shows up as a `render_error` diagnostic on the clip using it. Expect typos.
+3. Golden tests (SPEC acceptance: "golden tests for every effect/transition"): a procedural still-image test card through every effect (default + one non-default parameter set) and every transition at progress 0 / 0.5 / 1; plus an independent check per effect (see Known gaps → M4). `make golden-update` doesn't exist yet.
+4. `make test-stack` (the `.cube` integration tests in `services/api/tests/integration/test_luts.py` need the worker image rebuilt), then e2e for the M4 acceptance (animate by ◆ + graph ease, reload identical; add effect / transition / text / caption by palette only and by mouse only), then `make perf` with the SPEC §6 scenario that M4 can draw (3 video tracks + 2 text layers + colour + 2 effects at 1080p).
+5. Manual pass: ◆ on every field, graph editor drags, colour wheels/curves, effects browser, transitions on a real cut, caption import.
 
-Next: **M4a-1** (keyframes + graph editor), then M4a-2 (colour pipeline + scopes + LUTs), then M4a-3 (effect system + ~10 effects). Plan each and wait for approval. `Keyframe.tUs` is relative to the clip's start (stated in the schema docs): no owner decision outstanding.
+Verified earlier in this milestone (these have tests, and passed when written): `packages/ops` keyframe evaluation (linear/hold/AE-bezier, spatial paths, colour, shapes), property paths and validation, splitting mid-animation, ease presets; inspector ◆ logic and components; graph editor model + component; colour shader vs the TS reference (16 settings combinations + LUT files through the resolver + geometry); scope maths + engine scope readback + Scopes panel; `.cube` parser (TS + Python); LUT assets in the API unit tests.
+
+**Verification record, M2 + M3 (2026-11-07)**: `make check` green; `make test-engine` and `make smoke-render` green; `make perf` on the GPU (Apple M2, Metal via installed Chrome) passed every gate (60.0 fps, p95 render 4.0 ms, 0% frames never shown, frames opened = closed, 0.47 MB memory growth over 20 s + 2000 seeks; SwiftShader floor 8.2 fps); `make test-stack`: integration 26 passed / 1 skipped, e2e 16 of 18 on a loaded machine and the 2 failures (`player.spec.ts`, `resume.spec.ts`) passed alone with `--workers=1` (CPU contention; run with `--workers=2` or on a quiet machine); the M3 acceptance e2e passed. Not run: `make test-samples` (~25 min, M1 pipeline) and a manual browser pass. Cross-backend finding: the compositor is bit-identical on SwiftShader and the GPU for stills; video differs only through the decoder (SSIM ≈ 0.998), so golden images must use still-image inputs.
+
+Next: **M5** (motion graphics). Plan it and wait for approval; the owner wants M5 and later built whole, not split.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -62,7 +64,7 @@ Getting started in a new session:
 - Music comes only from user assets (#29).
 - License spike before M11 (#30).
 - AI subject select in M11 (#31).
-- M4 split into M4a/b/c (#33).
+- M4 was first planned as M4a/b/c (#33); the owner later asked for it as one milestone, and M5+ are not to be split either.
 - M9 accepted with typed captions plus a manual usability run (#34).
 - Test media (#35): LibriSpeech for M10. The owner supplies the talking-head clip and the Anthropic key for M12.
 - `make soak` for the 1 h leak test (#36).
@@ -220,6 +222,19 @@ Getting started in a new session:
 - Integration test now builds a valid PNG programmatically (a hand-typed one crashed the worker's decode); `test_engine_fixtures.py` skips at module level when fixtures aren't mounted.
 - render-page harness: `call(fn, arg)` passes data into the page (closures can't see Node variables); `smoke.ts` also compares an image asset across backends to isolate decoder from compositor.
 
+**2026-11-07 — M4 (one milestone; see `docs/ops.md`, `docs/color.md`, `docs/effects.md`)**
+- **Keyframes:** `evaluate`/`animatedClip` live in `packages/ops/src/keyframes` (the engine depends on ops). `addKeyframe` now validates the path and value kind (`invalid_property`); two animated properties can't drive the same field (`transform.x` vs `transform.position`); `removeEffect` removes the effect's keyframes. A segment's behaviour is set by its first keyframe; bezier uses AE influence/speed along a *distance* coordinate (value difference, spatial path arc length, linear-light colour distance); a missing ease is linear. `splitClip` splits a spanning segment with De Casteljau so neither half jumps and bakes a constant into a half left without keyframes (this changed the old "no boundary keyframe" behaviour).
+- **UI:** one ◆ control (`components/params/KeyframeToggle`) on every animatable inspector field, effect parameter and colour parameter; position/scale/anchor are point properties (X and Y share one keyframe track, AE-style). Volume and pan have no ◆ until M7 (the audio engine doesn't apply keyframes). Editing an animated field at the playhead writes a keyframe. Graph editor: value and speed graphs, drag keys and ease handles, presets (ease in/out, hold, linear, and baked overshoot/bounce/elastic); bottom dock tab next to the Timeline; no zoom/pan.
+- **Colour:** one shader, specified by `packages/engine/src/color/reference.ts` (`docs/color.md`). A layer with colour or effects is first drawn into a layer-local target in linear light (cropped, on a whole-pixel grid, at no more resolution than it is drawn at), then transformed, so such layers are filtered in linear light while plain layers keep M2's encoded-space filtering.
+- **LUTs:** `builtin:*` ids are eight formula-generated looks (no files, no licence); a user `.cube` is a library asset of kind `lut` (worker validates it, keeps the file as the `lut` rendition; the engine resolves it with `resolve(id, "lut")` and parses it). Choosing a library LUT adds it to the project in the same undo step.
+- **Scopes:** engine option `scopeWidth` blits the canvas to a small RGBA8 target (GPU) and reads it back; waveform, parade, vectorscope, histogram are pure functions over that sample. Updated at most ~8×/s paused, ~2.5×/s while playing.
+- **Effects:** `packages/effects`, one folder per effect (`index.ts` + `.frag.glsl`), 40 effects (the 36 SPEC names + invert, threshold, duotone, scanlines), one shared Gaussian/bright-pass/glow shader set, a registry that feeds the effects browser, the `effect.*` actions and the auto-generated inspector controls. Solid and adjustment clips are drawn (`solid.color`, schema addition). Time-dependent effects use `uFrame` + a seed parameter through GLSL hash noise (`packages/effects/src` is covered by the determinism lint).
+- **Transitions:** 14 transitions; `transitionIn` blends from the touching previous clip; window by `alignment`; both clips are drawn alone at composition size, mixed by a shader; handles are read from the source when the media has them, otherwise the edge frame is held. `setTransition` now requires a touching previous clip and a window that fits. Morph-cut deferred (SPEC allows v1.5).
+- **Text:** rasterised with `OffscreenCanvas` in the worker per run/box, cached by content, uploaded like an image. For text and caption clips `transform.anchorX/Y` are measured from the **centre** of the text picture, so 0,0 centres it on `x,y`. Layout (`text/layout.ts`) is pure over a `Measurer`. Bundled OFL fonts load from `/fonts/` (`apps/web/public/fonts`, also served to the render page).
+- **Captions:** words with clip-relative times; pages of `maxLines` × `maxCharsPerLine`; the spoken word can take `highlightColor` (schema additions: `highlightColor`, `maxLines`, `maxCharsPerLine`). Created from pasted text (even timing), SRT/VTT, or by hand; eight styles in `captions/styles.ts`; editor for each word's text and timing, split/merge/delete.
+- **UI components live in `apps/web/src/components/*`** (params, graph, color, effects, scopes, text), not in a `packages/ui-kit` (nothing outside the web app uses them).
+
+
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
 - **Valkey (BSD-3) instead of Redis.** Redis 8 is RSAL/SSPL/AGPL. RQ and redis-py work unchanged.
@@ -236,6 +251,8 @@ Getting started in a new session:
 - **Ops added to the SPEC §4 list (14):** `updateComposition, removeComposition, updateAsset, removeAsset, addMarker, updateMarker, removeMarker, setTrackProps, linkClips, unlinkClips, setPlaceholder, removeMask, addPaintStrokes, removePaintStrokes`. A test asserts the catalogue equals the spec list plus exactly these.
 - **`docs/` folder added**, holding the pre-M0 review and `ops.md` (op semantics).
 - **M3a schema additions** beyond SPEC §4: `index` on three add-ops and `unset` on `setProps`/`updateAsset` (see Decisions).
+- **M4 schema additions** beyond SPEC §4: optional `Clip.solid {color}`; optional `CaptionData.highlightColor`, `maxLines`, `maxCharsPerLine`; new op error code `invalid_property`; `lut` asset kind is now produced by the API/worker.
+- **M4: no `packages/ui-kit`** (components stay in `apps/web`), **no morph-cut**, 40 effects = the 36 named in SPEC §6 plus invert, threshold, duotone and scanlines (SPEC asks for at least 40 but names 36).
 - **M1:**
   - **"MinIO" in the M1 request means SeaweedFS** (the swap was approved before M0).
   - **`Action.run` may return `void` / `Promise<void>`** as well as `Op | Op[]`, so app-level commands (upload, retry, log out) are Actions too.
@@ -245,8 +262,8 @@ Getting started in a new session:
 
 ## Known gaps
 - **Op payload shapes are provisional until M3** implements `applyOp`. `schemaVersion` stays 1 until projects are first persisted (M3); after that, every breaking schema change needs a migration in `packages/schema/src/migrations.ts`.
-- **Schemas not yet defined:** `Analysis` and `EditPlan` (M10), and the effect/transition definition schema (M4a).
-- **Not created yet:** `packages/ops`, `effects` and `ui-kit`. Each arrives in its milestone (no empty stubs). `packages/actions` exists in minimal form; M3 adds the palette, menus and project ops.
+- **Schemas not yet defined:** `Analysis` and `EditPlan` (M10). Effect and transition *definitions* live in `packages/effects` (not persisted, so not in the generated schema); only `EffectInstance`/`TransitionInstance` are in the schema.
+- **Not created:** `packages/ui-kit` (UI components live in `apps/web`; see M4 decisions). `packages/ops` (M3) and `packages/effects` (M4) exist.
 - **No CI pipeline** (no git remote). Checks run locally via `make check` / `make test-stack` / `make test-samples`.
 - **Dev-only infra:** the web container serves the build with `vite preview`, images aren't hardened, and credentials are dev placeholders. A production deployment setup is outside v1 M0 scope.
 - **No speech or talking-head samples.** M10/M12 need licensed real footage (review #35).
@@ -294,6 +311,16 @@ Getting started in a new session:
   - Inspector: no keyframe ◆ control (M4a), no colour/effects/masks/text/shape sections (M4a/M5); crop edges and speed accept any value in range without cross-field checks; the Time section's source in/out and duration are read-only.
   - No drag-and-drop from the asset list onto lanes (the Add button places at the playhead), no in/out points, no rubber-band selection, no system-clipboard integration (the clipboard lives in the editor and is lost on reload).
   - Undo history is still not kept across a reload.
+- **M4 gaps:**
+  - **Nothing in M4 was tested after the first stages** (see Current focus): no goldens for the 40 effects and 14 transitions, no GPU compile of any of their shaders, no tests for text, captions, transitions, adjustment/solid clips, the effects/text/transition inspectors, the effects browser, or the `effect.*`, `transition.*`, `text.*`, `caption.*`, `layer.*`, `color.*` actions. `setTransition`'s new validation likely breaks existing ops tests.
+  - Effects' independent checks (planned instead of "a golden only proves unchanged"): invert/posterize/threshold/fill/letterbox exact pixel maths; blur preserves the mean; mirror/kaleidoscope symmetry; chroma key clears the key colour; grain differs by frame but not for the same frame and seed; every effect's output differs from its input.
+  - Graph editor: no zoom or pan; value-graph handles only for numeric properties (points and colours edit ease in the speed graph); colours and shapes can't overshoot/bounce presets.
+  - Transitions: no drag handle on the timeline badge for the duration (use the Inspector or `transition.setDuration`); audio is not crossfaded (M7); the engine reads source handles only for video and nested compositions (images and solids don't need them).
+  - Text: no on-canvas text editing, no text animators (diagnosed `ignored_text_animators`, M5), one font file per weight for Poppins/Bebas (nearest weight is used), text glyph antialiasing is OS-specific so text goldens will need a tolerance; rich text (several runs) can be rendered but the Inspector edits one style for all runs.
+  - Captions: no speech-to-text until M10; word timing is edited numerically (no waveform view); karaoke highlighting is per word colour only.
+  - Colour: no HDR / wide gamut, no log-input LUTs, trilinear (not tetrahedral) LUT interpolation; wheels are numeric rows (no graphical wheel yet).
+  - `.cube` assets: the library UI shows them with a generic icon; the Docker worker image must be rebuilt for `.cube` uploads to process.
+  - Engine: playback still pauses on every project edit (M2 limit), which includes scrubbing a ◆ value while playing; the full SPEC perf scenario with text, shapes and effects was not run (shapes arrive in M5).
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
@@ -386,3 +413,18 @@ No new Python packages or AI models.
 | fonts-dejavu-core | Debian | Bitstream Vera / public-domain derived (free) | drawtext in sample media only |
 
 **AI models:** none added yet. Candidate licenses are recorded in `docs/pre-m0-review.md` §4. BRIA RMBG is excluded (non-commercial), and LaMa/BiRefNet weights need confirmation before M11.
+
+**Added in M4**
+| Package / asset | Version | License | Where |
+|---|---|---|---|
+| @lumacut/effects, @lumacut/ops (as engine dependencies) | workspace | — | packages/engine, apps/web |
+| Inter | variable, Google Fonts repo | OFL-1.1 | apps/web/public/fonts (Inter.ttf, Inter-Italic.ttf) |
+| Montserrat | variable | OFL-1.1 | apps/web/public/fonts |
+| Poppins | Regular/Italic/Bold/BoldItalic | OFL-1.1 | apps/web/public/fonts |
+| Playfair Display | variable | OFL-1.1 | apps/web/public/fonts |
+| Bebas Neue | Regular | OFL-1.1 | apps/web/public/fonts |
+| Roboto Mono | variable | OFL-1.1 | apps/web/public/fonts |
+| Caveat | variable | OFL-1.1 | apps/web/public/fonts |
+| Built-in LUTs (`builtin:*`) | generated from formulas | ours | packages/engine/src/color/builtin-luts.ts |
+
+No new npm or Python libraries. Each font's licence text is next to it (`apps/web/public/fonts/OFL-<family>.txt`).

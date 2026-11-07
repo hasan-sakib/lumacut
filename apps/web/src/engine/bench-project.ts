@@ -45,7 +45,13 @@ export interface BenchLayer {
 
 /** A new layer for a library asset, or null when the asset can't be placed (not ready, no media). */
 export function layerFromAsset(asset: AssetOut, layerId: string): BenchLayer | null {
-  if (asset.status !== "ready" || asset.kind === null || asset.media === null) return null;
+  if (
+    asset.status !== "ready" ||
+    asset.kind === null ||
+    asset.kind === "lut" ||
+    asset.media === null
+  )
+    return null;
   const base = {
     id: layerId,
     assetId: asset.id,

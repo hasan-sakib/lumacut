@@ -136,6 +136,7 @@ function ctxFor(project: Project): EditingContext {
         zoomFit: vi.fn(),
         toggleSnapping: vi.fn(),
         selectClips: vi.fn(),
+        setBottomPanel: vi.fn(),
       },
     },
   };
@@ -203,6 +204,23 @@ describe("drawing", () => {
     expect(document.querySelectorAll('[data-clip="c3"]')[1]?.getAttribute("style")).toContain(
       "left: 300px",
     );
+  });
+
+  it("marks every keyframed moment of a clip with a diamond, at its clip-local time", () => {
+    const project = sampleProject();
+    const first = must(project.compositions[0]?.tracks[0]?.clips[0]);
+    first.keyframes = {
+      opacity: [
+        { tUs: 0, value: 0, interpolation: "linear" },
+        { tUs: SEC, value: 1, interpolation: "linear" },
+      ],
+      "transform.rotation": [{ tUs: SEC, value: 90, interpolation: "linear" }],
+    };
+    const { clip } = setup({ project });
+    const diamonds = clip("c1").querySelectorAll<HTMLElement>("[data-keyframe-time]");
+    expect(Array.from(diamonds).map((d) => d.dataset.keyframeTime)).toEqual(["0", String(SEC)]);
+    expect(diamonds[1]?.style.left).toBe("100px");
+    expect(clip("c2").querySelector("[data-keyframe-time]")).toBeNull();
   });
 
   it("lists tracks top-down with the last track on top, with headers", () => {

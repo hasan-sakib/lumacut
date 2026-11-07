@@ -30,12 +30,21 @@ class Dimensions(CamelModel):
     height: int
 
 
+class LutInfo(CamelModel):
+    """Summary of a validated `.cube` look-up table."""
+
+    title: str
+    dimension: Literal[1, 3]
+    size: int
+
+
 class AssetMedia(CamelModel):
     """Technical metadata from the probe; shapes match packages/schema (Asset.video/audio/image)."""
 
     video: VideoStreamInfo | None = None
     audio: AudioStreamInfo | None = None
     image: ImageInfo | None = None
+    lut: LutInfo | None = None
     downscaled_from: Dimensions | None = None
 
 
@@ -50,11 +59,12 @@ class AssetUrls(CamelModel):
     preview: str | None = None
     thumb: str | None = None
     normalized: str | None = None
+    lut: str | None = None
 
 
 class AssetOut(CamelModel):
     id: str
-    kind: Literal["video", "audio", "image"] | None
+    kind: Literal["video", "audio", "image", "lut"] | None
     name: str
     mime_type: str
     size_bytes: int
@@ -75,7 +85,7 @@ async def to_asset_out(asset: Asset, s3_public: S3Client, bucket: str) -> AssetO
     urls = AssetUrls()
     renditions: dict[str, Any] = asset.renditions or {}
     if asset.status == "ready":
-        for field in ("poster", "waveform", "proxy", "preview", "thumb", "normalized"):
+        for field in ("poster", "waveform", "proxy", "preview", "thumb", "normalized", "lut"):
             key = renditions.get(field)
             if isinstance(key, str):
                 setattr(urls, field, await presign_get(s3_public, bucket, key))

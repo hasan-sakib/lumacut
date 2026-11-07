@@ -52,6 +52,8 @@ export interface EditingServices {
     zoomFit: () => void;
     toggleSnapping: () => void;
     selectClips: (ids: string[]) => void;
+    /** Shows the timeline or the graph editor in the bottom dock. */
+    setBottomPanel: (panel: "timeline" | "graph") => void;
   };
 }
 
@@ -80,7 +82,7 @@ export const DEFAULT_IMAGE_US = 5_000_000;
 
 // --- Reading the context ----------------------------------------------------------------------
 
-function activeComposition(ctx: EditingContext): Composition | undefined {
+export function activeComposition(ctx: EditingContext): Composition | undefined {
   return ctx.project?.compositions.find((c) => c.id === ctx.compositionId);
 }
 
@@ -462,7 +464,7 @@ function mediaLength(asset: Asset, kind: "video" | "audio"): number {
 }
 
 /** The first unlocked track of this kind with nothing in [start, end), or a new track op for it. */
-function trackFor(
+export function trackFor(
   ctx: EditingContext,
   comp: Composition,
   kind: TrackKind,

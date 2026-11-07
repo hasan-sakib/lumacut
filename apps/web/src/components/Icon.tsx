@@ -1,6 +1,12 @@
 /** Small inline icon set (no icon-font dependency). Decorative: callers provide the label. */
 
 const PATHS: Record<string, string> = {
+  keyframe: "M12 3l9 9-9 9-9-9z",
+  text: "M5 6V4h14v2M12 4v16M9 20h6",
+  effect:
+    "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18 16l.9 2.1L21 19l-2.1.9L18 22l-.9-2.1L15 19l2.1-.9z",
+  lut: "M4 4h16v16H4zM4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16",
+  graph: "M3 20h18M4 17c4 0 4-10 8-10s4 10 8 10",
   upload: "M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3",
   search: "m21 21-4.3-4.3M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z",
   grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",

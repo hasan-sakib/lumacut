@@ -5,6 +5,11 @@ import { editingActions } from "../actions/editing.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
 import { Icon } from "../components/Icon.tsx";
+import { EffectsBrowser } from "../components/effects/EffectsBrowser.tsx";
+import { GraphEditor } from "../components/graph/GraphEditor.tsx";
+import { ScopesPanel } from "../components/scopes/ScopesPanel.tsx";
+import { TextBrowser } from "../components/text/TextBrowser.tsx";
+import type { LutAsset } from "../components/color/LutPicker.tsx";
 import { Inspector } from "../components/inspector/Inspector.tsx";
 import { ActionContextMenu } from "../components/palette/ActionContextMenu.tsx";
 import { CommandPalette } from "../components/palette/CommandPalette.tsx";
@@ -15,6 +20,8 @@ import { Toolbar } from "../components/timeline/Toolbar.tsx";
 import { useEditingHost } from "../editor/useEditingHost.ts";
 import { usePreview } from "../editor/usePreview.ts";
 import { newId } from "../lib/ids.ts";
+import { touchingPrevious } from "../inspector/transition-ops.ts";
+import { toProjectAsset } from "../lib/project-assets.ts";
 import type { ClipInfo } from "../inspector/fields.ts";
 import { findPlaced } from "../timeline/clips.ts";
 import { useAssetsStore } from "../stores/assets.ts";
@@ -43,7 +50,9 @@ export function ProjectPage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tab, setTab] = useState<"inspector" | "media" | "history">("inspector");
+  const [tab, setTab] = useState<"inspector" | "media" | "effects" | "text" | "scopes" | "history">(
+    "inspector",
+  );
 
   const compositionId = editor.activeCompositionId ?? project?.mainCompositionId ?? null;
   const {
@@ -53,6 +62,7 @@ export function ProjectPage() {
     error: previewError,
     togglePlay,
     seek,
+    readScope,
   } = usePreview(project, compositionId);
 
   const ui = useMemo(
@@ -129,6 +139,22 @@ export function ProjectPage() {
       .dispatch(op, coalesceKey === undefined ? {} : { coalesceKey });
     setNotice(result.ok ? null : result.message);
   }, []);
+
+  const libraryById = useAssetsStore((s) => s.byId);
+  // Every .cube the person can use: those already in the project, and ready ones in the library.
+  const lutAssets = useMemo<LutAsset[]>(() => {
+    const inProject = new Set(project?.assets.map((a) => a.id));
+    const own = (project?.assets ?? [])
+      .filter((a) => a.kind === "lut")
+      .map((a) => ({ id: a.id, name: a.name }));
+    const fromLibrary = Object.values(libraryById).flatMap((a) => {
+      const asset = toProjectAsset(a);
+      return asset?.kind === "lut" && !inProject.has(asset.id)
+        ? [{ id: asset.id, name: asset.name, addToProject: asset }]
+        : [];
+    });
+    return [...own, ...fromLibrary];
+  }, [project, libraryById]);
 
   const composition = project?.compositions.find((c) => c.id === compositionId);
   const selectedInfos = useMemo<ClipInfo[]>(() => {
@@ -248,30 +274,58 @@ export function ProjectPage() {
                 aria-label="Panels"
                 className="flex border-b border-neutral-800 text-xs"
               >
-                {(["inspector", "media", "history"] as const).map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab === id}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                    }}
-                    onClick={() => {
-                      setTab(id);
-                    }}
-                    className={`flex-1 px-3 py-2 capitalize ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
-                  >
-                    {id === "media" ? "Add media" : id}
-                  </button>
-                ))}
+                {(["inspector", "media", "effects", "text", "scopes", "history"] as const).map(
+                  (id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === id}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                      }}
+                      onClick={() => {
+                        setTab(id);
+                      }}
+                      className={`flex-1 px-3 py-2 capitalize ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+                    >
+                      {id === "media" ? "Add media" : id}
+                    </button>
+                  ),
+                )}
               </div>
               <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
                 {tab === "inspector" && (
                   <Inspector
                     composition={composition}
                     items={selectedInfos}
+                    playheadUs={editor.playheadUs}
+                    lutAssets={lutAssets}
                     onChange={commitField}
+                  />
+                )}
+                {tab === "effects" && (
+                  <EffectsBrowser
+                    canAdd={selectedInfos.some((i) => i.track?.kind !== "audio")}
+                    canTransition={selectedInfos.some(
+                      (i) =>
+                        i.track !== undefined && touchingPrevious(i.track, i.clip) !== undefined,
+                    )}
+                    run={(id, args) => void run(id, args)}
+                  />
+                )}
+                {tab === "text" && (
+                  <TextBrowser
+                    hasCaption={selectedInfos.some((i) => i.clip.type === "caption")}
+                    run={(id, args) => run(id, args)}
+                  />
+                )}
+                {tab === "scopes" && (
+                  <ScopesPanel
+                    readScope={readScope}
+                    playheadUs={editor.playheadUs}
+                    project={project}
+                    playing={playing}
                   />
                 )}
                 {tab === "media" && (
@@ -342,35 +396,77 @@ export function ProjectPage() {
             fps={composition.fps}
             onRun={host.runAction}
           />
-          <ActionContextMenu registry={editingActions} ctx={host.ctx} onRun={(id) => void run(id)}>
-            <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
-              <Timeline
-                project={project}
-                composition={composition}
-                ctx={host.ctx}
-                tool={editor.tool}
-                zoomPxPerSec={editor.zoomPxPerSec}
-                scrollUs={editor.scrollUs}
-                snapping={editor.snapping}
-                playheadUs={editor.playheadUs}
-                playing={playing}
-                selectedClipIds={editor.selectedClipIds}
-                selectedTrackId={editor.selectedTrackId}
-                newId={newId}
-                onSelectClips={editor.selectClips}
-                onSelectTrack={editor.selectTrack}
-                onSeek={seek}
-                onCommit={commit}
-                onRunAction={host.runAction}
-                onZoom={(zoom, scroll) => {
-                  editor.setZoom(zoom);
-                  editor.setScroll(scroll);
+          <div
+            role="tablist"
+            aria-label="Bottom panel"
+            className="flex shrink-0 gap-1 border-t border-neutral-800 bg-neutral-950 px-3 pt-1 text-xs"
+          >
+            {(
+              [
+                ["timeline", "Timeline", "panel.showTimeline"],
+                ["graph", "Graph editor", "panel.showGraph"],
+              ] as const
+            ).map(([id, title, action]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={editor.bottomPanel === id}
+                title={`${title}: ${editingActions.get(action).description} (${editingActions.get(action).shortcut ?? ""})`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
                 }}
-                onScroll={editor.setScroll}
-                onViewport={editor.setViewportPx}
+                onClick={() => void run(action)}
+                className={`rounded-t px-3 py-1 ${editor.bottomPanel === id ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+              >
+                {title}
+              </button>
+            ))}
+          </div>
+          {editor.bottomPanel === "graph" ? (
+            <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+              <GraphEditor
+                clip={selectedInfos.length === 1 ? selectedInfos[0]?.clip : undefined}
+                playheadUs={editor.playheadUs}
+                onChange={commitField}
+                onSeek={seek}
               />
             </div>
-          </ActionContextMenu>
+          ) : (
+            <ActionContextMenu
+              registry={editingActions}
+              ctx={host.ctx}
+              onRun={(id) => void run(id)}
+            >
+              <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+                <Timeline
+                  project={project}
+                  composition={composition}
+                  ctx={host.ctx}
+                  tool={editor.tool}
+                  zoomPxPerSec={editor.zoomPxPerSec}
+                  scrollUs={editor.scrollUs}
+                  snapping={editor.snapping}
+                  playheadUs={editor.playheadUs}
+                  playing={playing}
+                  selectedClipIds={editor.selectedClipIds}
+                  selectedTrackId={editor.selectedTrackId}
+                  newId={newId}
+                  onSelectClips={editor.selectClips}
+                  onSelectTrack={editor.selectTrack}
+                  onSeek={seek}
+                  onCommit={commit}
+                  onRunAction={host.runAction}
+                  onZoom={(zoom, scroll) => {
+                    editor.setZoom(zoom);
+                    editor.setScroll(scroll);
+                  }}
+                  onScroll={editor.setScroll}
+                  onViewport={editor.setViewportPx}
+                />
+              </div>
+            </ActionContextMenu>
+          )}
         </>
       )}
 

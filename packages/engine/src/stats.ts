@@ -20,6 +20,8 @@ export interface StatsSnapshot {
   targetBytes: number;
   nestedRenders: number;
   layersDrawn: number;
+  /** Full-screen shader passes run for colour, effects and transitions. */
+  fxPasses: number;
   rendersCompleted: number;
 }
 
@@ -43,6 +45,7 @@ export class EngineStats {
   targetBytes = 0;
   nestedRenders = 0;
   layersDrawn = 0;
+  fxPasses = 0;
   rendersCompleted = 0;
 
   get openFrames(): number {
@@ -75,6 +78,7 @@ export class EngineStats {
       targetBytes: this.targetBytes,
       nestedRenders: this.nestedRenders,
       layersDrawn: this.layersDrawn,
+      fxPasses: this.fxPasses,
       rendersCompleted: this.rendersCompleted,
     };
   }

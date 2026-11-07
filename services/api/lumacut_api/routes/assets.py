@@ -48,7 +48,7 @@ async def list_assets(
     session: SessionDep,
     resources: ResourcesDep,
     q: Annotated[str | None, Query(max_length=200, description="Search in names")] = None,
-    kind: Literal["video", "audio", "image"] | None = None,
+    kind: Literal["video", "audio", "image", "lut"] | None = None,
     status: Literal["uploading", "queued", "processing", "ready", "failed"] | None = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 200,
 ) -> AssetList:

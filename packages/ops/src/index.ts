@@ -11,3 +11,26 @@ export {
   needTrack,
 } from "./model.ts";
 export { findCompositionCycle, validateProject } from "./validate.ts";
+export {
+  EASE_PRESETS,
+  EASE_PRESET_INFO,
+  animatedClip,
+  applyEasePreset,
+  easePresetOps,
+  isBakedPreset,
+  keyframeOps,
+  segmentInfo,
+  speedProfile,
+  evaluate,
+  evaluateFrames,
+  isAnimated,
+  kindOf,
+  localTime,
+  resolveProperty,
+  splitFrames,
+  valueFitsKind,
+  type AnimatableProperty,
+  type EasePreset,
+  type SegmentInfo,
+  type ValueKind,
+} from "./keyframes/index.ts";

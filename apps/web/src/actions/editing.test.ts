@@ -98,6 +98,7 @@ const editor = {
   zoomFit: vi.fn(),
   toggleSnapping: vi.fn(),
   selectClips: vi.fn(),
+  setBottomPanel: vi.fn(),
 };
 
 function ctx(partial: Partial<EditingContext> = {}): EditingContext {

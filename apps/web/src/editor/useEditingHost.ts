@@ -1,6 +1,12 @@
 import { runAction, type AnyAction } from "@lumacut/actions";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { editingActions, type EditingContext, type EditingServices } from "../actions/editing.ts";
+import "../actions/colour.ts";
+import "../actions/effects.ts";
+import "../actions/layers.ts";
+import "../actions/text.ts";
+import "../actions/transitions.ts";
+import "../actions/keyframes.ts";
 import { newId } from "../lib/ids.ts";
 import { fitZoom, zoomBy } from "../timeline/geometry.ts";
 import { resolveAssetQuery } from "../lib/project-assets.ts";
@@ -83,6 +89,9 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         },
         selectClips: (ids) => {
           useEditorStore.getState().selectClips(ids);
+        },
+        setBottomPanel: (panel) => {
+          useEditorStore.getState().setBottomPanel(panel);
         },
       },
     }),

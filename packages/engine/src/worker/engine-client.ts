@@ -10,6 +10,8 @@ export interface EngineClientOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas;
   resolver: MediaResolver;
   limits?: Partial<EngineLimits>;
+  /** Absolute URL of the folder with the bundled fonts (default: `/fonts/` on this origin). */
+  fontBaseUrl?: string;
   /** Supply your own Worker (tests, custom bundling). */
   worker?: Worker;
 }
@@ -49,7 +51,16 @@ export class EngineClient {
       options.canvas instanceof OffscreenCanvas
         ? options.canvas
         : options.canvas.transferControlToOffscreen();
-    await client.#rpc.call("init", { canvas: offscreen, limits: options.limits }, [offscreen]);
+    await client.#rpc.call(
+      "init",
+      {
+        canvas: offscreen,
+        limits: options.limits,
+        // A worker resolves relative URLs against its own script, so always send an absolute one.
+        fontBaseUrl: options.fontBaseUrl ?? new URL("/fonts/", globalThis.location.href).href,
+      },
+      [offscreen],
+    );
     return client;
   }
 
@@ -65,14 +76,19 @@ export class EngineClient {
   renderAt(
     compositionId: string,
     tUs: number,
-    options?: { readback?: boolean },
+    options?: { readback?: boolean; scopeWidth?: number },
   ): Promise<RenderResult>;
   renderAt(
     compositionId: string,
     tUs: number,
-    options: { readback?: boolean } = {},
+    options: { readback?: boolean; scopeWidth?: number } = {},
   ): Promise<RenderResult> {
-    return this.#rpc.call("renderAt", { compositionId, tUs, readback: options.readback === true });
+    return this.#rpc.call("renderAt", {
+      compositionId,
+      tUs,
+      readback: options.readback === true,
+      ...(options.scopeWidth === undefined ? {} : { scopeWidth: options.scopeWidth }),
+    });
   }
 
   /** Asks for a frame without waiting; a newer request replaces one that hasn't started. */

@@ -3,6 +3,7 @@ import { AudioEngine } from "../audio/audio-engine.ts";
 import type { MediaResolver } from "../decode/media.ts";
 import type { Diagnostic } from "../render/diagnostics.ts";
 import type { ReadbackRenderResult } from "../render/engine.ts";
+import type { ScopeSample } from "../scopes/compute.ts";
 import type { StatsSnapshot } from "../stats.ts";
 import { EngineClient } from "../worker/engine-client.ts";
 import { audioContextClock, createPlaybackContext } from "./clock.ts";
@@ -31,6 +32,8 @@ export interface PlaybackSessionOptions {
   /** The composition to play (the project's main one is not assumed). */
   compositionId: string;
   callbacks: PlaybackSessionCallbacks;
+  /** Absolute URL of the folder with the bundled fonts (default: `/fonts/` on this origin). */
+  fontBaseUrl?: string;
 }
 
 /**
@@ -68,6 +71,7 @@ export class PlaybackSession {
     const client = await EngineClient.create({
       canvas: options.canvas,
       resolver: options.resolver,
+      ...(options.fontBaseUrl === undefined ? {} : { fontBaseUrl: options.fontBaseUrl }),
     });
     const context = createPlaybackContext();
     const audio = new AudioEngine({ context, resolver: options.resolver });
@@ -164,6 +168,15 @@ export class PlaybackSession {
   /** Renders the frame at the playhead and reads its pixels back (premultiplied RGBA8, top-left). */
   readPixels(): Promise<ReadbackRenderResult> {
     return this.#client.renderAt(this.#compositionId, this.timeUs, { readback: true });
+  }
+
+  /** The picture at the playhead shrunk to `width` pixels across, for the video scopes. */
+  async readScope(width = 320): Promise<ScopeSample> {
+    const result = await this.#client.renderAt(this.#compositionId, this.timeUs, {
+      scopeWidth: width,
+    });
+    if (result.scope === undefined) throw new Error("The engine returned no scope sample");
+    return result.scope;
   }
 
   /** Same, at an explicit time: for inspection and benchmarks, it doesn't move the playhead. */

@@ -1,4 +1,5 @@
 import { PlaybackSession, type Diagnostic } from "@lumacut/engine";
+import type { ScopeSample } from "@lumacut/engine/scopes";
 import type { Project } from "@lumacut/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createApiAssetResolver } from "../engine/resolver.ts";
@@ -15,6 +16,8 @@ export interface Preview {
   togglePlay: () => void;
   /** Move the playhead (and the picture and sound if playing). */
   seek: (us: number) => void;
+  /** The current picture shrunk to `width` pixels across (for the video scopes), or null before the preview is ready. */
+  readScope: (width?: number) => Promise<ScopeSample | null>;
 }
 
 /**
@@ -154,5 +157,10 @@ export function usePreview(project: Project | null, compositionId: string | null
     if (session?.playing) void session.seek(Math.max(0, Math.round(us)));
   }, []);
 
-  return { attachStage: setStage, ready, playing, diagnostics, error, togglePlay, seek };
+  const readScope = useCallback(async (width = 320): Promise<ScopeSample | null> => {
+    const session = sessionRef.current;
+    return session === null ? null : session.readScope(width);
+  }, []);
+
+  return { attachStage: setStage, ready, playing, diagnostics, error, togglePlay, seek, readScope };
 }

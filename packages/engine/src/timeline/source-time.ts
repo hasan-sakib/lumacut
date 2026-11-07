@@ -52,3 +52,30 @@ export function sourceInstantUs(clip: TimedClip, tUs: number): number {
 export function sourceFrameIndex(clip: TimedClip, tUs: number, mediaFps: Rational): number {
   return usToFrame(Math.max(0, sourceInstantUs(clip, tUs)), mediaFps);
 }
+
+/**
+ * Like `sourceInstantUs`, for instants just outside the clip (the handles a transition reads):
+ * the source keeps playing past the clip's trimmed range, stopping at the media's own ends
+ * (`[0, sourceDurationUs - 1]`), where the first or last frame is held.
+ */
+export function extendedSourceInstantUs(
+  clip: TimedClip,
+  tUs: number,
+  sourceDurationUs: number,
+): number {
+  if (clip.freezeAtUs !== undefined) return clip.freezeAtUs + SAMPLE_BIAS_US;
+  const offset = Math.round((tUs - clip.startUs) * clip.speed);
+  const instant = clip.reversed
+    ? clip.outUs - offset - SAMPLE_BIAS_US
+    : clip.inUs + offset + SAMPLE_BIAS_US;
+  return Math.min(Math.max(0, sourceDurationUs - 1), Math.max(0, instant));
+}
+
+export function extendedSourceFrameIndex(
+  clip: TimedClip,
+  tUs: number,
+  mediaFps: Rational,
+  sourceDurationUs: number,
+): number {
+  return usToFrame(extendedSourceInstantUs(clip, tUs, sourceDurationUs), mediaFps);
+}

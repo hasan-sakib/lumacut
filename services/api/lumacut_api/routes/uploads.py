@@ -63,7 +63,10 @@ class PartUrlsOut(CamelModel):
     expires_at: datetime
 
 
-def guess_kind(mime_type: str) -> str | None:
+def guess_kind(mime_type: str, file_name: str = "") -> str | None:
+    """From the MIME type; `.cube` files (look-up tables have no MIME type) by extension."""
+    if file_name.lower().endswith(".cube"):
+        return "lut"
     family = mime_type.split("/", 1)[0].lower()
     return family if family in ("video", "audio", "image") else None
 
@@ -127,7 +130,7 @@ async def create_upload(
     asset = Asset(
         id=asset_id,
         owner_id=user.id,
-        kind=guess_kind(body.mime_type),
+        kind=guess_kind(body.mime_type, name),
         name=name,
         original_filename=body.file_name,
         mime_type=body.mime_type,

@@ -8,6 +8,7 @@ export const OP_ERROR_CODES = [
   "unknown_effect",
   "unknown_mask",
   "unknown_keyframe",
+  "invalid_property",
   "duplicate_id",
   "track_locked",
   "wrong_track_kind",

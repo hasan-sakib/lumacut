@@ -12,6 +12,8 @@ export const DETERMINISTIC_GLOBS = [
   "packages/engine/src/gl/**/*.ts",
   "packages/engine/src/decode/**/*.ts",
   "packages/engine/src/render/**/*.ts",
+  "packages/engine/src/color/**/*.ts",
+  "packages/effects/src/**/*.ts",
 ];
 
 const WHY = "Render code must be deterministic (CLAUDE.md rule 6). Inject a Clock or a seeded RNG.";

@@ -1,9 +1,12 @@
-import type { Clip, ColorSettings, Transform } from "@lumacut/schema";
+import { animatedClip, resolveProperty } from "@lumacut/ops";
+import type { Clip, Transform } from "@lumacut/schema";
 import type { BlendMode } from "@lumacut/schema";
 import type { Crop } from "../math/matrix.ts";
 import type { DiagnosticSink } from "./diagnostics.ts";
 
 export interface ResolvedLayerProps {
+  /** The clip with every animated property replaced by its value at this time. */
+  clip: Clip;
   transform: Transform;
   opacity: number;
   crop: Crop;
@@ -11,40 +14,19 @@ export interface ResolvedLayerProps {
 }
 
 /**
- * The clip's drawable properties at timeline time `tUs`. Every property is read through here so
- * that keyframe evaluation (M4a) changes this one function: today it returns the static value,
- * and `reportIgnoredFeatures` says so out loud when keyframes exist.
+ * The clip's drawable properties at composition time `tUs`: keyframes are evaluated (they are
+ * clip-local, so the time is `tUs - clip.startUs`) and every other property is its static value.
+ * Everything the engine draws is read through here.
  */
-export function resolveClipProps(clip: Clip, _tUs: number): ResolvedLayerProps {
+export function resolveClipProps(clip: Clip, tUs: number): ResolvedLayerProps {
+  const resolved = animatedClip(clip, tUs - clip.startUs);
   return {
-    transform: clip.transform,
-    opacity: clip.opacity,
-    crop: clip.crop,
-    blendMode: clip.blendMode,
+    clip: resolved,
+    transform: resolved.transform,
+    opacity: resolved.opacity,
+    crop: resolved.crop,
+    blendMode: resolved.blendMode,
   };
-}
-
-function isNeutralColor(color: ColorSettings): boolean {
-  const scalars = [
-    color.exposure,
-    color.contrast,
-    color.highlights,
-    color.shadows,
-    color.whites,
-    color.blacks,
-    color.temperature,
-    color.tint,
-    color.saturation,
-    color.vibrance,
-  ];
-  const wheels = [color.lift, color.gamma, color.gain, color.offset].flat();
-  return (
-    scalars.every((v) => v === 0) &&
-    wheels.every((v) => v === 0) &&
-    color.curves === undefined &&
-    color.hsl === undefined &&
-    color.lut === undefined
-  );
 }
 
 /** Tells the caller about clip features this engine version does not apply yet. */
@@ -52,14 +34,20 @@ export function reportIgnoredFeatures(clip: Clip, sink: DiagnosticSink): void {
   const warn = (code: string, message: string): void => {
     sink.add({ clipId: clip.id, level: "warning", code, message });
   };
-  if (Object.values(clip.keyframes).some((frames) => frames.length > 0)) {
-    warn("ignored_keyframes", "Keyframes aren't animated yet; the clip's static values are used.");
+  // Audio keyframes belong to the audio engine (it reports them); anything else that doesn't
+  // resolve to an animatable property (a mask path before M5, a stale path) is not applied.
+  const unanimated = Object.entries(clip.keyframes).filter(
+    ([path, frames]) =>
+      frames.length > 0 && !path.startsWith("audio.") && resolveProperty(clip, path) === undefined,
+  );
+  if (unanimated.length > 0) {
+    warn(
+      "ignored_keyframes",
+      `Keyframes on ${unanimated.map(([path]) => `"${path}"`).join(", ")} can't be animated yet.`,
+    );
   }
   if (clip.masks.length > 0) warn("ignored_masks", "Masks aren't applied yet.");
   if (clip.trackMatte !== undefined)
     warn("ignored_track_matte", "Track mattes aren't applied yet.");
-  if (!isNeutralColor(clip.color)) warn("ignored_color", "Colour grading isn't applied yet.");
-  if (clip.effects.some((e) => e.enabled)) warn("ignored_effects", "Effects aren't applied yet.");
   if (clip.motionBlur.enabled) warn("ignored_motion_blur", "Motion blur isn't applied yet.");
-  if (clip.transitionIn !== undefined) warn("ignored_transition", "Transitions aren't drawn yet.");
 }

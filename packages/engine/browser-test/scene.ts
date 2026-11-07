@@ -82,6 +82,11 @@ export class SceneResolver implements MediaResolver {
     return resolver;
   }
 
+  /** Serves a text file (a `.cube` LUT) under an asset id. */
+  addText(assetId: string, text: string): void {
+    this.#urls.set(assetId, URL.createObjectURL(new Blob([text], { type: "text/plain" })));
+  }
+
   resolve(assetId: string, kind: MediaKind): Promise<string> {
     this.requests.push({ assetId, kind });
     const url = this.#urls.get(assetId);

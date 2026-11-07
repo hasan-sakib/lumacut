@@ -47,6 +47,7 @@ CONTENT_TYPES = {
     ".png": "image/png",
     ".webp": "image/webp",
     ".json": "application/json",
+    ".cube": "text/plain; charset=utf-8",
 }
 
 

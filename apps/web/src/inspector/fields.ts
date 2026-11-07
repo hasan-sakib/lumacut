@@ -7,12 +7,13 @@ import {
   type Track,
 } from "@lumacut/schema";
 
-export type SectionId = "transform" | "blend" | "crop" | "time" | "audio";
+export type SectionId = "transform" | "blend" | "crop" | "color" | "time" | "audio" | "effects";
 
 export const SECTIONS: readonly { id: SectionId; title: string }[] = [
   { id: "transform", title: "Transform" },
   { id: "blend", title: "Opacity & blend" },
   { id: "crop", title: "Crop" },
+  { id: "color", title: "Colour" },
   { id: "time", title: "Time" },
   { id: "audio", title: "Audio" },
 ];
@@ -32,6 +33,14 @@ export interface ClipInfo {
   asset: Asset | undefined;
 }
 
+/** How a field maps onto a keyframeable property of the clip (see `inspector/animation.ts`). */
+export interface FieldAnimation {
+  /** The property path, e.g. `opacity` or `transform.position`. */
+  path: string;
+  /** For a field that edits one part of a point property: 0 = x, 1 = y, "both" = both together. */
+  component?: 0 | 1 | "both";
+}
+
 export interface FieldDef {
   id: string;
   label: string;
@@ -49,7 +58,11 @@ export interface FieldDef {
   min?: number;
   max?: number;
   options?: readonly string[];
+  /** Display names for `options` (the stored value is shown when absent). */
+  optionLabels?: Readonly<Record<string, string>>;
   readOnly?: boolean;
+  /** Present when the property can be animated: the row then gets the ◆ keyframe control. */
+  animation?: FieldAnimation;
   /** Stored value → what is shown (e.g. 0.5 → 50). Identity when absent. */
   toDisplay?: (stored: number) => number;
   /** What was typed → stored value. */
@@ -85,6 +98,15 @@ const dbOf = (gain: number): number =>
   gain <= 0 ? MIN_DB : Math.max(MIN_DB, 20 * Math.log10(gain));
 const gainOf = (db: number): number => (db <= MIN_DB ? 0 : 10 ** (db / 20));
 
+const TRANSFORM_ANIMATION: Record<string, FieldAnimation> = {
+  x: { path: "transform.position", component: 0 },
+  y: { path: "transform.position", component: 1 },
+  rotation: { path: "transform.rotation" },
+  anchorX: { path: "transform.anchor", component: 0 },
+  anchorY: { path: "transform.anchor", component: 1 },
+  skew: { path: "transform.skew" },
+};
+
 function transformField(
   id: string,
   label: string,
@@ -97,6 +119,7 @@ function transformField(
     section: "transform",
     kind: "number",
     appliesTo: onPicture,
+    ...(TRANSFORM_ANIMATION[key] === undefined ? {} : { animation: TRANSFORM_ANIMATION[key] }),
     get: (clip) => clip.transform[key],
     set: (clip, value) => ({ props: { transform: { ...clip.transform, [key]: Number(value) } } }),
     ...extra,
@@ -115,9 +138,82 @@ function cropField(id: string, label: string, edge: "left" | "top" | "right" | "
     max: 95,
     ...percent,
     appliesTo: onPicture,
+    animation: { path: `crop.${edge}` },
     get: (clip) => clip.crop[edge],
     set: (clip, value) => ({ props: { crop: { ...clip.crop, [edge]: Number(value) } } }),
   };
+}
+
+type ColorScalar =
+  | "exposure"
+  | "contrast"
+  | "highlights"
+  | "shadows"
+  | "whites"
+  | "blacks"
+  | "temperature"
+  | "tint"
+  | "saturation"
+  | "vibrance";
+type Wheel = "lift" | "gamma" | "gain" | "offset";
+
+function colorScalar(
+  key: ColorScalar,
+  label: string,
+  keywords: readonly string[],
+  extra: Partial<FieldDef>,
+): FieldDef {
+  return {
+    id: key,
+    label,
+    section: "color",
+    kind: "number",
+    keywords: ["color", "colour", "grade", ...keywords],
+    step: 1,
+    appliesTo: onPicture,
+    animation: { path: `color.${key}` },
+    get: (clip) => clip.color[key],
+    set: (clip, value) => ({ props: { color: { ...clip.color, [key]: Number(value) } } }),
+    ...extra,
+  };
+}
+
+const WHEEL_INFO: Record<Wheel, { label: string; keywords: readonly string[] }> = {
+  lift: { label: "Lift", keywords: ["shadows", "blacks", "wheel"] },
+  gamma: { label: "Gamma", keywords: ["midtones", "wheel"] },
+  gain: { label: "Gain", keywords: ["highlights", "whites", "wheel"] },
+  offset: { label: "Offset", keywords: ["overall", "wheel"] },
+};
+const CHANNEL_NAMES = ["Red", "Green", "Blue"] as const;
+
+function wheelFields(wheel: Wheel): FieldDef[] {
+  return CHANNEL_NAMES.map((channel, index) => ({
+    id: `${wheel}${channel}`,
+    label: `${WHEEL_INFO[wheel].label} ${channel.toLowerCase()}`,
+    section: "color" as const,
+    advanced: true,
+    kind: "number" as const,
+    keywords: [
+      "color",
+      "colour",
+      "grade",
+      "balance",
+      channel.toLowerCase(),
+      ...WHEEL_INFO[wheel].keywords,
+    ],
+    step: 1,
+    min: -100,
+    max: 100,
+    ...percent,
+    appliesTo: onPicture,
+    animation: { path: `color.${wheel}.${(["r", "g", "b"] as const)[index] ?? "r"}` },
+    get: (clip) => clip.color[wheel][index] ?? 0,
+    set: (clip, value) => {
+      const next: [number, number, number] = [...clip.color[wheel]];
+      next[index] = Number(value);
+      return { props: { color: { ...clip.color, [wheel]: next } } };
+    },
+  }));
 }
 
 export const FIELDS: readonly FieldDef[] = [
@@ -144,6 +240,7 @@ export const FIELDS: readonly FieldDef[] = [
     toDisplay: (v) => v * 100,
     fromDisplay: (v) => v / 100,
     appliesTo: onPicture,
+    animation: { path: "transform.scale", component: "both" },
     get: (clip) => clip.transform.scaleX,
     set: (clip, value) => ({
       props: { transform: { ...clip.transform, scaleX: Number(value), scaleY: Number(value) } },
@@ -163,6 +260,7 @@ export const FIELDS: readonly FieldDef[] = [
     toDisplay: (v) => v * 100,
     fromDisplay: (v) => v / 100,
     appliesTo: onPicture,
+    animation: { path: "transform.scale", component: 0 },
     get: (clip) => clip.transform.scaleX,
     set: (clip, value) => ({ props: { transform: { ...clip.transform, scaleX: Number(value) } } }),
   },
@@ -180,6 +278,7 @@ export const FIELDS: readonly FieldDef[] = [
     toDisplay: (v) => v * 100,
     fromDisplay: (v) => v / 100,
     appliesTo: onPicture,
+    animation: { path: "transform.scale", component: 1 },
     get: (clip) => clip.transform.scaleY,
     set: (clip, value) => ({ props: { transform: { ...clip.transform, scaleY: Number(value) } } }),
   },
@@ -218,6 +317,7 @@ export const FIELDS: readonly FieldDef[] = [
     max: 100,
     ...percent,
     appliesTo: onPicture,
+    animation: { path: "opacity" },
     get: (clip) => clip.opacity,
     set: (_clip, value) => ({ props: { opacity: Number(value) } }),
   },
@@ -237,6 +337,59 @@ export const FIELDS: readonly FieldDef[] = [
   cropField("cropTop", "Crop top", "top"),
   cropField("cropRight", "Crop right", "right"),
   cropField("cropBottom", "Crop bottom", "bottom"),
+
+  colorScalar("exposure", "Exposure", ["brightness", "lighter", "darker", "stops"], {
+    unit: "EV",
+    step: 0.05,
+    min: -5,
+    max: 5,
+  }),
+  colorScalar("contrast", "Contrast", ["punch", "flat"], {
+    min: -100,
+    max: 100,
+    ...percent,
+  }),
+  colorScalar("saturation", "Saturation", ["vivid", "colourful", "grey", "gray"], {
+    min: -100,
+    max: 100,
+    ...percent,
+  }),
+  colorScalar("temperature", "Temperature", ["white balance", "warm", "cool", "kelvin"], {
+    min: -100,
+    max: 100,
+  }),
+  colorScalar("tint", "Tint", ["white balance", "green", "magenta"], { min: -100, max: 100 }),
+  colorScalar("highlights", "Highlights", ["bright areas", "recover"], {
+    advanced: true,
+    min: -100,
+    max: 100,
+    ...percent,
+  }),
+  colorScalar("shadows", "Shadows", ["dark areas", "lift"], {
+    advanced: true,
+    min: -100,
+    max: 100,
+    ...percent,
+  }),
+  colorScalar("whites", "Whites", ["brightest", "clip"], {
+    advanced: true,
+    min: -100,
+    max: 100,
+    ...percent,
+  }),
+  colorScalar("blacks", "Blacks", ["darkest", "crush"], {
+    advanced: true,
+    min: -100,
+    max: 100,
+    ...percent,
+  }),
+  colorScalar("vibrance", "Vibrance", ["smart saturation", "skin tones"], {
+    advanced: true,
+    min: -100,
+    max: 100,
+    ...percent,
+  }),
+  ...(["lift", "gamma", "gain", "offset"] as const).flatMap(wheelFields),
 
   {
     id: "speed",

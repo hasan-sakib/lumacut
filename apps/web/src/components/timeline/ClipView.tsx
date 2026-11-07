@@ -60,6 +60,10 @@ export function ClipView({
     trackKind === "audio" && onScreen && media.waveform !== null
       ? waveformSlice(clip, media.waveform, Math.max(8, Math.min(400, Math.floor(width / 3))))
       : [];
+  // One diamond per moment something on this clip is keyframed (clip-local times).
+  const keyTimes = [
+    ...new Set(Object.values(clip.keyframes).flatMap((frames) => frames.map((k) => k.tUs))),
+  ].sort((a, b) => a - b);
   const tone = invalid
     ? "border-red-400 bg-red-900/70"
     : selected
@@ -153,6 +157,33 @@ export function ClipView({
         {clip.linkId !== undefined && <Icon name="link" className="h-3 w-3 shrink-0 opacity-70" />}
         <span className="truncate">{asset?.name ?? clip.type}</span>
       </div>
+      {clip.transitionIn !== undefined && (
+        <div
+          data-testid="clip-transition"
+          title={`Transition from the previous clip: ${clip.transitionIn.transitionId}`}
+          className="pointer-events-none absolute inset-y-0 left-0 border-r border-sky-300/60 bg-gradient-to-r from-sky-300/50 to-transparent"
+          style={{
+            width: Math.max(6, Math.min(width, usToPx(clip.transitionIn.durationUs, zoomPxPerSec))),
+          }}
+          aria-hidden="true"
+        />
+      )}
+      {keyTimes.length > 0 && (
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-3"
+          aria-hidden="true"
+          data-testid="clip-keyframes"
+        >
+          {keyTimes.map((t) => (
+            <span
+              key={t}
+              data-keyframe-time={t}
+              className="absolute bottom-0.5 h-2 w-2 -translate-x-1 rotate-45 border border-sky-950 bg-sky-300"
+              style={{ left: usToPx(t, zoomPxPerSec) }}
+            />
+          ))}
+        </div>
+      )}
       <div
         className="pointer-events-none absolute inset-y-0 left-0 w-[7px] border-r border-white/20 bg-white/10"
         aria-hidden="true"

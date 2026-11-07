@@ -252,10 +252,13 @@ describe("splitClip", () => {
     const a = roundTrip(p, { type: "splitClip", clipId: "c2", atUs: 3 * SEC, newClipId: "c2b" });
     const first = getClip(a, "c2");
     const second = getClip(a, "c2b");
-    expect(first.keyframes["transform.x"]?.map((k) => k.tUs)).toEqual([0, 0.5 * SEC]);
+    // The segment 0.5 s → 1.5 s spans the cut at 1 s: both halves get a keyframe there.
+    expect(first.keyframes["transform.x"]?.map((k) => k.tUs)).toEqual([0, 0.5 * SEC, SEC]);
     expect(first.keyframes.opacity).toBeUndefined();
-    expect(second.keyframes["transform.x"]?.map((k) => k.tUs)).toEqual([0.5 * SEC]);
+    expect(second.keyframes["transform.x"]?.map((k) => k.tUs)).toEqual([0, 0.5 * SEC]);
     expect(second.keyframes.opacity?.map((k) => k.tUs)).toEqual([200_000]);
+    // opacity starts animating after the cut, so the first half holds its first value (1).
+    expect(first.opacity).toBe(1);
     expect(first.audio).toMatchObject({ fadeInUs: 100, fadeOutUs: 0 });
     expect(second.audio).toMatchObject({ fadeInUs: 0, fadeOutUs: 200 });
     expect(first.transitionIn?.id).toBe("t1");

@@ -15,10 +15,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total"
-        ],
+        "required": ["items", "total"],
         "title": "AssetList",
         "type": "object"
       },
@@ -49,6 +46,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ImageInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lut": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LutInfo"
               },
               {
                 "type": "null"
@@ -109,11 +116,7 @@
           "kind": {
             "anyOf": [
               {
-                "enum": [
-                  "video",
-                  "audio",
-                  "image"
-                ],
+                "enum": ["video", "audio", "image", "lut"],
                 "type": "string"
               },
               {
@@ -172,13 +175,7 @@
             "title": "Stage"
           },
           "status": {
-            "enum": [
-              "uploading",
-              "queued",
-              "processing",
-              "ready",
-              "failed"
-            ],
+            "enum": ["uploading", "queued", "processing", "ready", "failed"],
             "title": "Status",
             "type": "string"
           },
@@ -215,6 +212,17 @@
       "AssetUrls": {
         "description": "Presigned GET URLs (valid ~1 h) for the renditions that exist.",
         "properties": {
+          "lut": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lut"
+          },
           "normalized": {
             "anyOf": [
               {
@@ -327,12 +335,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "sampleRate",
-          "channels",
-          "durationUs",
-          "codec"
-        ],
+        "required": ["sampleRate", "channels", "durationUs", "codec"],
         "title": "AudioStreamInfo",
         "type": "object"
       },
@@ -350,17 +353,12 @@
             "title": "Detail"
           },
           "status": {
-            "enum": [
-              "ok",
-              "error"
-            ],
+            "enum": ["ok", "error"],
             "title": "Status",
             "type": "string"
           }
         },
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "title": "CheckResult",
         "type": "object"
       },
@@ -384,10 +382,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "fileName",
-          "sizeBytes"
-        ],
+        "required": ["fileName", "sizeBytes"],
         "title": "CreateUpload",
         "type": "object"
       },
@@ -405,10 +400,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "title": "Credentials",
         "type": "object"
       },
@@ -423,10 +415,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "width",
-          "height"
-        ],
+        "required": ["width", "height"],
         "title": "Dimensions",
         "type": "object"
       },
@@ -455,10 +444,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "code",
-          "message"
-        ],
+        "required": ["code", "message"],
         "title": "ErrorBody",
         "type": "object"
       },
@@ -468,9 +454,7 @@
             "$ref": "#/components/schemas/ErrorBody"
           }
         },
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "title": "ErrorResponse",
         "type": "object"
       },
@@ -484,18 +468,12 @@
             "type": "object"
           },
           "status": {
-            "enum": [
-              "ok",
-              "degraded"
-            ],
+            "enum": ["ok", "degraded"],
             "title": "Status",
             "type": "string"
           }
         },
-        "required": [
-          "status",
-          "checks"
-        ],
+        "required": ["status", "checks"],
         "title": "HealthReport",
         "type": "object"
       },
@@ -515,11 +493,29 @@
             "type": "integer"
           }
         },
-        "required": [
-          "width",
-          "height"
-        ],
+        "required": ["width", "height"],
         "title": "ImageInfo",
+        "type": "object"
+      },
+      "LutInfo": {
+        "description": "Summary of a validated `.cube` look-up table.",
+        "properties": {
+          "dimension": {
+            "enum": [1, 3],
+            "title": "Dimension",
+            "type": "integer"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["title", "dimension", "size"],
+        "title": "LutInfo",
         "type": "object"
       },
       "PartUrl": {
@@ -533,10 +529,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "partNumber",
-          "url"
-        ],
+        "required": ["partNumber", "url"],
         "title": "PartUrl",
         "type": "object"
       },
@@ -555,10 +548,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "urls",
-          "expiresAt"
-        ],
+        "required": ["urls", "expiresAt"],
         "title": "PartUrlsOut",
         "type": "object"
       },
@@ -574,9 +564,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "partNumbers"
-        ],
+        "required": ["partNumbers"],
         "title": "PartUrlsRequest",
         "type": "object"
       },
@@ -584,11 +572,7 @@
         "properties": {
           "kind": {
             "default": "video",
-            "enum": [
-              "video",
-              "motion",
-              "photo"
-            ],
+            "enum": ["video", "motion", "photo"],
             "title": "Kind",
             "type": "string"
           },
@@ -599,9 +583,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "title": "ProjectCreate",
         "type": "object"
       },
@@ -615,9 +597,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "items"
-        ],
+        "required": ["items"],
         "title": "ProjectList",
         "type": "object"
       },
@@ -639,11 +619,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "video",
-              "motion",
-              "photo"
-            ],
+            "enum": ["video", "motion", "photo"],
             "title": "Kind",
             "type": "string"
           },
@@ -661,15 +637,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "kind",
-          "version",
-          "createdAt",
-          "updatedAt",
-          "doc"
-        ],
+        "required": ["id", "name", "kind", "version", "createdAt", "updatedAt", "doc"],
         "title": "ProjectOut",
         "type": "object"
       },
@@ -681,9 +649,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "doc"
-        ],
+        "required": ["doc"],
         "title": "ProjectSave",
         "type": "object"
       },
@@ -699,11 +665,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "video",
-              "motion",
-              "photo"
-            ],
+            "enum": ["video", "motion", "photo"],
             "title": "Kind",
             "type": "string"
           },
@@ -721,14 +683,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "kind",
-          "version",
-          "createdAt",
-          "updatedAt"
-        ],
+        "required": ["id", "name", "kind", "version", "createdAt", "updatedAt"],
         "title": "ProjectSummary",
         "type": "object"
       },
@@ -748,10 +703,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "num",
-          "den"
-        ],
+        "required": ["num", "den"],
         "title": "Rational",
         "type": "object"
       },
@@ -770,11 +722,7 @@
             "$ref": "#/components/schemas/UserOut"
           }
         },
-        "required": [
-          "accessToken",
-          "expiresAt",
-          "user"
-        ],
+        "required": ["accessToken", "expiresAt", "user"],
         "title": "SessionOut",
         "type": "object"
       },
@@ -806,9 +754,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "items"
-        ],
+        "required": ["items"],
         "title": "SnapshotList",
         "type": "object"
       },
@@ -839,12 +785,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "id",
-          "version",
-          "label",
-          "createdAt"
-        ],
+        "required": ["id", "version", "label", "createdAt"],
         "title": "SnapshotOut",
         "type": "object"
       },
@@ -872,12 +813,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "assetId",
-          "sizeBytes",
-          "partSizeBytes",
-          "partCount"
-        ],
+        "required": ["assetId", "sizeBytes", "partSizeBytes", "partCount"],
         "title": "UploadOut",
         "type": "object"
       },
@@ -933,10 +869,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "partNumber",
-          "sizeBytes"
-        ],
+        "required": ["partNumber", "sizeBytes"],
         "title": "UploadedPart",
         "type": "object"
       },
@@ -951,10 +884,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "email"
-        ],
+        "required": ["id", "email"],
         "title": "UserOut",
         "type": "object"
       },
@@ -985,13 +915,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "width",
-          "height",
-          "fps",
-          "durationUs",
-          "codec"
-        ],
+        "required": ["width", "height", "fps", "durationUs", "codec"],
         "title": "VideoStreamInfo",
         "type": "object"
       }
@@ -1040,11 +964,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "video",
-                    "audio",
-                    "image"
-                  ],
+                  "enum": ["video", "audio", "image", "lut"],
                   "type": "string"
                 },
                 {
@@ -1061,13 +981,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "uploading",
-                    "queued",
-                    "processing",
-                    "ready",
-                    "failed"
-                  ],
+                  "enum": ["uploading", "queued", "processing", "ready", "failed"],
                   "type": "string"
                 },
                 {
@@ -1128,9 +1042,7 @@
           }
         ],
         "summary": "List Assets",
-        "tags": [
-          "assets"
-        ]
+        "tags": ["assets"]
       }
     },
     "/api/assets/{asset_id}": {
@@ -1199,9 +1111,7 @@
           }
         ],
         "summary": "Delete Asset",
-        "tags": [
-          "assets"
-        ]
+        "tags": ["assets"]
       },
       "get": {
         "operationId": "get_asset_api_assets__asset_id__get",
@@ -1264,9 +1174,7 @@
           }
         ],
         "summary": "Get Asset",
-        "tags": [
-          "assets"
-        ]
+        "tags": ["assets"]
       }
     },
     "/api/assets/{asset_id}/retry": {
@@ -1342,9 +1250,7 @@
           }
         ],
         "summary": "Retry Asset",
-        "tags": [
-          "assets"
-        ]
+        "tags": ["assets"]
       }
     },
     "/api/auth/login": {
@@ -1394,9 +1300,7 @@
           }
         },
         "summary": "Login",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/auth/logout": {
@@ -1437,9 +1341,7 @@
           }
         },
         "summary": "Logout",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/auth/me": {
@@ -1473,9 +1375,7 @@
           }
         ],
         "summary": "Me",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/auth/refresh": {
@@ -1533,9 +1433,7 @@
           }
         },
         "summary": "Refresh",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/auth/register": {
@@ -1585,9 +1483,7 @@
           }
         },
         "summary": "Register",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/events": {
@@ -1618,9 +1514,7 @@
           }
         ],
         "summary": "Events",
-        "tags": [
-          "events"
-        ]
+        "tags": ["events"]
       }
     },
     "/api/health": {
@@ -1674,9 +1568,7 @@
           }
         ],
         "summary": "List Projects",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       },
       "post": {
         "description": "Create a project with one empty composition.",
@@ -1729,9 +1621,7 @@
           }
         ],
         "summary": "Create Project",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       }
     },
     "/api/projects/{project_id}": {
@@ -1789,9 +1679,7 @@
           }
         ],
         "summary": "Delete Project",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       },
       "get": {
         "operationId": "get_project_api_projects__project_id__get",
@@ -1854,9 +1742,7 @@
           }
         ],
         "summary": "Get Project",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       },
       "put": {
         "description": "Save the whole document. `If-Match` is the version it was loaded or last saved at; a stale\nversion gets 412 with the current version in the `ETag` header.",
@@ -1986,9 +1872,7 @@
           }
         ],
         "summary": "Save Project",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       }
     },
     "/api/projects/{project_id}/snapshots": {
@@ -2053,9 +1937,7 @@
           }
         ],
         "summary": "List Snapshots",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       },
       "post": {
         "description": "Keep a restorable copy of the project as it is stored now.",
@@ -2129,9 +2011,7 @@
           }
         ],
         "summary": "Create Snapshot",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       }
     },
     "/api/projects/{project_id}/snapshots/{snapshot_id}/restore": {
@@ -2252,9 +2132,7 @@
           }
         ],
         "summary": "Restore Snapshot",
-        "tags": [
-          "projects"
-        ]
+        "tags": ["projects"]
       }
     },
     "/api/uploads": {
@@ -2319,9 +2197,7 @@
           }
         ],
         "summary": "Create Upload",
-        "tags": [
-          "uploads"
-        ]
+        "tags": ["uploads"]
       }
     },
     "/api/uploads/{asset_id}": {
@@ -2397,9 +2273,7 @@
           }
         ],
         "summary": "Upload Status",
-        "tags": [
-          "uploads"
-        ]
+        "tags": ["uploads"]
       }
     },
     "/api/uploads/{asset_id}/complete": {
@@ -2475,9 +2349,7 @@
           }
         ],
         "summary": "Complete Upload",
-        "tags": [
-          "uploads"
-        ]
+        "tags": ["uploads"]
       }
     },
     "/api/uploads/{asset_id}/part-urls": {
@@ -2563,9 +2435,7 @@
           }
         ],
         "summary": "Part Urls",
-        "tags": [
-          "uploads"
-        ]
+        "tags": ["uploads"]
       }
     }
   }

@@ -18,6 +18,7 @@ export interface PresentedEvent {
 export interface InitPayload {
   canvas: OffscreenCanvas;
   limits?: Partial<EngineLimits>;
+  fontBaseUrl?: string;
 }
 
 /**
@@ -39,12 +40,23 @@ export class EngineHost {
         this.#need().setProject(payload.project);
         return undefined;
       },
-      renderAt: async (payload: { compositionId: string; tUs: number; readback?: boolean }) => {
+      renderAt: async (payload: {
+        compositionId: string;
+        tUs: number;
+        readback?: boolean;
+        scopeWidth?: number;
+      }) => {
         // An explicit render (a seek) supersedes any playback frame still waiting its turn.
         this.#scheduler?.cancelPending();
-        const options: RenderOptions = payload.readback === true ? { readback: true } : {};
+        const options: RenderOptions = {
+          ...(payload.readback === true ? { readback: true } : {}),
+          ...(payload.scopeWidth === undefined ? {} : { scopeWidth: payload.scopeWidth }),
+        };
         const result = await this.#need().renderAt(payload.compositionId, payload.tUs, options);
-        return { result, transfer: result.pixels ? [result.pixels.buffer] : [] };
+        const transfer: Transferable[] = [];
+        if (result.pixels) transfer.push(result.pixels.buffer);
+        if (result.scope) transfer.push(result.scope.pixels.buffer);
+        return { result, transfer };
       },
       requestFrame: (payload: { compositionId: string; tUs: number }) => {
         this.#scheduler?.request(payload);
@@ -71,12 +83,17 @@ export class EngineHost {
     return this.#engine;
   }
 
-  #init({ canvas, limits }: InitPayload): void {
+  #init({ canvas, limits, fontBaseUrl }: InitPayload): void {
     const resolver: MediaResolver = {
       resolve: (assetId: string, kind: MediaKind) =>
         this.#rpc.call<string>("resolveMedia", { assetId, kind }),
     };
-    const engine = Engine.create({ canvas, resolver, ...(limits ? { limits } : {}) });
+    const engine = Engine.create({
+      canvas,
+      resolver,
+      ...(limits ? { limits } : {}),
+      ...(fontBaseUrl === undefined ? {} : { fontBaseUrl }),
+    });
     this.#engine = engine;
     this.#scheduler = new FrameScheduler<RenderResult>(
       (request) => engine.renderAt(request.compositionId, request.tUs),

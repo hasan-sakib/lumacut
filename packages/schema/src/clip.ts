@@ -119,10 +119,22 @@ export const CaptionData = named(
   z.strictObject({
     words: z.array(CaptionWord),
     styleId: z.string().min(1).optional(),
+    highlightColor: Color.optional(),
+    maxLines: z.int().min(1).max(6).optional(),
+    maxCharsPerLine: z.int().min(4).max(120).optional(),
   }),
-  "Word timing for caption clips (karaoke highlighting, re-timing). Styling lives in `text`.",
+  "Word timing for caption clips (karaoke highlighting, re-timing). Styling lives in `text`. " +
+    "highlightColor colors the word being spoken (none = no highlight); maxLines and " +
+    "maxCharsPerLine control how words are grouped into on-screen lines.",
 );
 export type CaptionData = z.infer<typeof CaptionData>;
+
+export const SolidData = named(
+  "SolidData",
+  z.strictObject({ color: Color }),
+  "Content of a solid clip: a flat color filling the composition.",
+);
+export type SolidData = z.infer<typeof SolidData>;
 
 export const PaintStroke = named(
   "PaintStroke",
@@ -181,6 +193,7 @@ export const Clip = named(
     audio: ClipAudio.optional(),
     text: TextData.optional(),
     shape: ShapeData.optional(),
+    solid: SolidData.optional(),
     paint: PaintData.optional(),
     caption: CaptionData.optional(),
     motionBlur: MotionBlur,

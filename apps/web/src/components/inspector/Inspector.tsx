@@ -1,8 +1,15 @@
 import type { Composition, Op } from "@lumacut/schema";
 import { useMemo, useState } from "react";
 import type { ClipInfo, FieldValue, SectionId } from "../../inspector/fields.ts";
+import { toggleKeyframeOp } from "../../inspector/animation.ts";
 import { buildInspector, opForField } from "../../inspector/selection.ts";
 import { formatDuration } from "../../lib/format.ts";
+import { ColorExtras } from "../color/ColorExtras.tsx";
+import { EffectsInspector } from "../effects/EffectsInspector.tsx";
+import { TransitionInspector } from "../effects/TransitionInspector.tsx";
+import { CaptionEditor } from "../text/CaptionEditor.tsx";
+import { TextInspector } from "../text/TextInspector.tsx";
+import type { LutAsset } from "../color/LutPicker.tsx";
 import { FieldRow } from "./FieldRow.tsx";
 import { Section } from "./Section.tsx";
 
@@ -10,6 +17,10 @@ interface InspectorProps {
   composition: Composition;
   /** The selected clips with their track and asset. */
   items: readonly ClipInfo[];
+  /** `.cube` look-up tables in the project (for the LUT picker). */
+  lutAssets?: readonly LutAsset[];
+  /** Where the playhead is: animated properties show their value here and ◆ acts here. */
+  playheadUs: number;
   /** Apply a change; edits of the same field close together share `coalesceKey` (one undo step). */
   onChange: (op: Op, coalesceKey: string | undefined) => void;
 }
@@ -19,13 +30,19 @@ interface InspectorProps {
  * advanced fields behind a per-section switch. The rows come from the field catalogue
  * (`inspector/fields.ts`); this component only lays them out and turns an edit into one op.
  */
-export function Inspector({ composition, items, onChange }: InspectorProps) {
+export function Inspector({
+  composition,
+  items,
+  playheadUs,
+  lutAssets = [],
+  onChange,
+}: InspectorProps) {
   const [query, setQuery] = useState("");
   const [advanced, setAdvanced] = useState<Partial<Record<SectionId, boolean>>>({});
   const [collapsed, setCollapsed] = useState<Partial<Record<SectionId, boolean>>>({});
   const sections = useMemo(
-    () => buildInspector(items, { query, showAdvanced: advanced }),
-    [items, query, advanced],
+    () => buildInspector(items, { query, showAdvanced: advanced, playheadUs }),
+    [items, query, advanced, playheadUs],
   );
   const searching = query.trim() !== "";
 
@@ -43,6 +60,11 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
   }
 
   const first = items[0];
+  // Look-up table, HSL ranges and curves: for one picture clip, shown unless a search excludes them.
+  const showColorExtras =
+    items.length === 1 &&
+    first?.track?.kind !== "audio" &&
+    (!searching || /colou?r|curve|lut|look|hsl|hue|grade/i.test(query));
   const title =
     items.length === 1
       ? (first?.asset?.name ?? first?.clip.type ?? "Clip")
@@ -106,7 +128,7 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
               key={field.def.id}
               field={field}
               onChange={(stored: FieldValue, source) => {
-                const op = opForField(field.def, stored, items);
+                const op = opForField(field.def, stored, items, playheadUs);
                 if (op !== null)
                   onChange(
                     op,
@@ -115,10 +137,35 @@ export function Inspector({ composition, items, onChange }: InspectorProps) {
                       : undefined,
                   );
               }}
+              onToggleKey={() => {
+                const op = toggleKeyframeOp(field.def, items, playheadUs);
+                if (op !== null) onChange(op, undefined);
+              }}
             />
           ))}
         </Section>
       ))}
+      {showColorExtras && first !== undefined && (
+        <ColorExtras clip={first.clip} lutAssets={lutAssets} onChange={onChange} />
+      )}
+      {showColorExtras && first !== undefined && (
+        <EffectsInspector item={first} playheadUs={playheadUs} onChange={onChange} />
+      )}
+      {showColorExtras && first !== undefined && (
+        <TransitionInspector item={first} playheadUs={playheadUs} onChange={onChange} />
+      )}
+      {items.length === 1 &&
+        first !== undefined &&
+        (first.clip.type === "text" || first.clip.type === "caption") && (
+          <TextInspector clip={first.clip} onChange={onChange} />
+        )}
+      {items.length === 1 && first?.clip.type === "caption" && (
+        <CaptionEditor
+          clip={first.clip}
+          compositionHeight={composition.height}
+          onChange={onChange}
+        />
+      )}
     </div>
   );
 }

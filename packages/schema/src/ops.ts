@@ -25,6 +25,7 @@ export const ClipUnsettable = named(
     "audio",
     "text",
     "shape",
+    "solid",
     "paint",
     "caption",
     "transitionIn",

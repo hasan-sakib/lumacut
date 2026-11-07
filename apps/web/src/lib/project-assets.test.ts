@@ -111,3 +111,32 @@ describe("resolveAssetQuery", () => {
     expect(message("  ")).toMatch(/Say which asset/);
   });
 });
+
+describe("look-up tables", () => {
+  const lut = (over: Partial<AssetOut> = {}) =>
+    out({
+      id: "l1",
+      kind: "lut",
+      name: "teal.cube",
+      mimeType: "application/octet-stream",
+      media: { lut: { title: "Teal", dimension: 3, size: 17 } },
+      urls: { thumbSheets: [], lut: "https://s3/lut.cube?sig=1" },
+      ...over,
+    });
+
+  it("become valid project assets of kind lut", () => {
+    const asset = toProjectAsset(lut());
+    expect(asset).toMatchObject({ id: "l1", kind: "lut", name: "teal.cube" });
+    expect(Asset.safeParse(asset).success).toBe(true);
+  });
+
+  it("need their probe data, like every other asset", () => {
+    expect(toProjectAsset(lut({ media: {} }))).toBeNull();
+    expect(toProjectAsset(lut({ status: "processing" }))).toBeNull();
+  });
+
+  it("are never offered as something to put on the timeline", () => {
+    const result = resolveAssetQuery([lut()], "teal");
+    expect("error" in result).toBe(true);
+  });
+});

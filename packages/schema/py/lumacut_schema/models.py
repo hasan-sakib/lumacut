@@ -564,6 +564,16 @@ class CaptionData(BaseModel):
     )
     words: list[CaptionWord]
     styleId: Annotated[StrictStr | MISSING, Field(min_length=1)] = MISSING
+    highlightColor: Color | MISSING = MISSING
+    maxLines: Annotated[StrictInt | MISSING, Field(ge=1, le=6)] = MISSING
+    maxCharsPerLine: Annotated[StrictInt | MISSING, Field(ge=4, le=120)] = MISSING
+
+
+class SolidData(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    color: Color
 
 
 class PaintStroke(BaseModel):
@@ -620,6 +630,7 @@ class Clip(BaseModel):
     audio: ClipAudio | MISSING = MISSING
     text: TextData | MISSING = MISSING
     shape: ShapeData | MISSING = MISSING
+    solid: SolidData | MISSING = MISSING
     paint: PaintData | MISSING = MISSING
     caption: CaptionData | MISSING = MISSING
     motionBlur: MotionBlur
@@ -775,6 +786,7 @@ type ClipUnsettable = Literal[
     "audio",
     "text",
     "shape",
+    "solid",
     "paint",
     "caption",
     "transitionIn",
@@ -833,6 +845,7 @@ class ClipPatch(BaseModel):
     audio: ClipAudio | MISSING = MISSING
     text: TextData | MISSING = MISSING
     shape: ShapeData | MISSING = MISSING
+    solid: SolidData | MISSING = MISSING
     paint: PaintData | MISSING = MISSING
     caption: CaptionData | MISSING = MISSING
     motionBlur: MotionBlur | MISSING = MISSING

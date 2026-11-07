@@ -15,12 +15,13 @@ export function toProjectAsset(asset: AssetOut): Asset | null {
     sizeBytes: asset.sizeBytes,
     source: "user" as const,
   };
-  const { video, audio, image } = asset.media;
+  const { video, audio, image, lut } = asset.media;
   if (asset.kind === "video" && video) {
     return { ...base, kind: "video", video, ...(audio ? { audio } : {}) };
   }
   if (asset.kind === "audio" && audio) return { ...base, kind: "audio", audio };
   if (asset.kind === "image" && image) return { ...base, kind: "image", image };
+  if (asset.kind === "lut" && lut) return { ...base, kind: "lut" };
   return null;
 }
 
@@ -34,9 +35,10 @@ export function resolveAssetQuery(assets: readonly AssetOut[], query: string): A
   const text = query.trim();
   if (text === "") return { error: "Say which asset to add (its name is enough)." };
   const lower = text.toLowerCase();
+  // Look-up tables are never placed as clips.
   const usable = assets.flatMap((a) => {
     const asset = toProjectAsset(a);
-    return asset === null ? [] : [asset];
+    return asset === null || asset.kind === "lut" ? [] : [asset];
   });
   const byId = usable.find((a) => a.id === text);
   if (byId !== undefined) return { asset: byId };

@@ -6,14 +6,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from lumacut_worker.pipeline import image, thumbs, video, waveform
+from lumacut_worker.pipeline import image, lut, thumbs, video, waveform
 from lumacut_worker.pipeline.errors import ProcessingError
 from lumacut_worker.pipeline.probe import MediaProbe, probe_media
 
 # (stage name, overall progress in [0, 1])
 ProgressFn = Callable[[str, float], None]
 
-Kind = Literal["video", "audio", "image"]
+Kind = Literal["video", "audio", "image", "lut"]
 
 VIDEO_STAGES = (
     ("probe", 0.02),
@@ -25,6 +25,7 @@ VIDEO_STAGES = (
 VIDEO_ONLY_STAGES = (("probe", 0.02), ("proxy", 0.43), ("master", 0.43), ("thumbnails", 0.12))
 AUDIO_STAGES = (("probe", 0.05), ("proxy", 0.40), ("master", 0.35), ("waveform", 0.20))
 IMAGE_STAGES = (("image", 1.0),)
+LUT_STAGES = (("lut", 1.0),)
 
 
 @dataclass
@@ -103,6 +104,14 @@ def _check_complete(rendition: Path, expected_us: int) -> None:
 
 def process_file(src: Path, work: Path, report: ProgressFn) -> PipelineResult:
     work.mkdir(parents=True, exist_ok=True)
+    if lut.is_lut(src):
+        tracker = StageTracker(LUT_STAGES, report)
+        info = tracker.run("lut", lambda _: lut.process_lut(src))
+        return PipelineResult(
+            kind="lut",
+            media={"lut": {"title": info.title, "dimension": info.dimension, "size": info.size}},
+            files={"lut": src},
+        )
     if image.is_image(src):
         tracker = StageTracker(IMAGE_STAGES, report)
         result = tracker.run("image", lambda _: image.process_image(src, work / "image"))

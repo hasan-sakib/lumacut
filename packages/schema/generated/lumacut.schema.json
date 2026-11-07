@@ -1485,10 +1485,35 @@
         "styleId": {
           "type": "string",
           "minLength": 1
+        },
+        "highlightColor": {
+          "$ref": "#/$defs/Color"
+        },
+        "maxLines": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "maxCharsPerLine": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 120
         }
       },
       "required": [
         "words"
+      ],
+      "additionalProperties": false
+    },
+    "SolidData": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "$ref": "#/$defs/Color"
+        }
+      },
+      "required": [
+        "color"
       ],
       "additionalProperties": false
     },
@@ -1655,6 +1680,9 @@
         },
         "shape": {
           "$ref": "#/$defs/ShapeData"
+        },
+        "solid": {
+          "$ref": "#/$defs/SolidData"
         },
         "paint": {
           "$ref": "#/$defs/PaintData"
@@ -2126,6 +2154,7 @@
         "audio",
         "text",
         "shape",
+        "solid",
         "paint",
         "caption",
         "transitionIn",
@@ -2260,6 +2289,9 @@
         },
         "shape": {
           "$ref": "#/$defs/ShapeData"
+        },
+        "solid": {
+          "$ref": "#/$defs/SolidData"
         },
         "paint": {
           "$ref": "#/$defs/PaintData"

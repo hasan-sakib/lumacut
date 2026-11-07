@@ -66,6 +66,9 @@ importers:
       '@lumacut/actions':
         specifier: workspace:^
         version: link:../../packages/actions
+      '@lumacut/effects':
+        specifier: workspace:^
+        version: link:../../packages/effects
       '@lumacut/engine':
         specifier: workspace:^
         version: link:../../packages/engine
@@ -143,8 +146,24 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
+  packages/effects:
+    dependencies:
+      '@lumacut/schema':
+        specifier: workspace:^
+        version: link:../schema
+    devDependencies:
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.6)(jiti@2.7.0)
+
   packages/engine:
     dependencies:
+      '@lumacut/effects':
+        specifier: workspace:^
+        version: link:../effects
+      '@lumacut/ops':
+        specifier: workspace:^
+        version: link:../ops
       '@lumacut/schema':
         specifier: workspace:^
         version: link:../schema

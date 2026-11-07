@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { clampTo, evaluateInput, tidy } from "../../inspector/evaluate.ts";
 
 export type NumberSource = "scrub" | "step" | "type";
@@ -13,6 +13,8 @@ interface ScrubNumberProps {
   min?: number | undefined;
   max?: number | undefined;
   readOnly?: boolean | undefined;
+  /** The ◆ keyframe control (or nothing: the column stays so rows line up). */
+  leading?: ReactNode;
   onCommit: (value: number, source: NumberSource) => void;
 }
 
@@ -32,6 +34,7 @@ export function ScrubNumber({
   min,
   max,
   readOnly = false,
+  leading,
   onCommit,
 }: ScrubNumberProps) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -85,7 +88,8 @@ export function ScrubNumber({
 
   if (readOnly) {
     return (
-      <div className="grid grid-cols-[7rem_1fr] items-center gap-2 text-xs">
+      <div className="grid grid-cols-[1.25rem_6rem_1fr] items-center gap-2 text-xs">
+        <span />
         <span className="text-neutral-400">{label}</span>
         <span
           className="font-mono text-neutral-300"
@@ -99,7 +103,8 @@ export function ScrubNumber({
   }
 
   return (
-    <div className="grid grid-cols-[7rem_1fr] items-center gap-2 text-xs">
+    <div className="grid grid-cols-[1.25rem_6rem_1fr] items-center gap-2 text-xs">
+      <span className="flex justify-center">{leading}</span>
       <span
         data-scrub={label}
         className="cursor-ew-resize select-none text-neutral-300"
