@@ -1,9 +1,14 @@
 import { runAction, type AnyAction } from "@lumacut/actions";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { editingActions, type EditingContext, type EditingServices } from "../actions/editing.ts";
+import "../actions/canvas.ts";
 import "../actions/colour.ts";
+import "../actions/compositions.ts";
 import "../actions/effects.ts";
 import "../actions/layers.ts";
+import "../actions/masks.ts";
+import "../actions/presets.ts";
+import "../actions/shapes.ts";
 import "../actions/text.ts";
 import "../actions/transitions.ts";
 import "../actions/keyframes.ts";
@@ -41,6 +46,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
   const selectedTrackId = useEditorStore((s) => s.selectedTrackId);
   const playheadUs = useEditorStore((s) => s.playheadUs);
+  const canvasTool = useEditorStore((s) => s.canvasTool);
+  const penMode = useEditorStore((s) => s.penMode);
   const clipboard = useEditorStore((s) => s.clipboard);
   const attributes = useEditorStore((s) => s.attributes);
   const { openPalette, showShortcuts, togglePlay, seek } = ui;
@@ -93,6 +100,18 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         setBottomPanel: (panel) => {
           useEditorStore.getState().setBottomPanel(panel);
         },
+        setCanvasTool: (tool) => {
+          useEditorStore.getState().setCanvasTool(tool);
+        },
+        setPenMode: (mode) => {
+          useEditorStore.getState().setPenMode(mode);
+        },
+        openComposition: (id) => {
+          useEditorStore.getState().openComposition(id);
+        },
+        closeComposition: (levelId) => {
+          useEditorStore.getState().closeComposition(levelId);
+        },
       },
     }),
     [openPalette, showShortcuts, togglePlay, seek],
@@ -105,6 +124,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       selectedClipIds,
       selectedTrackId,
       playheadUs,
+      canvasTool,
+      penMode,
       canUndo,
       canRedo,
       hasClipboard: clipboard !== null,
@@ -119,6 +140,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       selectedClipIds,
       selectedTrackId,
       playheadUs,
+      canvasTool,
+      penMode,
       canUndo,
       canRedo,
       clipboard,

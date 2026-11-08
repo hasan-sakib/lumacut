@@ -37,6 +37,8 @@ export interface FxInput {
 export interface FxPass {
   program: WebGLProgram;
   destination: Target;
+  /** "add": the result is added to what is in the destination (ONE, ONE) instead of replacing it. */
+  blend?: "add";
   inputs: readonly FxInput[];
   uniforms: Readonly<Record<string, UniformValue>>;
 }
@@ -79,7 +81,12 @@ export class FxRunner {
     const { destination } = pass;
     gl.bindFramebuffer(gl.FRAMEBUFFER, destination.framebuffer);
     gl.viewport(0, 0, destination.width, destination.height);
-    gl.disable(gl.BLEND);
+    if (pass.blend === "add") {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+    } else {
+      gl.disable(gl.BLEND);
+    }
     gl.useProgram(pass.program);
     gl.bindVertexArray(this.#vao);
 
@@ -106,6 +113,7 @@ export class FxRunner {
       else gl.uniform2fv(location, (value as { v2: number[] }).v2);
     }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (pass.blend === "add") gl.disable(gl.BLEND);
     gl.bindVertexArray(null);
     this.#stats.fxPasses += 1;
   }

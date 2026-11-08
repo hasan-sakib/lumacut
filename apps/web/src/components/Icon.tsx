@@ -2,6 +2,9 @@
 
 const PATHS: Record<string, string> = {
   keyframe: "M12 3l9 9-9 9-9-9z",
+  pen: "M12 19l7-7-4-4-7 7-1 5zM15 8l1-1a2 2 0 0 1 3 3l-1 1M6 18l-2 2",
+  layers: "M12 3 3 8l9 5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5",
+  shape: "M4 20h9L8.5 11zM15 4h5v5h-5zM17.5 12a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z",
   text: "M5 6V4h14v2M12 4v16M9 20h6",
   effect:
     "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18 16l.9 2.1L21 19l-2.1.9L18 22l-.9-2.1L15 19l2.1-.9z",

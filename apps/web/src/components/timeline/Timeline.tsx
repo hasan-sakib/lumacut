@@ -2,7 +2,7 @@ import type { AnyAction } from "@lumacut/actions";
 import { endOf } from "@lumacut/ops";
 import type { Clip, Composition, Op, Project } from "@lumacut/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { EditingContext } from "../../actions/editing.ts";
+import { editingActions, type EditingContext } from "../../actions/editing.ts";
 import type { Tool } from "../../stores/editor.ts";
 import { findPlaced, withLinked } from "../../timeline/clips.ts";
 import { clampZoom, pxToUs, scrollAfterZoom, usToPx } from "../../timeline/geometry.ts";
@@ -450,6 +450,13 @@ export function Timeline(props: TimelineProps) {
                     onContextMenu={(c) => {
                       if (!selectedClipIds.includes(c.id))
                         props.onSelectClips(withLinked(composition, [c.id]));
+                    }}
+                    onDoubleClick={(c) => {
+                      if (c.type === "composition" && c.compositionId !== undefined) {
+                        props.onRunAction(editingActions.get("composition.open"), {
+                          composition: c.compositionId,
+                        });
+                      }
                     }}
                   />
                 ))}

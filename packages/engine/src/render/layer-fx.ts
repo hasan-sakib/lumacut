@@ -11,6 +11,9 @@ import { FxRunner } from "../gl/fx.ts";
 import type { LayerDraw } from "../gl/compositor.ts";
 import colorSource from "../gl/shaders/color.frag.glsl?raw";
 import effectCommon from "../gl/shaders/effect-common.glsl?raw";
+import accumulateSource from "../gl/shaders/accumulate.frag.glsl?raw";
+import maskSource from "../gl/shaders/mask.frag.glsl?raw";
+import matteSource from "../gl/shaders/matte.frag.glsl?raw";
 import transitionCommon from "../gl/shaders/transition-common.glsl?raw";
 import sourceSource from "../gl/shaders/source.frag.glsl?raw";
 import type { Target, TargetPool } from "../gl/targets.ts";
@@ -25,6 +28,20 @@ export interface FxSource {
   height: number;
   sourceKind: 0 | 1;
   flipV: boolean;
+}
+
+/** Where a layer's processed picture sits (see `LayerFx.geometry`). */
+export interface LayerGeometry {
+  rect: { x: number; y: number; width: number; height: number };
+  x0: number;
+  y0: number;
+  /** Target pixels per layer pixel. */
+  s: number;
+  /** Margin in target pixels. */
+  pad: number;
+  width: number;
+  height: number;
+  effects: { def: EffectDefinition; params: Params; instance: EffectInstance }[];
 }
 
 /** A layer after colour and effects: a target to draw, and how it maps onto the composition. */
@@ -87,21 +104,23 @@ export class LayerFx {
 
   /** True when the clip needs colour or effect passes (otherwise it is drawn directly). */
   needs(clip: Clip): boolean {
-    return this.needsColour(clip) || clip.effects.some((e) => e.enabled);
+    return (
+      this.needsColour(clip) ||
+      clip.effects.some((e) => e.enabled) ||
+      clip.masks.some((m) => m.kind === "path")
+    );
   }
 
   /**
-   * Runs crop → colour on one layer. `matrix` is the layer's layer→composition matrix; the layer is
-   * processed at no more resolution than it is drawn at, so a 4K clip on a 1080p canvas doesn't
-   * cost 4K passes.
+   * Where a layer's processed picture sits: the whole-pixel region of the layer it covers, the
+   * resolution it is processed at and the margin effects need. Masks are drawn to match.
    */
-  process(
+  geometry(
     source: FxSource,
     props: ResolvedLayerProps,
     matrix: Mat,
-    frame: number,
     report?: (code: string, message: string) => void,
-  ): ProcessedLayer | { error: string } {
+  ): LayerGeometry | { error: string } {
     const rect = croppedRect(source.width, source.height, props.crop);
     if (rect.width <= 0 || rect.height <= 0) return { error: "empty" };
     const drawnScale = Math.max(Math.hypot(matrix[0], matrix[1]), Math.hypot(matrix[2], matrix[3]));
@@ -123,6 +142,57 @@ export class LayerFx {
         error: `the layer is ${String(width)}×${String(height)}, larger than this GPU's ${String(this.#maxTexture)} px texture limit`,
       };
     }
+    return { rect, x0, y0, s, pad, width, height, effects };
+  }
+
+  /** Adds `source` × `weight` onto `destination` (used to average motion-blur samples). */
+  accumulate(source: Target, destination: Target, weight: number, frame: number): void {
+    this.runner.run(
+      {
+        program: this.runner.program("accumulate", accumulateSource),
+        destination,
+        blend: "add",
+        inputs: [{ name: "uSrc", texture: source.texture }],
+        uniforms: { uWeight: weight },
+      },
+      frame,
+    );
+  }
+
+  /** Blends two composition-sized pictures with a track matte; the caller releases all three targets. */
+  matte(clip: Target, matte: Target, mode: number, frame: number): Target {
+    const destination = this.#pool.acquire(clip.width, clip.height);
+    this.runner.run(
+      {
+        program: this.runner.program("matte", matteSource),
+        destination,
+        inputs: [
+          { name: "uClip", texture: clip.texture },
+          { name: "uMatte", texture: matte.texture },
+        ],
+        uniforms: { uMode: { int: mode } },
+      },
+      frame,
+    );
+    return destination;
+  }
+
+  /**
+   * Runs crop → colour on one layer. `matrix` is the layer's layer→composition matrix; the layer is
+   * processed at no more resolution than it is drawn at, so a 4K clip on a 1080p canvas doesn't
+   * cost 4K passes.
+   */
+  process(
+    source: FxSource,
+    props: ResolvedLayerProps,
+    matrix: Mat,
+    frame: number,
+    report?: (code: string, message: string) => void,
+    mask?: WebGLTexture,
+  ): ProcessedLayer | { error: string } {
+    const layout = this.geometry(source, props, matrix, report);
+    if ("error" in layout) return layout;
+    const { rect, x0, y0, s, pad, width, height, effects } = layout;
 
     const sourcePass = this.runner.program("source", sourceSource);
     let current = this.#pool.acquire(width, height);
@@ -143,6 +213,24 @@ export class LayerFx {
       },
       frame,
     );
+
+    if (mask !== undefined) {
+      const next = this.#pool.acquire(width, height);
+      this.runner.run(
+        {
+          program: this.runner.program("mask", maskSource),
+          destination: next,
+          inputs: [
+            { name: "uSrc", texture: current.texture },
+            { name: "uMask", texture: mask },
+          ],
+          uniforms: {},
+        },
+        frame,
+      );
+      this.#pool.release(current);
+      current = next;
+    }
 
     if (this.needsColour(props.clip)) {
       const next = this.#pool.acquire(width, height);

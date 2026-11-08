@@ -1,4 +1,4 @@
-import type { Composition, Op } from "@lumacut/schema";
+import type { Composition, Op, Project } from "@lumacut/schema";
 import { useMemo, useState } from "react";
 import type { ClipInfo, FieldValue, SectionId } from "../../inspector/fields.ts";
 import { toggleKeyframeOp } from "../../inspector/animation.ts";
@@ -7,6 +7,9 @@ import { formatDuration } from "../../lib/format.ts";
 import { ColorExtras } from "../color/ColorExtras.tsx";
 import { EffectsInspector } from "../effects/EffectsInspector.tsx";
 import { TransitionInspector } from "../effects/TransitionInspector.tsx";
+import { MasksInspector } from "../masks/MasksInspector.tsx";
+import { MatteInspector } from "../masks/MatteInspector.tsx";
+import { ShapeInspector } from "../shapes/ShapeInspector.tsx";
 import { CaptionEditor } from "../text/CaptionEditor.tsx";
 import { TextInspector } from "../text/TextInspector.tsx";
 import type { LutAsset } from "../color/LutPicker.tsx";
@@ -17,6 +20,8 @@ interface InspectorProps {
   composition: Composition;
   /** The selected clips with their track and asset. */
   items: readonly ClipInfo[];
+  /** The project (names clips in lists, sizes masks); optional for callers that don't have it. */
+  project?: Project;
   /** `.cube` look-up tables in the project (for the LUT picker). */
   lutAssets?: readonly LutAsset[];
   /** Where the playhead is: animated properties show their value here and ◆ acts here. */
@@ -35,6 +40,7 @@ export function Inspector({
   items,
   playheadUs,
   lutAssets = [],
+  project,
   onChange,
 }: InspectorProps) {
   const [query, setQuery] = useState("");
@@ -157,8 +163,33 @@ export function Inspector({
       {items.length === 1 &&
         first !== undefined &&
         (first.clip.type === "text" || first.clip.type === "caption") && (
-          <TextInspector clip={first.clip} onChange={onChange} />
+          <TextInspector
+            clip={first.clip}
+            item={first}
+            playheadUs={playheadUs}
+            onChange={onChange}
+          />
         )}
+      {showColorExtras && first !== undefined && (
+        <MasksInspector
+          item={first}
+          project={project}
+          composition={composition}
+          playheadUs={playheadUs}
+          onChange={onChange}
+        />
+      )}
+      {showColorExtras && first !== undefined && (
+        <MatteInspector
+          item={first}
+          project={project}
+          composition={composition}
+          onChange={onChange}
+        />
+      )}
+      {items.length === 1 && first?.clip.type === "shape" && (
+        <ShapeInspector item={first} playheadUs={playheadUs} onChange={onChange} />
+      )}
       {items.length === 1 && first?.clip.type === "caption" && (
         <CaptionEditor
           clip={first.clip}

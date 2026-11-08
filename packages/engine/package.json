@@ -11,7 +11,8 @@
     "./testing": "./src/testing/index.ts",
     "./color": "./src/color/index.ts",
     "./scopes": "./src/scopes/index.ts",
-    "./text": "./src/text/index.ts"
+    "./text": "./src/text/index.ts",
+    "./shapes": "./src/shapes/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

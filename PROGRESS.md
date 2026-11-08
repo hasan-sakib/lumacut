@@ -10,7 +10,7 @@
 | M3b-1 | Editor page: preview + playback, Pro timeline (zoom/scroll, move/trim, snapping, razor, ripple/roll/slip/slide, markers, track headers) | done, verified 2026-11-07 | 2026-11-07 |
 | M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | done, verified 2026-11-07 | 2026-11-07 |
 | M4 | Keyframes + graph editor + transitions + text + captions + colour pipeline + scopes + LUTs + effect system (40 effects) | **built 2026-11-07, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request (tests come after all milestones); only `tsc` and `eslint` | 2026-11-07 |
-| M5 | Motion graphics: shapes/pen, masks, mattes, text animators, precompose, presets, motion blur, paths | not started | — |
+| M5 | Motion graphics: shapes/pen, masks, mattes, text animators, precompose, presets, motion blur, paths | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc` and `eslint` | 2026-11-08 |
 | M6 | Photo workspace | not started | — |
 | M7 | Audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness | not started | — |
 | M8 | Export: video (browser + server), image, GIF, audio + parity test | not started | — |
@@ -21,6 +21,15 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
+**M5 is built as one milestone (2026-11-08) and has never been tested** (same arrangement as M4: features first, tests after all milestones; `tsc` on every package, `eslint --max-warnings 0` and `prettier --check` are clean; nothing is committed). Docs: `docs/shapes.md`, `docs/masks.md`, `docs/presets.md`.
+
+**What to test for M5** (add to the verification pass below):
+1. **GPU compile** of `mask.frag.glsl`, `matte.frag.glsl`, `accumulate.frag.glsl` (never compiled; a failure shows as `render_error` on the clip).
+2. Golden / pixel tests: shapes (fill, stroke, dash, trim, round corners, each item kind), masks (add/subtract/intersect, feather, expansion, invert, opacity), mattes (4 modes, hidden matte clip), motion blur (sample accumulation; a static clip draws once), text animator coverage curves and unit selection (char/word/line), precompose + nested draw.
+3. Unit tests: keyframe paths (`paths-motion.ts`: masks, shape, animators, motionBlur) incl. `removeMask`/`removeItem` cleaning keyframes; every preset's keyframe shape, window and idempotence (`setFrames`); seeded shake/glitch determinism; overlay geometry (`viewport`, `layer-box`, `gizmo`, `path-edit`, `pen`, `motion-path`, `transform-ops`); inspector builders (`synthetic`, `shapes`, `masks`, `animators`); the `shape.*`, `mask.*`, `matte.*`, `text.*Animator`, `clip.precompose`, `composition.*`, `tool.*`, `preset.apply`, `motion.blur` actions.
+4. **Acceptance e2e (SPEC §13 M5):** build an animated lower-third from scratch (rounded-rect shape bar + two text clips, a slide-in preset, edit one keyframe in the graph editor, reload identical); a preset applies editable keyframes.
+5. Manual pass: drawing tools and pen (click, drag tangents, close), path editing, transform gizmo, motion path handles, breadcrumb navigation, Presets tab.
+
 **M4 is built as one milestone (2026-11-07) and has never been tested.** The owner asked for features first and all tests later ("finish all the milestones first"), so for M4 only `tsc` (every package) and `eslint` were run: both clean. Nothing is committed (the owner commits). M2 and M3 are verified (record below).
 
 **The first thing to do when testing M4** (in this order):
@@ -34,7 +43,7 @@ Verified earlier in this milestone (these have tests, and passed when written): 
 
 **Verification record, M2 + M3 (2026-11-07)**: `make check` green; `make test-engine` and `make smoke-render` green; `make perf` on the GPU (Apple M2, Metal via installed Chrome) passed every gate (60.0 fps, p95 render 4.0 ms, 0% frames never shown, frames opened = closed, 0.47 MB memory growth over 20 s + 2000 seeks; SwiftShader floor 8.2 fps); `make test-stack`: integration 26 passed / 1 skipped, e2e 16 of 18 on a loaded machine and the 2 failures (`player.spec.ts`, `resume.spec.ts`) passed alone with `--workers=1` (CPU contention; run with `--workers=2` or on a quiet machine); the M3 acceptance e2e passed. Not run: `make test-samples` (~25 min, M1 pipeline) and a manual browser pass. Cross-backend finding: the compositor is bit-identical on SwiftShader and the GPU for stills; video differs only through the decoder (SSIM ≈ 0.998), so golden images must use still-image inputs.
 
-Next: **M5** (motion graphics). Plan it and wait for approval; the owner wants M5 and later built whole, not split.
+Next: **M6** (photo workspace). Plan it and wait for approval; the owner wants M6 and later built whole, not split.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -235,6 +244,17 @@ Getting started in a new session:
 - **UI components live in `apps/web/src/components/*`** (params, graph, color, effects, scopes, text), not in a `packages/ui-kit` (nothing outside the web app uses them).
 
 
+**2026-11-08 — M5 (one milestone; see `docs/shapes.md`, `docs/masks.md`, `docs/presets.md`)**
+- **Shapes** are rasterised with Canvas 2D `Path2D` in the worker (like text) at 1×/2×/4× resolution buckets, cached by content, uploaded as an image. Shape and text clips measure `anchorX/Y` from the picture centre (`LayerSource.anchorShift {x, y}`, replacing `anchorCenter`).
+- **Masks:** path masks are rasterised to one alpha picture, **feather uses the canvas `blur()` filter** (not the GPU Gaussian as first planned), multiplied in a `mask` pass after crop and before colour. Raster masks stay for M6/M11 (`ignored_raster_mask`).
+- **Track mattes:** the matte clip is hidden (not drawn on its own) by `planLayers`; matte and clip are drawn alone at composition size and combined by `matte.frag.glsl` (alpha, alphaInverted, luma, lumaInverted).
+- **Motion blur:** N sub-frame draws averaged by additive blending, only for clips with keyframes (`isAnimated`); sub-frame times derive from the frame, never the clock. Limit: media frames are the frame's own and only animated properties change between samples.
+- **Text animators:** per-unit coverage (square, rampUp, rampDown, triangle, round, smooth) and per-character drawing; `textMargin` includes the animators' motion; captions keep their animators.
+- **Keyframe vocabulary** (`paths-motion.ts`) extends `resolveProperty` for masks, shape fill/stroke/trim/round corners/items, text animator range and props, `motionBlur.shutterAngle`; `removeMask` removes its keyframes.
+- **Overlay:** one SVG layer in composition pixels over the preview; geometry is pure (`apps/web/src/overlay/*`), `PreviewOverlay.tsx` only maps pointer events to ops. Tools (`V`, `P`, `R`, `E`, `Shift+P`, `Shift+E`, `Shift+M`) are registry actions; the editor store keeps `canvasTool`, `penMode`, `compositionTrail`.
+- **Presets:** pure keyframe generators in `packages/ops/src/presets` (15, four categories); `setFrames` replaces keyframes inside the window so re-applying is idempotent; shake/glitch use a seeded PRNG keyed by clip id and start. `preset.apply` and `motion.blur` are actions; a Presets tab lists them.
+- Lint-driven: no `!` non-null assertions (bind to a local first); drop `as` casts the type-aware lint reports as unnecessary.
+
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
 - **Valkey (BSD-3) instead of Redis.** Redis 8 is RSAL/SSPL/AGPL. RQ and redis-py work unchanged.
@@ -252,6 +272,7 @@ Getting started in a new session:
 - **`docs/` folder added**, holding the pre-M0 review and `ops.md` (op semantics).
 - **M3a schema additions** beyond SPEC §4: `index` on three add-ops and `unset` on `setProps`/`updateAsset` (see Decisions).
 - **M4 schema additions** beyond SPEC §4: optional `Clip.solid {color}`; optional `CaptionData.highlightColor`, `maxLines`, `maxCharsPerLine`; new op error code `invalid_property`; `lut` asset kind is now produced by the API/worker.
+- **M5 deviations:** shapes are Canvas 2D rasters, not tessellation/SDF (SPEC §6 says "tessellation or SDF"); mask feather uses the canvas blur filter; no `Lower third` starter (that is a template, M9); raster masks deferred to M6/M11; no new schema fields were needed (shapes, masks, mattes, motion blur and animators were already in the schema).
 - **M4: no `packages/ui-kit`** (components stay in `apps/web`), **no morph-cut**, 40 effects = the 36 named in SPEC §6 plus invert, threshold, duotone and scanlines (SPEC asks for at least 40 but names 36).
 - **M1:**
   - **"MinIO" in the M1 request means SeaweedFS** (the swap was approved before M0).
@@ -321,9 +342,19 @@ Getting started in a new session:
   - Colour: no HDR / wide gamut, no log-input LUTs, trilinear (not tetrahedral) LUT interpolation; wheels are numeric rows (no graphical wheel yet).
   - `.cube` assets: the library UI shows them with a generic icon; the Docker worker image must be rebuilt for `.cube` uploads to process.
   - Engine: playback still pauses on every project edit (M2 limit), which includes scrubbing a ◆ value while playing; the full SPEC perf scenario with text, shapes and effects was not run (shapes arrive in M5).
+- **M5 gaps:**
+  - **Nothing in M5 was tested** (see Current focus): three new GLSL shaders never compiled, no goldens for shapes/masks/mattes/motion blur/animators, no tests for the new keyframe paths, presets, overlay geometry, inspector builders or actions, and the lower-third acceptance e2e is not written.
+  - Overlay: untested by hand; no multi-select gizmo, no snapping/guides, no on-canvas text editing, no rotate/scale about a custom pivot; the pen has no smooth/corner toggle after placement; path editing covers shape paths and masks, not paint strokes (M6).
+  - Shapes/text re-rasterise on every frame while an animated property changes (cached by content, so static frames are free); a 1080p animated shape costs CPU per frame.
+  - Motion blur: no per-effect-parameter blur for non-animated effects, media frames are not sub-sampled, a nested composition is blurred as one layer; the cost is `samples` draws per frame.
+  - Track mattes: the matte must be in the same composition; no matte chains; the hidden matte clip is only explained in the inspector.
+  - Presets: 15 presets, no custom/saved presets, no preview thumbnails, no per-preset parameters beyond strength and length; text presets need a text or caption clip.
+  - Playback still pauses on every project edit (M2 limit), so dragging on the canvas while playing is interrupted.
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
+_M5 added no dependencies (Canvas 2D, OffscreenCanvas and the existing GL stack only); the engine package gained a `./shapes` export._
+
 **npm (direct)**
 | Package | Version | License | Where |
 |---|---|---|---|

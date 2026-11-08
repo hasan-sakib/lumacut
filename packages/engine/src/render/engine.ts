@@ -10,10 +10,11 @@ import { createGl, type GlCaps } from "../gl/context.ts";
 import type { Target } from "../gl/targets.ts";
 import { TextureCache, type CachedTexture } from "../gl/texture-cache.ts";
 import { uploadSource } from "../gl/upload.ts";
+import { isAnimated } from "@lumacut/ops";
 import { IDENTITY, croppedRect, layerMatrix } from "../math/matrix.ts";
 import { DEFAULT_LIMITS, EngineStats, type EngineLimits, type StatsSnapshot } from "../stats.ts";
 import { frameIndexOf } from "../timeline/frames.ts";
-import { planLayers, type LayerPlanItem } from "../timeline/transitions.ts";
+import { planLayers, type LayerPlanItem, type MattePlan } from "../timeline/transitions.ts";
 import {
   extendedSourceFrameIndex,
   extendedSourceInstantUs,
@@ -27,7 +28,9 @@ import { Params, transitionById } from "@lumacut/effects";
 import { captionTextAt } from "../text/caption.ts";
 import { FontLoader } from "../text/fonts.ts";
 import { renderText } from "../text/render-text.ts";
-import { LayerFx } from "./layer-fx.ts";
+import { renderMasks } from "../shapes/mask-raster.ts";
+import { renderShape, shapeMetrics } from "../shapes/render-shape.ts";
+import { LayerFx, type LayerGeometry } from "./layer-fx.ts";
 import { reportIgnoredFeatures, resolveClipProps, type ResolvedLayerProps } from "./properties.ts";
 import { ReaderPool } from "./reader-pool.ts";
 import { validateProject } from "./validate.ts";
@@ -70,12 +73,17 @@ interface LayerSource {
   height: number;
   sourceKind: 0 | 1;
   flipV: boolean;
-  /** Text: the transform's anchor is measured from the centre of the picture, so 0,0 centres it. */
-  anchorCenter?: boolean;
+  /**
+   * Layer pixels added to the transform's anchor: text uses the picture's centre (anchor 0,0
+   * centres it), shapes the shape's own origin, so item positions are relative to the clip's x,y.
+   */
+  anchorShift?: { x: number; y: number };
 }
 
 interface RenderContext {
   diagnostics: DiagnosticSink;
+  /** Length of one frame of the composition being drawn, in µs (motion blur's shutter is a fraction of it). */
+  frameUs: number;
   /** Texture-cache keys the current frame is using; they must not be evicted mid-frame. */
   usedClips: Set<string>;
 }
@@ -184,7 +192,11 @@ export class Engine {
     if (composition === undefined) throw new Error(`Unknown composition "${compositionId}"`);
 
     const started = this.#clock.nowMs();
-    const context: RenderContext = { diagnostics: new DiagnosticSink(), usedClips: new Set() };
+    const context: RenderContext = {
+      diagnostics: new DiagnosticSink(),
+      frameUs: (1_000_000 * composition.fps.den) / composition.fps.num,
+      usedClips: new Set(),
+    };
     if (this.#canvas.width !== composition.width) this.#canvas.width = composition.width;
     if (this.#canvas.height !== composition.height) this.#canvas.height = composition.height;
 
@@ -235,7 +247,11 @@ export class Engine {
       plan.items.map(async (item) => {
         if (item.type === "clip") {
           await this.#prepareColour(context, item.clip);
-          return { source: await this.#resolveLayer(context, item.clip, tUs, composition) };
+          const source = await this.#resolveLayer(context, item.clip, tUs, composition);
+          const matteClip = item.matte?.source ?? null;
+          if (matteClip === null) return { source };
+          await this.#prepareColour(context, matteClip);
+          return { source, matte: await this.#resolveLayer(context, matteClip, tUs, composition) };
         }
         await Promise.all([
           this.#prepareColour(context, item.from),
@@ -249,6 +265,8 @@ export class Engine {
       }),
     );
 
+    // Nested compositions were drawn above (while resolving); from here on we draw this one.
+    context.frameUs = (1_000_000 * composition.fps.den) / composition.fps.num;
     let accum = this.#compositor.pool.acquire(composition.width, composition.height);
     let scratch = this.#compositor.pool.acquire(composition.width, composition.height);
     this.#compositor.clear(accum, composition.background);
@@ -282,6 +300,31 @@ export class Engine {
         return;
       }
       if (entry.source === null || entry.source === undefined) return;
+      if (item.matte !== undefined) {
+        if (item.matte.missing) {
+          context.diagnostics.add({
+            clipId: item.clip.id,
+            level: "warning",
+            code: "matte_missing",
+            message:
+              "The clip used as this clip's track matte isn't in the composition; no matte is applied.",
+          });
+        } else {
+          ({ accum, scratch } = this.#drawMatted(
+            context,
+            accum,
+            scratch,
+            item.clip,
+            item.matte,
+            entry.source,
+            entry.matte ?? null,
+            tUs,
+            composition,
+            frame,
+          ));
+          return;
+        }
+      }
       ({ accum, scratch } = this.#drawClip(
         context,
         accum,
@@ -296,8 +339,83 @@ export class Engine {
     return accum;
   }
 
-  /** Draws one clip (crop, colour, effects, transform, opacity, blend) over `accum`. */
+  /**
+   * The picture of a clip's path masks for this frame, as a texture (cached by what the masks are
+   * and where the layer sits, so an unanimated mask is drawn once).
+   */
+  #maskTexture(clip: Clip, place: LayerGeometry): WebGLTexture | undefined {
+    const key = `m:${JSON.stringify(clip.masks)}:${[place.x0, place.y0, place.s, place.pad, place.width, place.height].join(",")}`;
+    const cached = this.#cache.get(key);
+    if (cached !== undefined) {
+      this.#cache.pin(key);
+      return cached.texture;
+    }
+    const canvas = renderMasks(clip.masks, place);
+    if (canvas === null) return undefined;
+    const bitmap = canvas.transferToImageBitmap();
+    try {
+      const entry = this.#cache.put(key, place.width, place.height, (texture, reused) => {
+        uploadSource(this.#gl, texture, bitmap, reused);
+      });
+      this.#cache.pin(key);
+      return entry.texture;
+    } finally {
+      bitmap.close();
+    }
+  }
+
+  /**
+   * Draws one clip over `accum`. With motion blur on and something animating, the clip is drawn
+   * N times at instants spread across the shutter (centred on this frame) and the pictures are
+   * averaged; otherwise it is drawn once.
+   */
   #drawClip(
+    context: RenderContext,
+    accum: Target,
+    scratch: Target,
+    clip: Clip,
+    source: LayerSource,
+    tUs: number,
+    frame: number,
+    blendOverride?: LayerDraw["blendMode"],
+  ): { accum: Target; scratch: Target } {
+    const blur = clip.motionBlur;
+    if (!blur.enabled || !isAnimated(clip) || blur.shutterAngle <= 0 || blur.samples < 2) {
+      return this.#drawClipOnce(context, accum, scratch, clip, source, tUs, frame, blendOverride);
+    }
+    const pool = this.#compositor.pool;
+    const { width, height } = accum;
+    const samples = Math.min(64, Math.max(2, Math.round(blur.samples)));
+    const shutterUs = (blur.shutterAngle / 360) * context.frameUs;
+    const sum = pool.acquire(width, height);
+    this.#compositor.clear(sum, { r: 0, g: 0, b: 0, a: 0 });
+    for (let i = 0; i < samples; i += 1) {
+      const at = tUs + (i / (samples - 1) - 0.5) * shutterUs;
+      const one = pool.acquire(width, height);
+      this.#compositor.clear(one, { r: 0, g: 0, b: 0, a: 0 });
+      const spare = pool.acquire(width, height);
+      this.#drawClipOnce(context, one, spare, clip, source, at, frame, "normal");
+      pool.release(spare);
+      this.#fx.accumulate(one, sum, 1 / samples, frame);
+      pool.release(one);
+    }
+    const drawn = this.#compositor.drawLayer(accum, scratch, {
+      texture: sum.texture,
+      sourceKind: 1,
+      flipV: true,
+      layerWidth: width,
+      layerHeight: height,
+      rect: { x: 0, y: 0, width, height },
+      matrix: IDENTITY,
+      opacity: 1,
+      blendMode: blendOverride ?? clip.blendMode,
+    });
+    pool.release(sum);
+    return drawn;
+  }
+
+  /** Draws one clip (crop, colour, effects, transform, opacity, blend) over `accum`, at time `tUs`. */
+  #drawClipOnce(
     context: RenderContext,
     accum: Target,
     scratch: Target,
@@ -309,13 +427,13 @@ export class Engine {
   ): { accum: Target; scratch: Target } {
     const props = resolveClipProps(clip, tUs);
     const transform =
-      source.anchorCenter === true
-        ? {
+      source.anchorShift === undefined
+        ? props.transform
+        : {
             ...props.transform,
-            anchorX: props.transform.anchorX + source.width / 2,
-            anchorY: props.transform.anchorY + source.height / 2,
-          }
-        : props.transform;
+            anchorX: props.transform.anchorX + source.anchorShift.x,
+            anchorY: props.transform.anchorY + source.anchorShift.y,
+          };
     const matrix = layerMatrix(transform);
     let draw: LayerDraw = {
       texture: source.texture,
@@ -330,9 +448,15 @@ export class Engine {
     };
     let processed: Target | null = null;
     if (this.#fx.needs(props.clip)) {
-      const result = this.#fx.process(source, props, matrix, frame, (code, message) => {
+      const report = (code: string, message: string): void => {
         context.diagnostics.add({ clipId: clip.id, level: "warning", code, message });
-      });
+      };
+      let mask: WebGLTexture | undefined;
+      if (props.clip.masks.some((m) => m.kind === "path")) {
+        const geometry = this.#fx.geometry(source, props, matrix, report);
+        if (!("error" in geometry)) mask = this.#maskTexture(props.clip, geometry);
+      }
+      const result = this.#fx.process(source, props, matrix, frame, report, mask);
       if ("error" in result) {
         if (result.error !== "empty") {
           context.diagnostics.add({
@@ -349,6 +473,76 @@ export class Engine {
     }
     const drawn = this.#compositor.drawLayer(accum, scratch, draw);
     if (processed !== null) this.#compositor.pool.release(processed);
+    return drawn;
+  }
+
+  /** One clip drawn by itself onto a transparent composition-sized target (normal blend). */
+  #drawAlone(
+    context: RenderContext,
+    clip: Clip,
+    source: LayerSource | null,
+    tUs: number,
+    frame: number,
+    width: number,
+    height: number,
+  ): Target {
+    const pool = this.#compositor.pool;
+    const target = pool.acquire(width, height);
+    this.#compositor.clear(target, { r: 0, g: 0, b: 0, a: 0 });
+    if (source !== null) {
+      const spare = pool.acquire(width, height);
+      this.#drawClip(context, target, spare, clip, source, tUs, frame, "normal");
+      pool.release(spare);
+    }
+    return target;
+  }
+
+  /**
+   * A clip with a track matte: the clip and its matte clip are each drawn alone, the matte shader
+   * multiplies the clip by the matte (alpha or luma, optionally inverted), and the result is
+   * composited with the clip's blend mode.
+   */
+  #drawMatted(
+    context: RenderContext,
+    accum: Target,
+    scratch: Target,
+    clip: Clip,
+    matte: MattePlan,
+    source: LayerSource,
+    matteSource: LayerSource | null,
+    tUs: number,
+    composition: Composition,
+    frame: number,
+  ): { accum: Target; scratch: Target } {
+    const pool = this.#compositor.pool;
+    const { width, height } = composition;
+    const alone = this.#drawAlone(context, clip, source, tUs, frame, width, height);
+    const matteClip = matte.source;
+    const stencil = this.#drawAlone(
+      context,
+      matteClip ?? clip,
+      matteClip === null ? null : matteSource,
+      tUs,
+      frame,
+      width,
+      height,
+    );
+    const mode = ["alpha", "alphaInverted", "luma", "lumaInverted"].indexOf(matte.mode);
+    const result = this.#fx.matte(alone, stencil, mode, frame);
+    pool.release(alone);
+    pool.release(stencil);
+    const drawn = this.#compositor.drawLayer(accum, scratch, {
+      texture: result.texture,
+      sourceKind: 1,
+      flipV: true,
+      layerWidth: width,
+      layerHeight: height,
+      rect: { x: 0, y: 0, width, height },
+      matrix: IDENTITY,
+      opacity: 1,
+      blendMode: clip.blendMode,
+    });
+    pool.release(result);
     return drawn;
   }
 
@@ -385,18 +579,8 @@ export class Engine {
     }
     const pool = this.#compositor.pool;
     const { width, height } = composition;
-    const side = (clip: Clip, source: LayerSource | null): Target => {
-      const target = pool.acquire(width, height);
-      this.#compositor.clear(target, { r: 0, g: 0, b: 0, a: 0 });
-      if (source !== null) {
-        const spare = pool.acquire(width, height);
-        this.#drawClip(context, target, spare, clip, source, tUs, frame, "normal");
-        pool.release(spare);
-      }
-      return target;
-    };
-    const from = side(item.from, a);
-    const to = side(item.to, b);
+    const from = this.#drawAlone(context, item.from, a, tUs, frame, width, height);
+    const to = this.#drawAlone(context, item.to, b, tUs, frame, width, height);
     const blended = this.#fx.transition(
       def,
       new Params(def.params, item.transition.params),
@@ -520,14 +704,6 @@ export class Engine {
       }
       return null; // a caption before its first word shows nothing
     }
-    if (data.animators.length > 0) {
-      context.diagnostics.add({
-        clipId: clip.id,
-        level: "warning",
-        code: "ignored_text_animators",
-        message: "Text animators aren't drawn yet; the text is shown still.",
-      });
-    }
     const families = [...new Set(data.runs.map((r) => r.fontFamily))];
     const loaded = await Promise.all(families.map((f) => this.#fonts.ensure(f)));
     families.forEach((family, i) => {
@@ -554,7 +730,46 @@ export class Engine {
         bitmap.close();
       }
     });
-    return { ...this.#asLayer(entry), anchorCenter: true };
+    return { ...this.#asLayer(entry), anchorShift: { x: entry.width / 2, y: entry.height / 2 } };
+  }
+
+  /**
+   * Shape clips: outlines are drawn into a canvas (fill, stroke, dash, trim paths, rounded
+   * corners) at 1, 2 or 4 pixels per layer pixel, whichever covers the size the layer is drawn at,
+   * and cached by what the shape is (an animated shape makes a new picture each frame).
+   */
+  async #resolveShape(
+    context: RenderContext,
+    clip: Clip,
+    tUs: number,
+  ): Promise<LayerSource | null> {
+    context.usedClips.add(clip.id);
+    const props = resolveClipProps(clip, tUs);
+    const shape = props.clip.shape;
+    if (shape === undefined || shape.items.length === 0) return null;
+    const drawn = Math.max(Math.abs(props.transform.scaleX), Math.abs(props.transform.scaleY), 1);
+    const resolution = Math.min(4, 2 ** Math.ceil(Math.log2(drawn)));
+    const key = `sh:${JSON.stringify(shape)}:${String(resolution)}`;
+    const metrics = shapeMetrics(shape);
+    if (metrics === null) return null;
+    const entry = await this.#shared(key, () => {
+      const raster = renderShape(shape, resolution);
+      if (raster === null) return Promise.reject(new Error("The shape has nothing to draw."));
+      const bitmap = raster.canvas.transferToImageBitmap();
+      try {
+        return Promise.resolve(
+          this.#cache.put(key, raster.width, raster.height, (texture, reused) => {
+            uploadSource(this.#gl, texture, bitmap, reused);
+          }),
+        );
+      } finally {
+        bitmap.close();
+      }
+    });
+    return {
+      ...this.#asLayer(entry, { width: metrics.layerWidth, height: metrics.layerHeight }),
+      anchorShift: { x: metrics.originX, y: metrics.originY },
+    };
   }
 
   /** Loads the clip's LUT (if any) before drawing, and reports it if it can't be used. */
@@ -589,6 +804,7 @@ export class Engine {
       if (clip.type === "text" || clip.type === "caption") {
         return await this.#resolveText(context, clip, tUs);
       }
+      if (clip.type === "shape") return await this.#resolveShape(context, clip, tUs);
       if (clip.type === "adjustment") return null; // drawn from the composite, see #drawAdjustment
       context.diagnostics.add({
         clipId: clip.id,

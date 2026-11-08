@@ -97,5 +97,5 @@ export function captionTextAt(clip: Clip, localUs: number): TextData | null {
     if (li < state.page.lines.length - 1) runs.push({ ...base, text: "\n" });
   });
   if (runs.length === 0) return null;
-  return { ...style, runs, animators: [] };
+  return { ...style, runs };
 }

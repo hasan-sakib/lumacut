@@ -25,6 +25,8 @@ interface ClipViewProps {
   onPointerDown: (event: React.PointerEvent, clip: Clip, zone: ClipZone) => void;
   /** Right-click: the timeline selects the clip first, so the menu acts on what was clicked. */
   onContextMenu?: (clip: Clip) => void;
+  /** Double-click: opens a nested composition. */
+  onDoubleClick?: (clip: Clip) => void;
 }
 
 /** One clip on a lane: a box from its start to its end, with a grab zone at each edge for trimming. */
@@ -40,6 +42,7 @@ export function ClipView({
   viewToPx,
   onPointerDown,
   onContextMenu,
+  onDoubleClick,
 }: ClipViewProps) {
   const left = usToPx(clip.startUs, zoomPxPerSec);
   const width = Math.max(2, usToPx(endOf(clip) - clip.startUs, zoomPxPerSec));
@@ -87,6 +90,9 @@ export function ClipView({
       style={{ left, width, height, cursor }}
       onContextMenu={() => {
         onContextMenu?.(clip);
+      }}
+      onDoubleClick={() => {
+        onDoubleClick?.(clip);
       }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;

@@ -22,7 +22,7 @@ function checkKeyframe(clip: Clip, path: string, value: Keyframe["value"]): void
   if (property === undefined) {
     fail(
       "invalid_property",
-      `"${path}" isn't an animatable property of clip ${clip.id}. Animatable: transform.*, opacity, crop.*, color.*, audio.volume/pan and effects.<id>.params.<name> (numbers, points, colours).`,
+      `"${path}" isn't an animatable property of clip ${clip.id}. Animatable: transform.*, opacity, crop.*, color.*, audio.volume/pan, effects.<id>.params.<name>, masks.<id>.*, shape.*, text.animators.<id>.* and motionBlur.shutterAngle.`,
     );
   }
   if (kindOf(value) !== property.kind) {
@@ -119,7 +119,12 @@ export function removeMask(project: Project, op: OpOf<"removeMask">): Edit {
   return editClipData(project, op.clipId, (clip) => {
     if (!clip.masks.some((m) => m.id === op.maskId))
       fail("unknown_mask", `Clip ${clip.id} has no mask "${op.maskId}".`);
-    return { ...clip, masks: clip.masks.filter((m) => m.id !== op.maskId) };
+    // Its animation goes with it.
+    const prefix = `masks.${op.maskId}.`;
+    const keyframes = Object.fromEntries(
+      Object.entries(clip.keyframes).filter(([path]) => !path.startsWith(prefix)),
+    );
+    return { ...clip, masks: clip.masks.filter((m) => m.id !== op.maskId), keyframes };
   });
 }
 

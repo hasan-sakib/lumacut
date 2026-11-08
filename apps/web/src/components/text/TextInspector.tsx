@@ -1,13 +1,20 @@
 import { BUNDLED_FONTS } from "@lumacut/engine/text";
 import type { Clip, Color, Op, TextAlign, TextData, TextRun } from "@lumacut/schema";
 import { useState } from "react";
+import { addAnimatorOp, animatorGroups } from "../../inspector/animators.ts";
 import { colorToHex, hexToColor } from "../../inspector/effects.ts";
+import type { ClipInfo } from "../../inspector/fields.ts";
+import { newId } from "../../lib/ids.ts";
+import { ItemGroups } from "../params/ItemGroups.tsx";
 import { textContent, withContent } from "../../text/defaults.ts";
 import { ScrubNumber } from "../inspector/ScrubNumber.tsx";
 import { Section } from "../inspector/Section.tsx";
 
 interface TextInspectorProps {
   clip: Clip;
+  /** The selection entry and playhead, for the animators' ◆ controls. */
+  item?: ClipInfo;
+  playheadUs?: number;
   onChange: (op: Op, coalesceKey: string | undefined) => void;
 }
 
@@ -82,7 +89,7 @@ function Check({
 }
 
 /** Words, font and look of a text or caption clip. Every edit is one `setProps` on the clip's text. */
-export function TextInspector({ clip, onChange }: TextInspectorProps) {
+export function TextInspector({ clip, item, playheadUs = 0, onChange }: TextInspectorProps) {
   const [open, setOpen] = useState(true);
   const text = clip.text;
   if (text === undefined) return null;
@@ -452,6 +459,30 @@ export function TextInspector({ clip, onChange }: TextInspectorProps) {
           />
         </>
       )}
+      <div className="mt-1 flex flex-col gap-2">
+        <button
+          type="button"
+          title="Add a text animator: fade, move, scale, rotate, blur or recolour characters, words or lines along a range you can slide."
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
+          onClick={() => {
+            const op = addAnimatorOp(clip, newId());
+            if (op !== null) onChange(op, undefined);
+          }}
+          className="self-start rounded bg-neutral-800 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-700"
+        >
+          + Text animator
+        </button>
+        {item !== undefined && (
+          <ItemGroups
+            groups={animatorGroups(clip)}
+            item={item}
+            playheadUs={playheadUs}
+            onChange={onChange}
+          />
+        )}
+      </div>
     </Section>
   );
 }

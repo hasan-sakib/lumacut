@@ -54,6 +54,12 @@ export interface EditingServices {
     selectClips: (ids: string[]) => void;
     /** Shows the timeline or the graph editor in the bottom dock. */
     setBottomPanel: (panel: "timeline" | "graph") => void;
+    /** Opens a nested composition for editing / goes back up a level. */
+    /** What the preview canvas does with the pointer (draw shapes, pen) and what the pen makes. */
+    setCanvasTool?: (tool: "select" | "pen" | "rect" | "ellipse" | "polygon" | "star") => void;
+    setPenMode?: (mode: "shape" | "mask") => void;
+    openComposition?: (id: string) => void;
+    closeComposition?: (levelId?: string) => void;
   };
 }
 
@@ -64,6 +70,9 @@ export interface EditingContext {
   selectedClipIds: readonly string[];
   selectedTrackId: string | null;
   playheadUs: number;
+  /** What the preview canvas is doing with the pointer, and what the pen makes. */
+  canvasTool?: "select" | "pen" | "rect" | "ellipse" | "polygon" | "star";
+  penMode?: "shape" | "mask";
   canUndo: boolean;
   canRedo: boolean;
   /** Clips are on the clipboard / a clip's look is. */
@@ -571,6 +580,7 @@ function registerTool(
     when: (ctx) => activeComposition(ctx) !== undefined,
     run: (ctx) => {
       ctx.services.editor.setTool(tool);
+      if (tool === "select") ctx.services.editor.setCanvasTool?.("select");
       return undefined;
     },
   });

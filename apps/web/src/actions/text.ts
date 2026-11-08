@@ -2,6 +2,7 @@ import { ActionError } from "@lumacut/actions";
 import { createClip, type Composition, type Op } from "@lumacut/schema";
 import * as z from "zod";
 import { wordsFromText } from "../captions/words.ts";
+import { addAnimatorOp, removeAnimatorOp } from "../inspector/animators.ts";
 import { parseCues, wordsFromCues } from "../captions/srt.ts";
 import { CAPTION_STYLES, applyCaptionStyle, captionStyleById } from "../captions/styles.ts";
 import { defaultTextData, withContent } from "../text/defaults.ts";
@@ -198,6 +199,63 @@ editingActions.register({
       if (clip.caption === undefined) return [];
       const styled = applyCaptionStyle(found, comp, clip.caption);
       return [{ type: "setProps" as const, clipId: clip.id, props: styled }];
+    });
+  },
+});
+
+editingActions.register({
+  id: "text.addAnimator",
+  title: "Add a text animator",
+  description:
+    "Add an After Effects-style text animator to the selected text clips: characters, words or lines fade, move, scale, rotate, blur or change colour along a range you can slide (keyframe the range offset for typewriter and wave effects).",
+  keywords: [
+    "text",
+    "animator",
+    "typewriter",
+    "per character",
+    "letters",
+    "words",
+    "animate text",
+    "range selector",
+  ],
+  category: "Text",
+  when: (ctx) => selectedOf(ctx, "text").length > 0,
+  run: (ctx): Op[] =>
+    selectedOf(ctx, "text").flatMap(({ clip }) => {
+      const op = addAnimatorOp(clip, ctx.services.newId());
+      return op === null ? [] : [op];
+    }),
+});
+
+editingActions.register({
+  id: "text.removeAnimator",
+  title: "Remove a text animator",
+  description:
+    "Remove the last text animator of the selected text clips, or all of them with `all`.",
+  keywords: ["text", "animator", "remove", "clear"],
+  category: "Text",
+  argsSchema: z.object({ all: z.boolean().optional() }),
+  when: (ctx) => selectedOf(ctx, "text").some((p) => (p.clip.text?.animators.length ?? 0) > 0),
+  run: (ctx, args): Op[] => {
+    const { all } = args;
+    return selectedOf(ctx, "text").flatMap(({ clip }) => {
+      const list = clip.text?.animators ?? [];
+      const drop = all === true ? list : list.slice(-1);
+      let current = clip;
+      const ops: Op[] = [];
+      for (const a of drop) {
+        const op = removeAnimatorOp(current, a.id);
+        if (op === null) continue;
+        ops.push(op);
+        current = {
+          ...current,
+          text:
+            current.text === undefined
+              ? undefined
+              : { ...current.text, animators: current.text.animators.filter((x) => x.id !== a.id) },
+        };
+      }
+      return ops;
     });
   },
 });

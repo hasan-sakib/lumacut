@@ -7,11 +7,13 @@ import {
   type Track,
 } from "@lumacut/schema";
 
-export type SectionId = "transform" | "blend" | "crop" | "color" | "time" | "audio" | "effects";
+export type SectionId =
+  "transform" | "blend" | "motion" | "crop" | "color" | "time" | "audio" | "effects";
 
 export const SECTIONS: readonly { id: SectionId; title: string }[] = [
   { id: "transform", title: "Transform" },
   { id: "blend", title: "Opacity & blend" },
+  { id: "motion", title: "Motion blur" },
   { id: "crop", title: "Crop" },
   { id: "color", title: "Colour" },
   { id: "time", title: "Time" },
@@ -331,6 +333,52 @@ export const FIELDS: readonly FieldDef[] = [
     appliesTo: onPicture,
     get: (clip) => clip.blendMode,
     set: (_clip, value) => ({ props: { blendMode: BlendMode.parse(value) } }),
+  },
+
+  {
+    id: "motionBlur",
+    label: "Motion blur",
+    section: "motion",
+    kind: "boolean",
+    keywords: ["blur", "shutter", "motion", "smear", "fast movement", "realistic"],
+    appliesTo: onPicture,
+    get: (clip) => clip.motionBlur.enabled,
+    set: (clip, value) => ({
+      props: { motionBlur: { ...clip.motionBlur, enabled: value === true } },
+    }),
+  },
+  {
+    id: "shutterAngle",
+    label: "Shutter angle",
+    section: "motion",
+    kind: "number",
+    keywords: ["shutter", "blur amount", "exposure time", "180"],
+    unit: "°",
+    step: 5,
+    min: 0,
+    max: 720,
+    appliesTo: ({ clip, track }) => track?.kind !== "audio" && clip.motionBlur.enabled,
+    animation: { path: "motionBlur.shutterAngle" },
+    get: (clip) => clip.motionBlur.shutterAngle,
+    set: (clip, value) => ({
+      props: { motionBlur: { ...clip.motionBlur, shutterAngle: Number(value) } },
+    }),
+  },
+  {
+    id: "motionBlurSamples",
+    label: "Blur samples",
+    section: "motion",
+    advanced: true,
+    kind: "number",
+    keywords: ["samples", "quality", "smooth", "steps"],
+    step: 1,
+    min: 2,
+    max: 64,
+    appliesTo: ({ clip, track }) => track?.kind !== "audio" && clip.motionBlur.enabled,
+    get: (clip) => clip.motionBlur.samples,
+    set: (clip, value) => ({
+      props: { motionBlur: { ...clip.motionBlur, samples: Math.round(Number(value)) } },
+    }),
   },
 
   cropField("cropLeft", "Crop left", "left"),

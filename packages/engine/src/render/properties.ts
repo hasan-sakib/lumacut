@@ -46,8 +46,10 @@ export function reportIgnoredFeatures(clip: Clip, sink: DiagnosticSink): void {
       `Keyframes on ${unanimated.map(([path]) => `"${path}"`).join(", ")} can't be animated yet.`,
     );
   }
-  if (clip.masks.length > 0) warn("ignored_masks", "Masks aren't applied yet.");
-  if (clip.trackMatte !== undefined)
-    warn("ignored_track_matte", "Track mattes aren't applied yet.");
-  if (clip.motionBlur.enabled) warn("ignored_motion_blur", "Motion blur isn't applied yet.");
+  if (clip.masks.some((m) => m.kind === "raster")) {
+    warn(
+      "ignored_raster_mask",
+      "Bitmap masks aren't applied yet (they arrive with the photo tools).",
+    );
+  }
 }

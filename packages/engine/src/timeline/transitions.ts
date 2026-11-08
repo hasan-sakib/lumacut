@@ -2,8 +2,16 @@ import type { Clip, Composition, TransitionInstance } from "@lumacut/schema";
 import { clipEndUs, isClipActive } from "./source-time.ts";
 
 /** What to draw at one instant, bottom to top: a clip, or two clips blended by a transition. */
+export interface MattePlan {
+  /** The clip that supplies the matte; null when it isn't on screen at this instant (an empty matte). */
+  source: Clip | null;
+  mode: NonNullable<Clip["trackMatte"]>["mode"];
+  /** The matte clip doesn't exist in this composition: the clip is drawn without a matte. */
+  missing: boolean;
+}
+
 export type LayerPlanItem =
-  | { type: "clip"; clip: Clip; trackIndex: number }
+  | { type: "clip"; clip: Clip; trackIndex: number; matte?: MattePlan }
   | {
       type: "transition";
       from: Clip;
@@ -45,6 +53,15 @@ export function transitionWindow(
 export function planLayers(composition: Composition, tUs: number): LayerPlan {
   const items: LayerPlanItem[] = [];
   const orphanTransitions: string[] = [];
+  // A clip that serves as another clip's track matte is not drawn on its own.
+  const everyClip = new Map<string, Clip>();
+  const matteSources = new Set<string>();
+  for (const track of composition.tracks) {
+    for (const clip of track.clips) {
+      everyClip.set(clip.id, clip);
+      if (clip.trackMatte !== undefined) matteSources.add(clip.trackMatte.sourceClipId);
+    }
+  }
   composition.tracks.forEach((track, trackIndex) => {
     if (track.kind !== "visual" || track.hidden) return;
     const clips = [...track.clips].sort((a, b) => a.startUs - b.startUs);
@@ -76,8 +93,23 @@ export function planLayers(composition: Composition, tUs: number): LayerPlan {
     track.clips.forEach((clip) => {
       const blended = transitions.get(clip.id);
       if (blended !== undefined) items.push(blended);
-      else if (!consumed.has(clip.id) && isClipActive(clip, tUs)) {
-        items.push({ type: "clip", clip, trackIndex });
+      else if (!consumed.has(clip.id) && isClipActive(clip, tUs) && !matteSources.has(clip.id)) {
+        const matte = clip.trackMatte;
+        const source = matte === undefined ? undefined : everyClip.get(matte.sourceClipId);
+        items.push({
+          type: "clip",
+          clip,
+          trackIndex,
+          ...(matte === undefined
+            ? {}
+            : {
+                matte: {
+                  source: source !== undefined && isClipActive(source, tUs) ? source : null,
+                  mode: matte.mode,
+                  missing: source === undefined,
+                },
+              }),
+        });
       }
     });
   });

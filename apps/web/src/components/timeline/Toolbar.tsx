@@ -42,6 +42,18 @@ export function Toolbar({ ctx, tool, snapping, playing, playheadUs, fps, onRun }
       <div className={GROUP} role="group" aria-label="Tools">
         {TOOLS.map((t) => button(`tool.${t}`, tool === t))}
       </div>
+      <div className={GROUP} role="group" aria-label="Drawing tools">
+        {(
+          [
+            ["tool.pen", "pen"],
+            ["tool.rectangle", "rect"],
+            ["tool.ellipse", "ellipse"],
+            ["tool.polygon", "polygon"],
+            ["tool.star", "star"],
+          ] as const
+        ).map(([id, canvasTool]) => button(id, ctx.canvasTool === canvasTool))}
+        {button("tool.penMode", ctx.penMode === "mask")}
+      </div>
       <div className={GROUP}>{button("timeline.toggleSnapping", snapping)}</div>
       <div className={GROUP}>
         {button("playback.goToStart")}

@@ -7,6 +7,8 @@ import { ActionButton } from "../components/ActionButton.tsx";
 import { Icon } from "../components/Icon.tsx";
 import { EffectsBrowser } from "../components/effects/EffectsBrowser.tsx";
 import { GraphEditor } from "../components/graph/GraphEditor.tsx";
+import { PreviewOverlay } from "../components/preview/PreviewOverlay.tsx";
+import { PresetsBrowser } from "../components/presets/PresetsBrowser.tsx";
 import { ScopesPanel } from "../components/scopes/ScopesPanel.tsx";
 import { TextBrowser } from "../components/text/TextBrowser.tsx";
 import type { LutAsset } from "../components/color/LutPicker.tsx";
@@ -50,9 +52,9 @@ export function ProjectPage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tab, setTab] = useState<"inspector" | "media" | "effects" | "text" | "scopes" | "history">(
-    "inspector",
-  );
+  const [tab, setTab] = useState<
+    "inspector" | "media" | "effects" | "presets" | "text" | "scopes" | "history"
+  >("inspector");
 
   const compositionId = editor.activeCompositionId ?? project?.mainCompositionId ?? null;
   const {
@@ -236,6 +238,38 @@ export function ProjectPage() {
 
       {project !== null && composition !== undefined && (
         <>
+          {editor.compositionTrail.length > 1 && (
+            <nav
+              aria-label="Composition path"
+              className="flex items-center gap-1 border-b border-neutral-800 px-4 py-1 text-xs"
+            >
+              {editor.compositionTrail.map((id, i) => {
+                const last = i === editor.compositionTrail.length - 1;
+                const name = project.compositions.find((c) => c.id === id)?.name ?? id;
+                return (
+                  <span key={id} className="flex items-center gap-1">
+                    {i > 0 && <span className="text-neutral-600">›</span>}
+                    {last ? (
+                      <span aria-current="page" className="font-semibold text-neutral-100">
+                        {name}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        title={`Go back to ${name}`}
+                        onClick={() => {
+                          editor.closeComposition(id);
+                        }}
+                        className="text-sky-400 hover:underline"
+                      >
+                        {name}
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
+            </nav>
+          )}
           <div className="flex min-h-0 flex-1 gap-3 p-3">
             <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col gap-2">
               {(notice !== null || previewError !== null) && (
@@ -246,11 +280,20 @@ export function ProjectPage() {
                   {notice ?? previewError}
                 </p>
               )}
-              <div
-                ref={attachStage}
-                data-testid="preview"
-                className="min-h-0 flex-1 rounded-lg bg-black"
-              />
+              <div className="relative min-h-0 flex-1 rounded-lg bg-black">
+                <div ref={attachStage} data-testid="preview" className="absolute inset-0" />
+                <PreviewOverlay
+                  project={project}
+                  composition={composition}
+                  selected={selectedInfos}
+                  playheadUs={editor.playheadUs}
+                  canvasTool={editor.canvasTool}
+                  penMode={editor.penMode}
+                  onCommit={commitField}
+                  onRun={(id, args) => void run(id, args)}
+                  onSelectClips={editor.selectClips}
+                />
+              </div>
               {previewDiagnostics.length > 0 && (
                 <ul
                   aria-label="Not shown in the preview"
@@ -274,25 +317,25 @@ export function ProjectPage() {
                 aria-label="Panels"
                 className="flex border-b border-neutral-800 text-xs"
               >
-                {(["inspector", "media", "effects", "text", "scopes", "history"] as const).map(
-                  (id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="tab"
-                      aria-selected={tab === id}
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                      }}
-                      onClick={() => {
-                        setTab(id);
-                      }}
-                      className={`flex-1 px-3 py-2 capitalize ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
-                    >
-                      {id === "media" ? "Add media" : id}
-                    </button>
-                  ),
-                )}
+                {(
+                  ["inspector", "media", "effects", "presets", "text", "scopes", "history"] as const
+                ).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === id}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                    }}
+                    onClick={() => {
+                      setTab(id);
+                    }}
+                    className={`flex-1 px-3 py-2 capitalize ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+                  >
+                    {id === "media" ? "Add media" : id}
+                  </button>
+                ))}
               </div>
               <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
                 {tab === "inspector" && (
@@ -301,6 +344,7 @@ export function ProjectPage() {
                     items={selectedInfos}
                     playheadUs={editor.playheadUs}
                     lutAssets={lutAssets}
+                    project={project}
                     onChange={commitField}
                   />
                 )}
@@ -312,6 +356,15 @@ export function ProjectPage() {
                         i.track !== undefined && touchingPrevious(i.track, i.clip) !== undefined,
                     )}
                     run={(id, args) => void run(id, args)}
+                  />
+                )}
+                {tab === "presets" && (
+                  <PresetsBrowser
+                    canApply={selectedInfos.some((i) => i.track?.kind === "visual")}
+                    hasText={selectedInfos.some(
+                      (i) => i.clip.type === "text" || i.clip.type === "caption",
+                    )}
+                    run={(id, args) => run(id, args)}
                   />
                 )}
                 {tab === "text" && (

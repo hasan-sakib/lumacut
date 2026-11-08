@@ -1,4 +1,5 @@
 import type { Clip, KeyframeValue, ParamValue, Vec2 } from "@lumacut/schema";
+import { resolveMotionProperty } from "./paths-motion.ts";
 import { isPath, kindOf, type ValueKind } from "./values.ts";
 
 /** A keyframeable property of a clip: how to read and write its (static) value. */
@@ -85,10 +86,20 @@ function paramKind(value: unknown): ValueKind | undefined {
  * The vocabulary: `transform.{x,y,scaleX,scaleY,rotation,anchorX,anchorY,skew}`, the pairs
  * `transform.{position,scale,anchor}` (points, with spatial paths), `opacity`,
  * `crop.{left,top,right,bottom}`, `color.<scalar>`, `color.{lift,gamma,gain,offset}.{r,g,b}`,
- * `audio.{volume,pan}` and `effects.<effectId>.params.<name>`.
+ * `audio.{volume,pan}` and `effects.<effectId>.params.<name>`; shapes, masks, text animators and
+ * motion blur are in paths-motion.ts.
  */
 export function resolveProperty(clip: Clip, path: string): AnimatableProperty | undefined {
-  const [head, second, third, fourth, ...rest] = path.split(".");
+  const parts = path.split(".");
+  return resolveBase(clip, path, parts) ?? resolveMotionProperty(clip, parts);
+}
+
+function resolveBase(
+  clip: Clip,
+  path: string,
+  parts: readonly string[],
+): AnimatableProperty | undefined {
+  const [head, second, third, fourth, ...rest] = parts;
   if (rest.length > 0) return undefined;
 
   if (head === "opacity" && second === undefined) {
