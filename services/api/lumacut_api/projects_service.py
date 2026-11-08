@@ -31,9 +31,25 @@ class ProjectOut(ProjectSummary):
     doc: dict[str, Any]
 
 
+class CanvasColor(CamelModel):
+    """A straight (non-premultiplied) sRGB colour, each channel 0..1."""
+
+    r: float = Field(ge=0, le=1)
+    g: float = Field(ge=0, le=1)
+    b: float = Field(ge=0, le=1)
+    a: float = Field(ge=0, le=1)
+
+
+#: The largest canvas a new photo may have (SPEC §2 limits images to 8192 px).
+MAX_CANVAS_SIDE = 16384
+
+
 class ProjectCreate(CamelModel):
     name: str = Field(min_length=1, max_length=255)
     kind: ProjectKind = "video"
+    width: int | None = Field(default=None, ge=1, le=MAX_CANVAS_SIDE)
+    height: int | None = Field(default=None, ge=1, le=MAX_CANVAS_SIDE)
+    background: CanvasColor | None = None
 
 
 class ProjectSave(CamelModel):
@@ -56,10 +72,25 @@ def iso_now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
-def default_document(name: str, kind: ProjectKind) -> dict[str, Any]:
-    """A new project: one 1080p30 composition with an empty picture and an empty audio track."""
+def default_document(
+    name: str,
+    kind: ProjectKind,
+    width: int | None = None,
+    height: int | None = None,
+    background: CanvasColor | None = None,
+) -> dict[str, Any]:
+    """A new project: one composition (1080p30 unless sized) with an empty picture track.
+
+    Video and motion projects also get an empty audio track and a black background. A photo has no
+    audio, a single frame (`durationUs` 0) and a transparent background unless one is given.
+    """
     now = iso_now()
+    photo = kind == "photo"
     black = {"r": 0, "g": 0, "b": 0, "a": 1}
+    if background is not None:
+        fill = background.model_dump()
+    else:
+        fill = {"r": 0, "g": 0, "b": 0, "a": 0} if photo else black
 
     def track(name: str, kind: str) -> dict[str, Any]:
         return {
@@ -84,12 +115,16 @@ def default_document(name: str, kind: ProjectKind) -> dict[str, Any]:
             {
                 "id": composition_id,
                 "name": "Main",
-                "width": 1920,
-                "height": 1080,
+                "width": width or 1920,
+                "height": height or 1080,
                 "fps": {"num": 30, "den": 1},
                 "durationUs": 0,
-                "background": black,
-                "tracks": [track("Video 1", "visual"), track("Audio 1", "audio")],
+                "background": fill,
+                "tracks": (
+                    [track("Layer 1", "visual")]
+                    if photo
+                    else [track("Video 1", "visual"), track("Audio 1", "audio")]
+                ),
                 "markers": [],
             }
         ],

@@ -1,6 +1,7 @@
-import type { Project } from "@lumacut/schema";
+import type { Project, RasterMask } from "@lumacut/schema";
 import type { MediaResolver } from "../decode/media.ts";
 import type { ReadbackRenderResult, RenderResult } from "../render/engine.ts";
+import type { ViewWindow } from "../render/view.ts";
 import type { EngineLimits, StatsSnapshot } from "../stats.ts";
 import type { PresentedEvent } from "./engine-host.ts";
 import { Rpc } from "./rpc.ts";
@@ -68,26 +69,44 @@ export class EngineClient {
     return this.#rpc.call("setProject", { project });
   }
 
+  /** Shows `bitmap` (transferred) as a bitmap mask until cleared with null; see `Engine.setMaskOverride`. */
+  setMaskOverride(
+    maskId: string,
+    entry: { clipId: string; mask: RasterMask; bitmap: ImageBitmap } | null,
+  ): Promise<void> {
+    return this.#rpc.call(
+      "setMaskOverride",
+      { maskId, entry },
+      entry === null ? [] : [entry.bitmap],
+    );
+  }
+
+  /** Sets the window later renders draw (null: the whole composition). */
+  setView(view: ViewWindow | null): Promise<void> {
+    return this.#rpc.call("setView", { view });
+  }
+
   renderAt(
     compositionId: string,
     tUs: number,
-    options: { readback: true },
+    options: { readback: true; scopeWidth?: number; view?: ViewWindow },
   ): Promise<ReadbackRenderResult>;
   renderAt(
     compositionId: string,
     tUs: number,
-    options?: { readback?: boolean; scopeWidth?: number },
+    options?: { readback?: boolean; scopeWidth?: number; view?: ViewWindow },
   ): Promise<RenderResult>;
   renderAt(
     compositionId: string,
     tUs: number,
-    options: { readback?: boolean; scopeWidth?: number } = {},
+    options: { readback?: boolean; scopeWidth?: number; view?: ViewWindow } = {},
   ): Promise<RenderResult> {
     return this.#rpc.call("renderAt", {
       compositionId,
       tUs,
       readback: options.readback === true,
       ...(options.scopeWidth === undefined ? {} : { scopeWidth: options.scopeWidth }),
+      ...(options.view === undefined ? {} : { view: options.view }),
     });
   }
 

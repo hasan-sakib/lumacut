@@ -12,7 +12,9 @@
     "./color": "./src/color/index.ts",
     "./scopes": "./src/scopes/index.ts",
     "./text": "./src/text/index.ts",
-    "./shapes": "./src/shapes/index.ts"
+    "./shapes": "./src/shapes/index.ts",
+    "./paint": "./src/paint/index.ts",
+    "./export": "./src/export/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

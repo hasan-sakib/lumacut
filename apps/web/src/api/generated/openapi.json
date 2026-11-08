@@ -339,6 +339,38 @@
         "title": "AudioStreamInfo",
         "type": "object"
       },
+      "CanvasColor": {
+        "description": "A straight (non-premultiplied) sRGB colour, each channel 0..1.",
+        "properties": {
+          "a": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "A",
+            "type": "number"
+          },
+          "b": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "B",
+            "type": "number"
+          },
+          "g": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "G",
+            "type": "number"
+          },
+          "r": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "R",
+            "type": "number"
+          }
+        },
+        "required": ["r", "g", "b", "a"],
+        "title": "CanvasColor",
+        "type": "object"
+      },
       "CheckResult": {
         "properties": {
           "detail": {
@@ -570,6 +602,29 @@
       },
       "ProjectCreate": {
         "properties": {
+          "background": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CanvasColor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "maximum": 16384.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
           "kind": {
             "default": "video",
             "enum": ["video", "motion", "photo"],
@@ -581,6 +636,19 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "maximum": 16384.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
           }
         },
         "required": ["name"],

@@ -1,12 +1,20 @@
 import type { Op } from "@lumacut/schema";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useParams } from "react-router";
 import { editingActions } from "../actions/editing.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
 import { Icon } from "../components/Icon.tsx";
 import { EffectsBrowser } from "../components/effects/EffectsBrowser.tsx";
 import { GraphEditor } from "../components/graph/GraphEditor.tsx";
+import { CanvasPanel } from "../components/photo/CanvasPanel.tsx";
+import { ExportDialog } from "../components/photo/ExportDialog.tsx";
+import { FiltersPanel } from "../components/photo/FiltersPanel.tsx";
+import { LayersPanel } from "../components/photo/LayersPanel.tsx";
+import { PhotoStage } from "../components/photo/PhotoStage.tsx";
+import { ToolOptions } from "../components/photo/ToolOptions.tsx";
+import { ToolRail } from "../components/photo/ToolRail.tsx";
+import { useMaskBrush } from "../components/photo/useMaskBrush.ts";
 import { PreviewOverlay } from "../components/preview/PreviewOverlay.tsx";
 import { PresetsBrowser } from "../components/presets/PresetsBrowser.tsx";
 import { ScopesPanel } from "../components/scopes/ScopesPanel.tsx";
@@ -27,7 +35,9 @@ import { toProjectAsset } from "../lib/project-assets.ts";
 import type { ClipInfo } from "../inspector/fields.ts";
 import { findPlaced } from "../timeline/clips.ts";
 import { useAssetsStore } from "../stores/assets.ts";
+import { fitAspect } from "../photo/crop.ts";
 import { useEditorStore } from "../stores/editor.ts";
+import { usePhotoStore } from "../stores/photo.ts";
 import { projectStore, useProjectStore } from "../stores/project.ts";
 
 /**
@@ -51,12 +61,28 @@ export function ProjectPage() {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tab, setTab] = useState<
-    "inspector" | "media" | "effects" | "presets" | "text" | "scopes" | "history"
-  >("inspector");
+  const [tabChoice, setTab] = useState<
+    | "inspector"
+    | "media"
+    | "effects"
+    | "presets"
+    | "text"
+    | "scopes"
+    | "history"
+    | "layers"
+    | "filters"
+    | "canvas"
+    | null
+  >(null);
+  const photoMode = project?.kind === "photo";
+  // A photo opens on its layers, a video on the inspector, until a tab is picked.
+  const tab = tabChoice ?? (photoMode ? "layers" : "inspector");
+  const startAsset = (useLocation().state as { assetId?: string } | null)?.assetId;
 
   const compositionId = editor.activeCompositionId ?? project?.mainCompositionId ?? null;
+  const preview = usePreview(project, compositionId);
   const {
     attachStage,
     playing,
@@ -65,7 +91,7 @@ export function ProjectPage() {
     togglePlay,
     seek,
     readScope,
-  } = usePreview(project, compositionId);
+  } = preview;
 
   const ui = useMemo(
     () => ({
@@ -74,6 +100,9 @@ export function ProjectPage() {
       },
       showShortcuts: () => {
         setHelpOpen(true);
+      },
+      openExport: () => {
+        setExportOpen(true);
       },
       togglePlay,
       seek,
@@ -176,6 +205,50 @@ export function ProjectPage() {
   }, [composition, project, editor.selectedClipIds]);
   const library = assetOrder.map((id) => assets[id]).filter((a) => a?.status === "ready");
 
+  // --- Photo workspace ------------------------------------------------------------------------
+  const selectedSingle = selectedInfos.length === 1 ? selectedInfos[0] : undefined;
+  const maskBrush = useMaskBrush({
+    project,
+    composition,
+    target: selectedSingle,
+    playheadUs: editor.playheadUs,
+    brush: editor.brush,
+    setOverride: preview.setMaskOverride,
+    onError: setNotice,
+  });
+  // "Edit photo" from the library opens the project with the image to start from.
+  const started = useRef(false);
+  const hasClips = composition?.tracks.some((t) => t.clips.length > 0) === true;
+  useEffect(() => {
+    if (started.current || !photoMode || startAsset === undefined || composition === undefined)
+      return;
+    if (assets[startAsset]?.status !== "ready") return;
+    started.current = true;
+    if (!hasClips) {
+      queueMicrotask(() => {
+        void run("timeline.addAssetAtPlayhead", { asset: startAsset });
+      });
+    }
+  }, [photoMode, startAsset, composition, assets, hasClips, run]);
+  // The crop box exists while the crop tool is open; it starts as the whole canvas.
+  const canvasW = composition?.width ?? 0;
+  const canvasH = composition?.height ?? 0;
+  useEffect(() => {
+    const store = usePhotoStore.getState();
+    if (editor.canvasTool === "crop" && canvasW > 0) {
+      store.setCrop(fitAspect({ width: canvasW, height: canvasH }, canvasW / canvasH));
+      store.setCropAspect(null);
+    } else {
+      store.setCrop(null);
+      store.setStraighten(0);
+    }
+  }, [editor.canvasTool, canvasW, canvasH]);
+  // Leaving the mask brush saves what was painted.
+  const flushMask = maskBrush.flush;
+  useEffect(() => {
+    if (editor.canvasTool !== "maskBrush") void flushMask();
+  }, [editor.canvasTool, flushMask]);
+
   return (
     <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
       <header className="flex flex-wrap items-center gap-3 border-b border-neutral-800 px-4 py-2">
@@ -187,6 +260,12 @@ export function ProjectPage() {
         </h1>
         <SaveStatus state={saveState} detail={saveError} />
         <div className="ml-auto flex items-center gap-1">
+          <ActionButton
+            action={editingActions.get("export.open")}
+            ctx={host.ctx}
+            onRun={host.runAction}
+            className="text-neutral-200 hover:bg-neutral-800"
+          />
           <ActionButton
             action={editingActions.get("help.shortcuts")}
             ctx={host.ctx}
@@ -280,20 +359,53 @@ export function ProjectPage() {
                   {notice ?? previewError}
                 </p>
               )}
-              <div className="relative min-h-0 flex-1 rounded-lg bg-black">
-                <div ref={attachStage} data-testid="preview" className="absolute inset-0" />
-                <PreviewOverlay
-                  project={project}
-                  composition={composition}
-                  selected={selectedInfos}
-                  playheadUs={editor.playheadUs}
-                  canvasTool={editor.canvasTool}
-                  penMode={editor.penMode}
-                  onCommit={commitField}
-                  onRun={(id, args) => void run(id, args)}
-                  onSelectClips={editor.selectClips}
-                />
-              </div>
+              {photoMode && (
+                <>
+                  <ToolOptions
+                    canvasTool={editor.canvasTool}
+                    canvas={{ width: composition.width, height: composition.height }}
+                    brush={editor.brush}
+                    selection={editor.selection}
+                    hasLayer={selectedSingle?.track?.kind === "visual"}
+                    setBrush={editor.setBrush}
+                    run={run}
+                  />
+                  <div className="flex min-h-0 flex-1 gap-2">
+                    <ToolRail
+                      ctx={host.ctx}
+                      canvasTool={editor.canvasTool}
+                      onRun={host.runAction}
+                    />
+                    <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-neutral-800">
+                      <PhotoStage
+                        project={project}
+                        composition={composition}
+                        selected={selectedInfos}
+                        preview={preview}
+                        run={run}
+                        onCommit={commitField}
+                        maskBrush={maskBrush}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+              {!photoMode && (
+                <div className="relative min-h-0 flex-1 rounded-lg bg-black">
+                  <div ref={attachStage} data-testid="preview" className="absolute inset-0" />
+                  <PreviewOverlay
+                    project={project}
+                    composition={composition}
+                    selected={selectedInfos}
+                    playheadUs={editor.playheadUs}
+                    canvasTool={editor.canvasTool}
+                    penMode={editor.penMode}
+                    onCommit={commitField}
+                    onRun={(id, args) => void run(id, args)}
+                    onSelectClips={editor.selectClips}
+                  />
+                </div>
+              )}
               {previewDiagnostics.length > 0 && (
                 <ul
                   aria-label="Not shown in the preview"
@@ -317,8 +429,17 @@ export function ProjectPage() {
                 aria-label="Panels"
                 className="flex border-b border-neutral-800 text-xs"
               >
-                {(
-                  ["inspector", "media", "effects", "presets", "text", "scopes", "history"] as const
+                {(photoMode
+                  ? (["layers", "inspector", "filters", "canvas", "media", "history"] as const)
+                  : ([
+                      "inspector",
+                      "media",
+                      "effects",
+                      "presets",
+                      "text",
+                      "scopes",
+                      "history",
+                    ] as const)
                 ).map((id) => (
                   <button
                     key={id}
@@ -333,7 +454,13 @@ export function ProjectPage() {
                     }}
                     className={`flex-1 px-3 py-2 capitalize ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
                   >
-                    {id === "media" ? "Add media" : id}
+                    {id === "media"
+                      ? photoMode
+                        ? "Images"
+                        : "Add media"
+                      : id === "inspector" && photoMode
+                        ? "Properties"
+                        : id}
                   </button>
                 ))}
               </div>
@@ -346,6 +473,31 @@ export function ProjectPage() {
                     lutAssets={lutAssets}
                     project={project}
                     onChange={commitField}
+                  />
+                )}
+                {tab === "layers" && photoMode && (
+                  <LayersPanel
+                    composition={composition}
+                    ctx={host.ctx}
+                    selectedClipIds={editor.selectedClipIds}
+                    selectClips={editor.selectClips}
+                    onRun={host.runAction}
+                    run={run}
+                    onAddImage={() => {
+                      setTab("media");
+                    }}
+                  />
+                )}
+                {tab === "filters" && photoMode && (
+                  <FiltersPanel
+                    canAdd={selectedInfos.some((i) => i.track?.kind === "visual")}
+                    run={run}
+                  />
+                )}
+                {tab === "canvas" && photoMode && (
+                  <CanvasPanel
+                    canvas={{ width: composition.width, height: composition.height }}
+                    run={run}
                   />
                 )}
                 {tab === "effects" && (
@@ -383,7 +535,9 @@ export function ProjectPage() {
                 )}
                 {tab === "media" && (
                   <section aria-label="Add media" className="p-3">
-                    <h2 className="mb-2 text-sm font-semibold">Add media at the playhead</h2>
+                    <h2 className="mb-2 text-sm font-semibold">
+                      {photoMode ? "Add an image as a new layer" : "Add media at the playhead"}
+                    </h2>
                     {library.length === 0 ? (
                       <p className="text-xs text-neutral-500">
                         No ready assets. Upload some in the library.
@@ -434,91 +588,96 @@ export function ProjectPage() {
                 )}
               </div>
               <p className="border-t border-neutral-800 p-2 text-[11px] text-neutral-500">
-                Mod+K: every command · V C B N Y U: tools · Space: play · S: split · Mod+C / V: copy
-                and paste · ?: all shortcuts
+                {photoMode
+                  ? "Mod+K: every command · Alt+B brush · Alt+R select · Alt+C crop · Space: hand · [ ]: brush size · ?: all shortcuts"
+                  : "Mod+K: every command · V C B N Y U: tools · Space: play · S: split · Mod+C / V: copy and paste · ?: all shortcuts"}
               </p>
             </aside>
           </div>
 
-          <Toolbar
-            ctx={host.ctx}
-            tool={editor.tool}
-            snapping={editor.snapping}
-            playing={playing}
-            playheadUs={editor.playheadUs}
-            fps={composition.fps}
-            onRun={host.runAction}
-          />
-          <div
-            role="tablist"
-            aria-label="Bottom panel"
-            className="flex shrink-0 gap-1 border-t border-neutral-800 bg-neutral-950 px-3 pt-1 text-xs"
-          >
-            {(
-              [
-                ["timeline", "Timeline", "panel.showTimeline"],
-                ["graph", "Graph editor", "panel.showGraph"],
-              ] as const
-            ).map(([id, title, action]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={editor.bottomPanel === id}
-                title={`${title}: ${editingActions.get(action).description} (${editingActions.get(action).shortcut ?? ""})`}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                }}
-                onClick={() => void run(action)}
-                className={`rounded-t px-3 py-1 ${editor.bottomPanel === id ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
-              >
-                {title}
-              </button>
-            ))}
-          </div>
-          {editor.bottomPanel === "graph" ? (
-            <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
-              <GraphEditor
-                clip={selectedInfos.length === 1 ? selectedInfos[0]?.clip : undefined}
+          {!photoMode && (
+            <>
+              <Toolbar
+                ctx={host.ctx}
+                tool={editor.tool}
+                snapping={editor.snapping}
+                playing={playing}
                 playheadUs={editor.playheadUs}
-                onChange={commitField}
-                onSeek={seek}
+                fps={composition.fps}
+                onRun={host.runAction}
               />
-            </div>
-          ) : (
-            <ActionContextMenu
-              registry={editingActions}
-              ctx={host.ctx}
-              onRun={(id) => void run(id)}
-            >
-              <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
-                <Timeline
-                  project={project}
-                  composition={composition}
-                  ctx={host.ctx}
-                  tool={editor.tool}
-                  zoomPxPerSec={editor.zoomPxPerSec}
-                  scrollUs={editor.scrollUs}
-                  snapping={editor.snapping}
-                  playheadUs={editor.playheadUs}
-                  playing={playing}
-                  selectedClipIds={editor.selectedClipIds}
-                  selectedTrackId={editor.selectedTrackId}
-                  newId={newId}
-                  onSelectClips={editor.selectClips}
-                  onSelectTrack={editor.selectTrack}
-                  onSeek={seek}
-                  onCommit={commit}
-                  onRunAction={host.runAction}
-                  onZoom={(zoom, scroll) => {
-                    editor.setZoom(zoom);
-                    editor.setScroll(scroll);
-                  }}
-                  onScroll={editor.setScroll}
-                  onViewport={editor.setViewportPx}
-                />
+              <div
+                role="tablist"
+                aria-label="Bottom panel"
+                className="flex shrink-0 gap-1 border-t border-neutral-800 bg-neutral-950 px-3 pt-1 text-xs"
+              >
+                {(
+                  [
+                    ["timeline", "Timeline", "panel.showTimeline"],
+                    ["graph", "Graph editor", "panel.showGraph"],
+                  ] as const
+                ).map(([id, title, action]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={editor.bottomPanel === id}
+                    title={`${title}: ${editingActions.get(action).description} (${editingActions.get(action).shortcut ?? ""})`}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                    }}
+                    onClick={() => void run(action)}
+                    className={`rounded-t px-3 py-1 ${editor.bottomPanel === id ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+                  >
+                    {title}
+                  </button>
+                ))}
               </div>
-            </ActionContextMenu>
+              {editor.bottomPanel === "graph" ? (
+                <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+                  <GraphEditor
+                    clip={selectedInfos.length === 1 ? selectedInfos[0]?.clip : undefined}
+                    playheadUs={editor.playheadUs}
+                    onChange={commitField}
+                    onSeek={seek}
+                  />
+                </div>
+              ) : (
+                <ActionContextMenu
+                  registry={editingActions}
+                  ctx={host.ctx}
+                  onRun={(id) => void run(id)}
+                >
+                  <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+                    <Timeline
+                      project={project}
+                      composition={composition}
+                      ctx={host.ctx}
+                      tool={editor.tool}
+                      zoomPxPerSec={editor.zoomPxPerSec}
+                      scrollUs={editor.scrollUs}
+                      snapping={editor.snapping}
+                      playheadUs={editor.playheadUs}
+                      playing={playing}
+                      selectedClipIds={editor.selectedClipIds}
+                      selectedTrackId={editor.selectedTrackId}
+                      newId={newId}
+                      onSelectClips={editor.selectClips}
+                      onSelectTrack={editor.selectTrack}
+                      onSeek={seek}
+                      onCommit={commit}
+                      onRunAction={host.runAction}
+                      onZoom={(zoom, scroll) => {
+                        editor.setZoom(zoom);
+                        editor.setScroll(scroll);
+                      }}
+                      onScroll={editor.setScroll}
+                      onViewport={editor.setViewportPx}
+                    />
+                  </div>
+                </ActionContextMenu>
+              )}
+            </>
           )}
         </>
       )}
@@ -531,6 +690,15 @@ export function ProjectPage() {
         run={run}
       />
       <ShortcutHelp registry={editingActions} open={helpOpen} onOpenChange={setHelpOpen} />
+      {composition !== undefined && (
+        <ExportDialog
+          open={exportOpen}
+          onOpenChange={setExportOpen}
+          canvas={{ width: composition.width, height: composition.height }}
+          frame={!photoMode}
+          run={run}
+        />
+      )}
     </div>
   );
 }

@@ -14,7 +14,8 @@ import {
 } from "@lumacut/schema";
 import * as z from "zod";
 import { lastFrameUs, skipTarget, stepTarget } from "../engine/transport.ts";
-import type { Tool } from "../stores/editor.ts";
+import type { BrushSettings, ImageExportRequest, PhotoView, Selection } from "../photo/types.ts";
+import type { CanvasTool, PenMode, Tool } from "../stores/editor.ts";
 import { placedClips, splitOps, withLinked, type Placed } from "../timeline/clips.ts";
 import {
   copyAttributes,
@@ -25,6 +26,26 @@ import {
   type ClipboardData,
 } from "../timeline/clipboard.ts";
 import { roundToFrame } from "../timeline/geometry.ts";
+
+/** What the photo workspace lets actions change (editor state, never the document). */
+export interface PhotoServices {
+  setBrush: (patch: Partial<BrushSettings>) => void;
+  setSelection: (selection: Selection | null) => void;
+  setView: (view: PhotoView) => void;
+  /** Starts a download of a rendered picture (the export action's last step). */
+  download?: (blob: Blob, filename: string) => void;
+  /** Draws the composition at full resolution and encodes it. */
+  renderImage?: (request: ImageExportRequest) => Promise<Blob>;
+}
+
+/** What the photo workspace shows actions. */
+export interface PhotoContext {
+  brush: BrushSettings;
+  selection: Selection | null;
+  view: PhotoView;
+  /** The composition's visible area in the workspace, in screen pixels (for fit / zoom maths). */
+  viewport: { width: number; height: number };
+}
 
 /** Things an editing action can't do itself (ids, the history, the library). Supplied by the page. */
 export interface EditingServices {
@@ -43,6 +64,8 @@ export interface EditingServices {
   /** Opens the command palette / the keyboard shortcut list. */
   openPalette: () => void;
   showShortcuts: () => void;
+  /** Opens the export window (optional: only the editor page has one). */
+  openExport?: () => void;
   /** The preview: start/stop playing, and jump to a time (moves the picture and the sound). */
   playback: { togglePlay: () => void; seek: (us: number) => void };
   /** Editor view state that isn't part of the document. */
@@ -56,8 +79,10 @@ export interface EditingServices {
     setBottomPanel: (panel: "timeline" | "graph") => void;
     /** Opens a nested composition for editing / goes back up a level. */
     /** What the preview canvas does with the pointer (draw shapes, pen) and what the pen makes. */
-    setCanvasTool?: (tool: "select" | "pen" | "rect" | "ellipse" | "polygon" | "star") => void;
-    setPenMode?: (mode: "shape" | "mask") => void;
+    setCanvasTool?: (tool: CanvasTool) => void;
+    setPenMode?: (mode: PenMode) => void;
+    /** The photo workspace's brush, selection and view. */
+    photo?: PhotoServices;
     openComposition?: (id: string) => void;
     closeComposition?: (levelId?: string) => void;
   };
@@ -71,8 +96,10 @@ export interface EditingContext {
   selectedTrackId: string | null;
   playheadUs: number;
   /** What the preview canvas is doing with the pointer, and what the pen makes. */
-  canvasTool?: "select" | "pen" | "rect" | "ellipse" | "polygon" | "star";
-  penMode?: "shape" | "mask";
+  canvasTool?: CanvasTool;
+  penMode?: PenMode;
+  /** Photo workspace state: the brush, the selection and where the canvas is on screen. */
+  photo?: PhotoContext;
   canUndo: boolean;
   canRedo: boolean;
   /** Clips are on the clipboard / a clip's look is. */
@@ -306,7 +333,8 @@ function addTrackOp(ctx: EditingContext, kind: TrackKind): Op {
   const comp = activeComposition(ctx);
   if (comp === undefined) throw new ActionError("Open a composition first.");
   const count = comp.tracks.filter((t) => t.kind === kind).length + 1;
-  const name = `${kind === "visual" ? "Video" : "Audio"} ${String(count)}`;
+  const base = ctx.project?.kind === "photo" ? "Layer" : kind === "visual" ? "Video" : "Audio";
+  const name = `${base} ${String(count)}`;
   // New tracks go on top: the last track composites over the others.
   return {
     type: "addTrack",
@@ -555,6 +583,8 @@ editingActions.register({
     }
     if (added.length === 2)
       ops.push({ type: "linkClips", clipIds: added, linkId: ctx.services.newId() });
+    // In a photo the new layer is the one you work on next.
+    if (project.kind === "photo") ctx.services.editor.selectClips(added.slice(0, 1));
     return ops;
   },
 });

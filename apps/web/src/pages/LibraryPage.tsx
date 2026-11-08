@@ -92,6 +92,14 @@ export function LibraryPage() {
           setNotice(e instanceof Error ? e.message : "Couldn't create the project.");
         }
       },
+      async createPhoto({ width, height, assetId }) {
+        try {
+          const id = await createProject("Untitled photo", "photo", { width, height });
+          void navigate(`/project/${id}`, assetId === undefined ? {} : { state: { assetId } });
+        } catch (e) {
+          setNotice(e instanceof Error ? e.message : "Couldn't create the project.");
+        }
+      },
       focusSearch() {
         searchRef.current?.focus();
         searchRef.current?.select();
@@ -183,6 +191,16 @@ export function LibraryPage() {
         />
         <ActionButton
           action={libraryActions.get("project.new")}
+          ctx={ctx}
+          className="text-neutral-200 hover:bg-neutral-800"
+        />
+        <ActionButton
+          action={libraryActions.get("project.newPhoto")}
+          ctx={ctx}
+          className="text-neutral-200 hover:bg-neutral-800"
+        />
+        <ActionButton
+          action={libraryActions.get("project.newPhotoFromImage")}
           ctx={ctx}
           className="text-neutral-200 hover:bg-neutral-800"
         />

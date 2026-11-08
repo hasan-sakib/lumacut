@@ -35,3 +35,4 @@ export * from "./playback/clock.ts";
 export * from "./playback/controller.ts";
 export * from "./playback/frame-ports.ts";
 export * from "./playback/session.ts";
+export * from "./render/view.ts";

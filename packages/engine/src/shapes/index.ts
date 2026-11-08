@@ -15,4 +15,4 @@ export {
   type ShapeMetrics,
   type ShapeRaster,
 } from "./render-shape.ts";
-export { renderMasks, type MaskPlacement } from "./mask-raster.ts";
+export { renderMasks, type MaskBitmaps, type MaskPlacement } from "./mask-raster.ts";

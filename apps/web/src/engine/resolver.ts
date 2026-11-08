@@ -29,9 +29,15 @@ export function pickUrl(asset: AssetOut, kind: MediaKind): string {
     throw new AssetUnavailableError(`"${asset.name}" isn't ready yet (${asset.status})`);
   }
   // Video and audio are read from the proxy (the audio proxy is its own AAC file); images from the
-  // normalized copy, never the original upload.
+  // normalized copy (or, small, the 2048 px preview), never the original upload.
   const url =
-    kind === "image" ? asset.urls.normalized : kind === "lut" ? asset.urls.lut : asset.urls.proxy;
+    kind === "image"
+      ? asset.urls.normalized
+      : kind === "preview"
+        ? asset.urls.preview
+        : kind === "lut"
+          ? asset.urls.lut
+          : asset.urls.proxy;
   if (url === undefined || url === null) {
     throw new AssetUnavailableError(`"${asset.name}" has no ${kind} rendition`);
   }

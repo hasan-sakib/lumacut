@@ -11,7 +11,7 @@
 | M3b-2 | Inspector, clip thumbnails + waveforms, clip context menu, copy/paste, acceptance e2e (5-clip edit by palette, then by mouse; reload identical) | done, verified 2026-11-07 | 2026-11-07 |
 | M4 | Keyframes + graph editor + transitions + text + captions + colour pipeline + scopes + LUTs + effect system (40 effects) | **built 2026-11-07, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request (tests come after all milestones); only `tsc` and `eslint` | 2026-11-07 |
 | M5 | Motion graphics: shapes/pen, masks, mattes, text animators, precompose, presets, motion blur, paths | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc` and `eslint` | 2026-11-08 |
-| M6 | Photo workspace | not started | — |
+| M6 | Photo workspace: canvas, layers panel, adjustment layers, crop/straighten, selections→masks, brush/eraser, image export, large images | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc`, `eslint` and `prettier` (plus `ruff` and `make gen-openapi` for the API change) | 2026-11-08 |
 | M7 | Audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness | not started | — |
 | M8 | Export: video (browser + server), image, GIF, audio + parity test | not started | — |
 | M9 | Simple mode + 20 templates + effect/preset browser + workspaces + onboarding + tooltips + inspector search | not started | — |
@@ -21,6 +21,17 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
+**M6 is built as one milestone (2026-11-08) and has never been tested** (same arrangement as M4 and M5: features first, tests after all milestones; `tsc` on every package, `eslint --max-warnings 0`, `prettier --check`, `ruff` on the API: all clean; nothing is committed). Docs: `docs/photo.md` (also `docs/masks.md`).
+
+**What to test for M6** (add to the verification pass below):
+1. **Engine `view` equivalence** (the riskiest change, it touches every render): a windowed/scaled render equals the crop/resize of the full render within tolerance, for plain layers, effects (blur/glow at the window edge), masks, mattes, transitions, adjustment layers, nested compositions; a render with no `view` is bit-identical to before (re-run the M2 goldens / `make smoke-render` / `make perf`). Export tiles (`planTiles`: exact cover, margin, seams) stitched equal one full render.
+2. **Paint:** stamp spacing/pressure/hardness maths (`paint/stamp.ts`), incremental raster equals a full redraw, eraser, opacity-per-stroke, `paintExtent`/`paintResolution` limits, texture cache keys after undo.
+3. **Bitmap masks:** alpha compositing with mode/opacity/invert/feather, `setMaskOverride` precedence, the mask-brush save flow (upload → ready → one batch, error path, override cleared), LRU close of mask bitmaps.
+4. **Pure logic:** `photo/selection.ts` (shapes, lasso simplify, canvas→layer mapping, `selectionToMask` incl. rotated/scaled layers), `photo/canvas-ops.ts` (every edit + `transformUnder` round trips, flips, straighten inscribed rectangle, resize anchors), `photo/view.ts`, `photo/crop.ts` (`dragCrop` with aspect), `export/tiles.ts`, `photo/layers.ts`.
+5. **Actions:** `paint.*`, `layer.*` (reorder semantics with several layers, duplicate, group/ungroup incl. removing emptied layers, `layer.moveTo`), `marquee.*`, `canvas.*` (blocked by animated layers), `export.*`, `project.newPhoto*`, view/tool actions; the API's sized photo document (`default_document`) and `POST /api/projects` with width/height/background.
+6. **Acceptance e2e (SPEC §13 M6):** open a 6000 px photo with 5 layers (image, paint, adjustment, text, shape), pan/zoom/paint smoothly (frame time budget), export PNG and JPG and compare pixels to a full-resolution reference render; plus a `make perf` photo scenario.
+7. Manual pass: every tool (marquee, lasso, crop + straighten, brush, eraser, mask brush), layer panel drag/reorder, zoom/pan (wheel, pinch, Space), export dialog, "Edit photo" from the library, undo of each.
+
 **M5 is built as one milestone (2026-11-08) and has never been tested** (same arrangement as M4: features first, tests after all milestones; `tsc` on every package, `eslint --max-warnings 0` and `prettier --check` are clean; nothing is committed). Docs: `docs/shapes.md`, `docs/masks.md`, `docs/presets.md`.
 
 **What to test for M5** (add to the verification pass below):
@@ -43,7 +54,7 @@ Verified earlier in this milestone (these have tests, and passed when written): 
 
 **Verification record, M2 + M3 (2026-11-07)**: `make check` green; `make test-engine` and `make smoke-render` green; `make perf` on the GPU (Apple M2, Metal via installed Chrome) passed every gate (60.0 fps, p95 render 4.0 ms, 0% frames never shown, frames opened = closed, 0.47 MB memory growth over 20 s + 2000 seeks; SwiftShader floor 8.2 fps); `make test-stack`: integration 26 passed / 1 skipped, e2e 16 of 18 on a loaded machine and the 2 failures (`player.spec.ts`, `resume.spec.ts`) passed alone with `--workers=1` (CPU contention; run with `--workers=2` or on a quiet machine); the M3 acceptance e2e passed. Not run: `make test-samples` (~25 min, M1 pipeline) and a manual browser pass. Cross-backend finding: the compositor is bit-identical on SwiftShader and the GPU for stills; video differs only through the decoder (SSIM ≈ 0.998), so golden images must use still-image inputs.
 
-Next: **M6** (photo workspace). Plan it and wait for approval; the owner wants M6 and later built whole, not split.
+Next: **M7** (audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness). Plan it and wait for approval; the owner wants M7 and later built whole, not split.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -246,14 +257,26 @@ Getting started in a new session:
 
 **2026-11-08 — M5 (one milestone; see `docs/shapes.md`, `docs/masks.md`, `docs/presets.md`)**
 - **Shapes** are rasterised with Canvas 2D `Path2D` in the worker (like text) at 1×/2×/4× resolution buckets, cached by content, uploaded as an image. Shape and text clips measure `anchorX/Y` from the picture centre (`LayerSource.anchorShift {x, y}`, replacing `anchorCenter`).
-- **Masks:** path masks are rasterised to one alpha picture, **feather uses the canvas `blur()` filter** (not the GPU Gaussian as first planned), multiplied in a `mask` pass after crop and before colour. Raster masks stay for M6/M11 (`ignored_raster_mask`).
+- **Masks:** path masks are rasterised to one alpha picture, **feather uses the canvas `blur()` filter** (not the GPU Gaussian as first planned), multiplied in a `mask` pass after crop and before colour. Bitmap masks arrived in M6.
 - **Track mattes:** the matte clip is hidden (not drawn on its own) by `planLayers`; matte and clip are drawn alone at composition size and combined by `matte.frag.glsl` (alpha, alphaInverted, luma, lumaInverted).
 - **Motion blur:** N sub-frame draws averaged by additive blending, only for clips with keyframes (`isAnimated`); sub-frame times derive from the frame, never the clock. Limit: media frames are the frame's own and only animated properties change between samples.
 - **Text animators:** per-unit coverage (square, rampUp, rampDown, triangle, round, smooth) and per-character drawing; `textMargin` includes the animators' motion; captions keep their animators.
 - **Keyframe vocabulary** (`paths-motion.ts`) extends `resolveProperty` for masks, shape fill/stroke/trim/round corners/items, text animator range and props, `motionBlur.shutterAngle`; `removeMask` removes its keyframes.
-- **Overlay:** one SVG layer in composition pixels over the preview; geometry is pure (`apps/web/src/overlay/*`), `PreviewOverlay.tsx` only maps pointer events to ops. Tools (`V`, `P`, `R`, `E`, `Shift+P`, `Shift+E`, `Shift+M`) are registry actions; the editor store keeps `canvasTool`, `penMode`, `compositionTrail`.
+- **Overlay:** one SVG layer in composition pixels over the preview; geometry is pure (`apps/web/src/overlay/*`), `PreviewOverlay.tsx` only maps pointer events to ops. Tools (`V`, `P`, `R`, `E`, `Shift+P`, `Shift+E`, `Alt+P` for pen mode) are registry actions; the editor store keeps `canvasTool`, `penMode`, `compositionTrail`.
 - **Presets:** pure keyframe generators in `packages/ops/src/presets` (15, four categories); `setFrames` replaces keyframes inside the window so re-applying is idempotent; shake/glitch use a seeded PRNG keyed by clip id and start. `preset.apply` and `motion.blur` are actions; a Presets tab lists them.
 - Lint-driven: no `!` non-null assertions (bind to a local first); drop `as` casts the type-aware lint reports as unnecessary.
+
+**2026-11-08 — M6 (one milestone; see `docs/photo.md`)**
+- **One preview window instead of a full-size canvas:** `RenderOptions.view` / `Engine.setView` draw a window of a composition at a scale (canvas = the window's size, layer matrices pre-multiplied by the view matrix; nested compositions are still drawn whole). The photo stage draws only the visible part at screen resolution; the same mechanism tiles exports. Image layers use the 2048 px `preview` rendition when drawn small, the original otherwise; originals above the GPU limit are shrunk on load.
+- **Photo layers are tracks with one clip each**, all at t = 0 (default image length), `durationUs` 0 (`durationOps` already skips photos). Layer panel = the visual tracks, top first. Photo projects have no audio track.
+- **Paint layers** are drawn from the vector strokes by Canvas 2D stamps into a live canvas kept per layer (incremental); the layer covers the canvas plus strokes up to one canvas size beyond each edge (`anchorShift` places it), at a power-of-two resolution within 16 M pixels.
+- **Bitmap masks** use the image's alpha channel. The mask brush edits a local picture shown live through `Engine.setMaskOverride`, then saves it as a library image and swaps it in with one undo step. Orphaned mask pictures stay in the library (no clean-up until M13).
+- **Selections are editor state** (one Bézier path + feather + invert), turned into a layer mask by `marquee.toMask`; the actions are `marquee.*` because `selection.*` is the timeline's clip selection.
+- **Canvas operations** (`crop`, `rotate`, `straighten`, `flip`, `resize`) are all one `CanvasEdit` (new size + a map of old to new pixels); every picture layer is moved by it (exact transform maths; colour fills and adjustment layers stay full-canvas); nothing is destroyed. They are refused when a layer has an animated transform.
+- **Export** (`export.image`, window `export.open`): a separate `EngineClient` per export draws tiles with `readback`, stitched on an `OffscreenCanvas`, flattened onto a colour when asked (always for JPEG), PNG/JPEG/WebP; any video frame uses the same action. Limit 16384 px per side.
+- **Shortcuts are unique in the registry** (a duplicate throws at module load). **Bug found while adding photo tools:** M5's `tool.penMode` used Shift+M, which `marker.next` already owns, so the editor would have crashed on load. Pen mode is now **Alt+P**. A throwaway check (`node --experimental-strip-types` importing the action modules and listing `shortcut`s) finds these; modules that import GLSL can't load in plain node, so scan the source for the new ones.
+- **`Alt+letter` shortcuts now work on macOS:** `shortcutFromEvent` reads the physical key (`event.code`) when Alt is held (Option+B types "∫").
+- Photo tool shortcuts: Alt+R/Alt+O rectangle/ellipse marquee, L lasso, Alt+C crop, Alt+B brush, Alt+X eraser, Alt+K mask brush, H hand, Z zoom, `[` `]` brush size, Mod+0/1/=/- view, Mod+Shift+D deselect, Mod+Shift+I invert selection, Mod+Shift+E export, Mod+] / [ order, Mod+J duplicate layer, Mod+G / Mod+Shift+G group / ungroup.
 
 ## Deviations from spec
 - **SeaweedFS (Apache-2.0) instead of MinIO.** MinIO is AGPL, and its community edition stopped shipping images and is unmaintained. Code uses only the S3 API.
@@ -273,6 +296,7 @@ Getting started in a new session:
 - **M3a schema additions** beyond SPEC §4: `index` on three add-ops and `unset` on `setProps`/`updateAsset` (see Decisions).
 - **M4 schema additions** beyond SPEC §4: optional `Clip.solid {color}`; optional `CaptionData.highlightColor`, `maxLines`, `maxCharsPerLine`; new op error code `invalid_property`; `lut` asset kind is now produced by the API/worker.
 - **M5 deviations:** shapes are Canvas 2D rasters, not tessellation/SDF (SPEC §6 says "tessellation or SDF"); mask feather uses the canvas blur filter; no `Lower third` starter (that is a template, M9); raster masks deferred to M6/M11; no new schema fields were needed (shapes, masks, mattes, motion blur and animators were already in the schema).
+- **M6 deviations:** AI subject select is M11 (not in M6); layers panel has no thumbnails; merge/flatten, magic wand, selection boolean ops and selection-clipped brushes are not built; image export is the M6 part of SPEC §11 (video/GIF/audio stay M8); the API grew optional `width`, `height`, `background` on project creation (no schema change).
 - **M4: no `packages/ui-kit`** (components stay in `apps/web`), **no morph-cut**, 40 effects = the 36 named in SPEC §6 plus invert, threshold, duotone and scanlines (SPEC asks for at least 40 but names 36).
 - **M1:**
   - **"MinIO" in the M1 request means SeaweedFS** (the swap was approved before M0).
@@ -350,6 +374,14 @@ Getting started in a new session:
   - Track mattes: the matte must be in the same composition; no matte chains; the hidden matte clip is only explained in the inspector.
   - Presets: 15 presets, no custom/saved presets, no preview thumbnails, no per-preset parameters beyond strength and length; text presets need a text or caption clip.
   - Playback still pauses on every project edit (M2 limit), so dragging on the canvas while playing is interrupted.
+- **M6 gaps:**
+  - **Nothing in M6 was tested** (see Current focus): the engine `view` has no equivalence tests, paint/bitmap masks/selection/canvas maths/layer actions/export have none, the acceptance e2e isn't written, and the overlay, stage zoom/pan and tool options were never used by hand.
+  - Engine: text is rasterised at 1× (soft when zoomed far in); effects whose noise depends on pixel position differ between scales and tiles; nested compositions render whole at native size inside a windowed render; a bitmap mask is stretched over the layer's declared size.
+  - Paint layers: no selection clipping, strokes beyond one canvas size outside the edge are dropped, a mask on a paint layer whose strokes extend past the canvas is misaligned (layer space differs from stroke space), up to 16 M raster pixels (large canvases paint at reduced resolution).
+  - Mask brush: saved pictures accumulate in the library; saving needs the worker to process the upload (a few seconds), edits made meanwhile are in the live override only; one bitmap mask per layer is edited (the first).
+  - Layers: no thumbnails, no merge down / flatten, ungroup only for unmoved groups, groups made from layers of different canvases aren't supported.
+  - Selection: single selection, replace-only; AI subject select (M11); the crop tool applies on request (no live crop preview of the result) and its straighten grid is a guide.
+  - Export: one picture at a time (no batch), no colour profile embedding, WebP/JPEG quality only, the dialog shows no estimated file size; the 16384 px limit is a browser one.
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses

@@ -2,17 +2,24 @@ import { runAction, type AnyAction } from "@lumacut/actions";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { editingActions, type EditingContext, type EditingServices } from "../actions/editing.ts";
 import "../actions/canvas.ts";
+import "../actions/canvasEdit.ts";
 import "../actions/colour.ts";
 import "../actions/compositions.ts";
 import "../actions/effects.ts";
+import "../actions/export.ts";
 import "../actions/layers.ts";
+import "../actions/marquee.ts";
 import "../actions/masks.ts";
+import "../actions/paint.ts";
+import "../actions/photoLayers.ts";
+import "../actions/photoTools.ts";
 import "../actions/presets.ts";
 import "../actions/shapes.ts";
 import "../actions/text.ts";
 import "../actions/transitions.ts";
 import "../actions/keyframes.ts";
 import { newId } from "../lib/ids.ts";
+import { downloadBlob, renderProjectImage } from "../photo/export-image.ts";
 import { fitZoom, zoomBy } from "../timeline/geometry.ts";
 import { resolveAssetQuery } from "../lib/project-assets.ts";
 import { useAssetsStore } from "../stores/assets.ts";
@@ -22,6 +29,7 @@ import { projectStore, useProjectStore } from "../stores/project.ts";
 export interface EditingUi {
   openPalette: () => void;
   showShortcuts: () => void;
+  openExport?: () => void;
   togglePlay: () => void;
   seek: (us: number) => void;
 }
@@ -48,9 +56,13 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   const playheadUs = useEditorStore((s) => s.playheadUs);
   const canvasTool = useEditorStore((s) => s.canvasTool);
   const penMode = useEditorStore((s) => s.penMode);
+  const brush = useEditorStore((s) => s.brush);
+  const selection = useEditorStore((s) => s.selection);
+  const photoView = useEditorStore((s) => s.photoView);
+  const photoViewport = useEditorStore((s) => s.photoViewport);
   const clipboard = useEditorStore((s) => s.clipboard);
   const attributes = useEditorStore((s) => s.attributes);
-  const { openPalette, showShortcuts, togglePlay, seek } = ui;
+  const { openPalette, showShortcuts, openExport, togglePlay, seek } = ui;
 
   const services = useMemo<EditingServices>(
     () => ({
@@ -73,6 +85,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       },
       openPalette,
       showShortcuts,
+      ...(openExport === undefined ? {} : { openExport }),
       playback: { togglePlay, seek },
       editor: {
         setTool: (tool) => {
@@ -106,6 +119,23 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         setPenMode: (mode) => {
           useEditorStore.getState().setPenMode(mode);
         },
+        photo: {
+          setBrush: (patch) => {
+            useEditorStore.getState().setBrush(patch);
+          },
+          setSelection: (next) => {
+            useEditorStore.getState().setSelection(next);
+          },
+          setView: (view) => {
+            useEditorStore.getState().setPhotoView(view);
+          },
+          download: downloadBlob,
+          renderImage: (request) => {
+            const current = projectStore.getState().project;
+            if (current === null) return Promise.reject(new Error("No project is open."));
+            return renderProjectImage(current, request);
+          },
+        },
         openComposition: (id) => {
           useEditorStore.getState().openComposition(id);
         },
@@ -114,7 +144,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         },
       },
     }),
-    [openPalette, showShortcuts, togglePlay, seek],
+    [openPalette, showShortcuts, openExport, togglePlay, seek],
   );
 
   const ctx = useMemo<EditingContext>(
@@ -126,6 +156,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       playheadUs,
       canvasTool,
       penMode,
+      photo: { brush, selection, view: photoView, viewport: photoViewport },
       canUndo,
       canRedo,
       hasClipboard: clipboard !== null,
@@ -142,6 +173,10 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       playheadUs,
       canvasTool,
       penMode,
+      brush,
+      selection,
+      photoView,
+      photoViewport,
       canUndo,
       canRedo,
       clipboard,

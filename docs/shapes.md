@@ -35,7 +35,7 @@ removes its keyframes.
 output), `shape.addItem`, `shape.removeItem`, `shape.setStyle`; tools `tool.rectangle` (R),
 `tool.ellipse` (E), `tool.polygon` (Shift+P), `tool.star` (Shift+E), `tool.pen` (P); the pen drops
 vertices on click, drags out tangents, and closes on the first point. When a clip is selected and
-mask mode (`tool.penMode`, Shift+M) is on it makes a mask instead of a shape.
+mask mode (`tool.penMode`, Alt+P) is on it makes a mask instead of a shape.
 
 ## The on-canvas overlay (`apps/web/src/overlay`, `components/preview`)
 An SVG layer over the preview in composition pixels (`viewport.ts` maps pixels to screen under the

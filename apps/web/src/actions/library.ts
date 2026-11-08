@@ -1,4 +1,5 @@
 import { ActionRegistry } from "@lumacut/actions";
+import * as z from "zod";
 import type { AssetOut } from "../api/client.ts";
 import type { ViewMode } from "../stores/ui.ts";
 
@@ -7,6 +8,11 @@ export interface LibraryServices {
   pickAndUpload: () => Promise<void>;
   /** Create an empty project and open it. */
   createProject: () => Promise<void>;
+  /**
+   * Create a photo project and open it: a blank canvas of this size, or (with `assetId`) one sized
+   * to that library image and starting with the image as its first layer.
+   */
+  createPhoto?: (options: { width: number; height: number; assetId?: string }) => Promise<void>;
   focusSearch: () => void;
   setView: (view: ViewMode) => void;
   askDelete: (assetId: string) => void;
@@ -53,6 +59,53 @@ libraryActions.register({
   when: () => true,
   run: (ctx) => {
     void ctx.services.createProject();
+    return undefined;
+  },
+});
+
+const sideSchema = z.number().int().min(1).max(16384);
+
+libraryActions.register({
+  id: "project.newPhoto",
+  title: "New photo",
+  description:
+    "Create a photo project with a blank canvas (default 2048 × 2048 px) and open the photo editor.",
+  keywords: ["photo", "image", "picture", "graphic", "canvas", "retouch", "poster", "layers"],
+  category: "Project",
+  icon: "plus",
+  argsSchema: z.object({
+    width: sideSchema.optional().describe("Canvas width in pixels (default 2048)"),
+    height: sideSchema.optional().describe("Canvas height in pixels (default 2048)"),
+  }),
+  when: () => true,
+  run: (ctx, args) => {
+    const { width, height } = args;
+    void ctx.services.createPhoto?.({ width: width ?? 2048, height: height ?? 2048 });
+    return undefined;
+  },
+});
+
+libraryActions.register({
+  id: "project.newPhotoFromImage",
+  title: "Edit photo",
+  description:
+    "Open the selected image in the photo editor: a new photo project sized to the image, with the image as its first layer.",
+  keywords: ["photo", "edit image", "retouch", "open image", "layers"],
+  category: "Project",
+  icon: "plus",
+  when: (ctx) =>
+    ctx.asset?.kind === "image" &&
+    ctx.asset.status === "ready" &&
+    ctx.asset.media?.image !== undefined &&
+    ctx.asset.media.image !== null,
+  run: (ctx) => {
+    const image = ctx.asset?.media?.image;
+    if (ctx.asset === null || image === undefined || image === null) return undefined;
+    void ctx.services.createPhoto?.({
+      width: image.width,
+      height: image.height,
+      assetId: ctx.asset.id,
+    });
     return undefined;
   },
 });

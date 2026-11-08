@@ -8,8 +8,10 @@ path (a stroke of that width), `feather` softens the edge (Canvas `blur()`), `in
 
 `renderMasks(masks, place)` (engine `shapes/mask-raster.ts`) draws all path masks to one alpha
 picture; the engine caches it (`m:…`) and `LayerFx` multiplies the layer by it in a `mask` pass
-(`mask.frag.glsl`) after crop and before colour (SPEC §6 order). Raster masks (mask brush, AI
-select) belong to M6/M11 and are diagnosed `ignored_raster_mask`.
+(`mask.frag.glsl`) after crop and before colour (SPEC §6 order). **Bitmap masks** (`kind: "raster"`,
+an image asset whose alpha is the mask) are drawn into the same picture, stretched over the layer;
+see `docs/photo.md` for the mask brush. A bitmap mask that can't be loaded is left out with a
+`raster_mask_unavailable` warning. (AI subject select is M11.)
 
 Keyframes: `masks.<id>.path|feather|expansion|opacity`. Actions: `mask.add` (rect/ellipse),
 `mask.addPath` (pen), `mask.remove`, `mask.setMode`. `removeMask` also removes the mask's keyframes.

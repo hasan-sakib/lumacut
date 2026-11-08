@@ -1,8 +1,9 @@
-import type { Project } from "@lumacut/schema";
+import type { Project, RasterMask } from "@lumacut/schema";
 import { AudioEngine } from "../audio/audio-engine.ts";
 import type { MediaResolver } from "../decode/media.ts";
 import type { Diagnostic } from "../render/diagnostics.ts";
 import type { ReadbackRenderResult } from "../render/engine.ts";
+import type { ViewWindow } from "../render/view.ts";
 import type { ScopeSample } from "../scopes/compute.ts";
 import type { StatsSnapshot } from "../stats.ts";
 import { EngineClient } from "../worker/engine-client.ts";
@@ -149,6 +150,21 @@ export class PlaybackSession {
       this.#callbacks.onChange();
     });
     await controller.seek(Math.min(keep, this.#durationUs));
+  }
+
+  /** Shows a bitmap mask live (the mask brush); null clears it. The bitmap is transferred. */
+  async setMaskOverride(
+    maskId: string,
+    entry: { clipId: string; mask: RasterMask; bitmap: ImageBitmap } | null,
+  ): Promise<void> {
+    await this.#client.setMaskOverride(maskId, entry);
+    await this.#controller?.seek(this.timeUs);
+  }
+
+  /** Draws only this window of the composition from now on (null: all of it), and redraws. */
+  async setView(view: ViewWindow | null): Promise<void> {
+    await this.#client.setView(view);
+    await this.#controller?.seek(this.timeUs);
   }
 
   async play(): Promise<void> {

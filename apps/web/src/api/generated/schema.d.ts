@@ -469,6 +469,20 @@ export interface components {
       /** Samplerate */
       sampleRate: number;
     };
+    /**
+     * CanvasColor
+     * @description A straight (non-premultiplied) sRGB colour, each channel 0..1.
+     */
+    CanvasColor: {
+      /** A */
+      a: number;
+      /** B */
+      b: number;
+      /** G */
+      g: number;
+      /** R */
+      r: number;
+    };
     /** CheckResult */
     CheckResult: {
       /** Detail */
@@ -581,6 +595,9 @@ export interface components {
     };
     /** ProjectCreate */
     ProjectCreate: {
+      background?: components["schemas"]["CanvasColor"] | null;
+      /** Height */
+      height?: number | null;
       /**
        * Kind
        * @default video
@@ -589,6 +606,8 @@ export interface components {
       kind: "video" | "motion" | "photo";
       /** Name */
       name: string;
+      /** Width */
+      width?: number | null;
     };
     /** ProjectList */
     ProjectList: {

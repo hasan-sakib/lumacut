@@ -80,7 +80,7 @@ editingActions.register({
   description: "Switch what the pen tool makes: a new shape layer, or a mask on the selected clip.",
   keywords: ["pen", "mask mode", "shape mode", "draw mask", "toggle"],
   category: "Tools",
-  shortcut: "Shift+M",
+  shortcut: "Alt+P",
   when: (ctx) => ctx.services.editor.setPenMode !== undefined,
   run: (ctx) => {
     ctx.services.editor.setPenMode?.(ctx.penMode === "mask" ? "shape" : "mask");

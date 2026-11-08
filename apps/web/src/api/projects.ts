@@ -73,8 +73,20 @@ export async function listProjects(): Promise<ProjectSummary[]> {
   return data.items;
 }
 
-export async function createProject(name: string, kind: ProjectKind = "video"): Promise<string> {
-  const { data, error } = await api.POST("/api/projects", { body: { name, kind } });
+export interface NewProjectOptions {
+  /** Canvas size in pixels (default 1920×1080). */
+  width?: number;
+  height?: number;
+  /** Straight sRGB background, channels 0..1 (photo default: transparent). */
+  background?: { r: number; g: number; b: number; a: number };
+}
+
+export async function createProject(
+  name: string,
+  kind: ProjectKind = "video",
+  options: NewProjectOptions = {},
+): Promise<string> {
+  const { data, error } = await api.POST("/api/projects", { body: { name, kind, ...options } });
   if (data === undefined) throw new Error(errorMessage(error, "Couldn't create the project."));
   return data.id;
 }

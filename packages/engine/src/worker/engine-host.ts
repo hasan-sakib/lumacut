@@ -2,6 +2,8 @@ import type { Project } from "@lumacut/schema";
 import type { MediaKind, MediaResolver } from "../decode/media.ts";
 import { FrameScheduler } from "../playback/frame-scheduler.ts";
 import { Engine, type RenderOptions, type RenderResult } from "../render/engine.ts";
+import type { ViewWindow } from "../render/view.ts";
+import type { RasterMask } from "@lumacut/schema";
 import type { EngineLimits, StatsSnapshot } from "../stats.ts";
 import { Rpc, type PortLike } from "./rpc.ts";
 
@@ -40,17 +42,30 @@ export class EngineHost {
         this.#need().setProject(payload.project);
         return undefined;
       },
+      setMaskOverride: (payload: {
+        maskId: string;
+        entry: { clipId: string; mask: RasterMask; bitmap: ImageBitmap } | null;
+      }) => {
+        this.#need().setMaskOverride(payload.maskId, payload.entry);
+        return undefined;
+      },
+      setView: (payload: { view: ViewWindow | null }) => {
+        this.#need().setView(payload.view);
+        return undefined;
+      },
       renderAt: async (payload: {
         compositionId: string;
         tUs: number;
         readback?: boolean;
         scopeWidth?: number;
+        view?: ViewWindow;
       }) => {
         // An explicit render (a seek) supersedes any playback frame still waiting its turn.
         this.#scheduler?.cancelPending();
         const options: RenderOptions = {
           ...(payload.readback === true ? { readback: true } : {}),
           ...(payload.scopeWidth === undefined ? {} : { scopeWidth: payload.scopeWidth }),
+          ...(payload.view === undefined ? {} : { view: payload.view }),
         };
         const result = await this.#need().renderAt(payload.compositionId, payload.tUs, options);
         const transfer: Transferable[] = [];

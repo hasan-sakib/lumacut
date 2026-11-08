@@ -1,4 +1,4 @@
-import type { Asset, Clip, Composition, Project } from "@lumacut/schema";
+import type { Asset, Clip, Composition, Project, RasterMask } from "@lumacut/schema";
 import { performanceClock, type Clock } from "../clock.ts";
 import { loadImageBitmap } from "../decode/image-source.ts";
 import type { MediaResolver } from "../decode/media.ts";
@@ -11,7 +11,7 @@ import type { Target } from "../gl/targets.ts";
 import { TextureCache, type CachedTexture } from "../gl/texture-cache.ts";
 import { uploadSource } from "../gl/upload.ts";
 import { isAnimated } from "@lumacut/ops";
-import { IDENTITY, croppedRect, layerMatrix } from "../math/matrix.ts";
+import { IDENTITY, croppedRect, layerMatrix, multiply, type Mat } from "../math/matrix.ts";
 import { DEFAULT_LIMITS, EngineStats, type EngineLimits, type StatsSnapshot } from "../stats.ts";
 import { frameIndexOf } from "../timeline/frames.ts";
 import { planLayers, type LayerPlanItem, type MattePlan } from "../timeline/transitions.ts";
@@ -28,12 +28,27 @@ import { Params, transitionById } from "@lumacut/effects";
 import { captionTextAt } from "../text/caption.ts";
 import { FontLoader } from "../text/fonts.ts";
 import { renderText } from "../text/render-text.ts";
-import { renderMasks } from "../shapes/mask-raster.ts";
+import { PaintRaster, paintExtent, paintResolution } from "../paint/index.ts";
+import { renderMasks, type MaskBitmaps } from "../shapes/mask-raster.ts";
 import { renderShape, shapeMetrics } from "../shapes/render-shape.ts";
 import { LayerFx, type LayerGeometry } from "./layer-fx.ts";
 import { reportIgnoredFeatures, resolveClipProps, type ResolvedLayerProps } from "./properties.ts";
 import { ReaderPool } from "./reader-pool.ts";
+import { viewMatrix, viewSize, type ViewWindow } from "./view.ts";
 import { validateProject } from "./validate.ts";
+
+/** A short fingerprint of the stroke list (ids in order), for texture cache keys. */
+function hashIds(strokes: readonly { id: string }[]): string {
+  let h = 2166136261;
+  for (const { id } of strokes) {
+    for (let i = 0; i < id.length; i += 1) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+    h = Math.imul(h ^ 44, 16777619);
+  }
+  return `${String(strokes.length)}.${(h >>> 0).toString(36)}`;
+}
+
+/** The long side of the `preview` rendition the worker makes for every image. */
+const PREVIEW_SIDE = 2048;
 
 export interface EngineOptions {
   canvas: OffscreenCanvas | HTMLCanvasElement;
@@ -49,6 +64,11 @@ export interface RenderOptions {
   readback?: boolean;
   /** Also return the picture downscaled to this width (for the video scopes; a small readback). */
   scopeWidth?: number;
+  /**
+   * Draw only this window of the composition at this scale (the canvas takes the window's output
+   * size). Without it the whole composition is drawn at its own size.
+   */
+  view?: ViewWindow;
 }
 
 /** The result of a render that asked for `readback: true`. */
@@ -86,6 +106,8 @@ interface RenderContext {
   frameUs: number;
   /** Texture-cache keys the current frame is using; they must not be evicted mid-frame. */
   usedClips: Set<string>;
+  /** Composition pixels -> output pixels for the composition being drawn (identity unless windowed). */
+  view: Mat;
 }
 
 /**
@@ -111,6 +133,17 @@ export class Engine {
   #project: Project | null = null;
   #assets = new Map<string, Asset>();
   #hashMemo = new Map<string, string>();
+  #view: ViewWindow | null = null;
+  /** Live canvases of paint layers (strokes are added to them incrementally), by clip id. */
+  readonly #paintRasters = new Map<string, PaintRaster>();
+  /** Bitmap-mask pictures loaded from library assets, by asset id (closed when evicted). */
+  readonly #maskBitmaps = new Map<string, ImageBitmap>();
+  /** Live edits of a bitmap mask (the mask brush) that haven't been saved as an asset yet. */
+  readonly #maskOverrides = new Map<
+    string,
+    { clipId: string; mask: RasterMask; bitmap: ImageBitmap; version: number }
+  >();
+  #overrideVersion = 0;
   #queue: Promise<unknown> = Promise.resolve();
   #disposed = false;
 
@@ -149,6 +182,32 @@ export class Engine {
     this.#hashMemo = new Map();
   }
 
+  /**
+   * The window every later render draws (a photo editor's visible part of the canvas), unless a
+   * render asks for its own. Null draws the whole composition at its own size.
+   */
+  setView(view: ViewWindow | null): void {
+    this.#view = view;
+  }
+
+  /**
+   * Shows `bitmap` (its alpha channel) as bitmap mask `mask` of clip `clipId` instead of whatever
+   * the project says, until it is cleared with null. The mask brush uses this to show strokes the
+   * moment they are painted, before the picture is saved as an asset. The engine owns the bitmap.
+   */
+  setMaskOverride(
+    maskId: string,
+    entry: { clipId: string; mask: RasterMask; bitmap: ImageBitmap } | null,
+  ): void {
+    this.#maskOverrides.get(maskId)?.bitmap.close();
+    if (entry === null) {
+      this.#maskOverrides.delete(maskId);
+      return;
+    }
+    this.#overrideVersion += 1;
+    this.#maskOverrides.set(maskId, { ...entry, version: this.#overrideVersion });
+  }
+
   /** Renders one instant. Calls are queued and run one at a time. */
   renderAt(
     compositionId: string,
@@ -173,6 +232,10 @@ export class Engine {
     await this.#readers.dispose();
     await this.#registry.dispose();
     this.#cache.dispose();
+    for (const bitmap of this.#maskBitmaps.values()) bitmap.close();
+    this.#maskBitmaps.clear();
+    for (const { bitmap } of this.#maskOverrides.values()) bitmap.close();
+    this.#maskOverrides.clear();
     this.#fx.dispose();
     this.#compositor.dispose();
     this.#gl.deleteFramebuffer(this.#scratchFramebuffer);
@@ -196,30 +259,43 @@ export class Engine {
       diagnostics: new DiagnosticSink(),
       frameUs: (1_000_000 * composition.fps.den) / composition.fps.num,
       usedClips: new Set(),
+      view: IDENTITY,
     };
-    if (this.#canvas.width !== composition.width) this.#canvas.width = composition.width;
-    if (this.#canvas.height !== composition.height) this.#canvas.height = composition.height;
+    const view = options.view ?? this.#view ?? undefined;
+    const size =
+      view === undefined
+        ? { width: composition.width, height: composition.height }
+        : viewSize(view);
+    if (Math.max(size.width, size.height) > this.caps.maxTextureSize) {
+      throw new Error(
+        `A ${String(size.width)}×${String(size.height)} render is larger than this GPU's ` +
+          `${String(this.caps.maxTextureSize)} px limit; render it in tiles`,
+      );
+    }
+    if (this.#canvas.width !== size.width) this.#canvas.width = size.width;
+    if (this.#canvas.height !== size.height) this.#canvas.height = size.height;
 
-    const target = await this.#renderComposition(context, composition, tUs);
+    const target = await this.#renderComposition(context, composition, tUs, view);
     this.#compositor.present(target);
-    const pixels = options.readback
-      ? this.#readCanvas(composition.width, composition.height)
-      : undefined;
+    const pixels = options.readback ? this.#readCanvas(size.width, size.height) : undefined;
 
     const scope =
       options.scopeWidth === undefined
         ? undefined
-        : this.#readScope(composition.width, composition.height, options.scopeWidth);
+        : this.#readScope(size.width, size.height, options.scopeWidth);
 
     this.#compositor.pool.release(target);
+    for (const id of [...this.#paintRasters.keys()]) {
+      if (!context.usedClips.has(id)) this.#paintRasters.delete(id);
+    }
     this.#cache.unpinAll();
     await this.#readers.trim(context.usedClips);
     this.stats.rendersCompleted += 1;
     return {
       compositionId,
       tUs,
-      width: composition.width,
-      height: composition.height,
+      width: size.width,
+      height: size.height,
       diagnostics: context.diagnostics.list(),
       renderMs: this.#clock.nowMs() - started,
       ...(pixels === undefined ? {} : { pixels }),
@@ -227,12 +303,22 @@ export class Engine {
     };
   }
 
-  /** Draws a composition into a pooled target; the caller releases it. */
+  /**
+   * Draws a composition into a pooled target; the caller releases it. With a `view`, only that
+   * window is drawn, at its scale (nested compositions are always drawn whole).
+   */
   async #renderComposition(
     context: RenderContext,
-    composition: Composition,
+    base: Composition,
     tUs: number,
+    view?: ViewWindow,
   ): Promise<Target> {
+    const composition = this.#withOverrides(base);
+    const scale = view?.scale ?? 1;
+    const size =
+      view === undefined
+        ? { width: composition.width, height: composition.height }
+        : viewSize(view);
     const plan = planLayers(composition, tUs);
     for (const id of plan.orphanTransitions) {
       context.diagnostics.add({
@@ -246,20 +332,30 @@ export class Engine {
     const resolved = await Promise.all(
       plan.items.map(async (item) => {
         if (item.type === "clip") {
-          await this.#prepareColour(context, item.clip);
-          const source = await this.#resolveLayer(context, item.clip, tUs, composition);
+          await this.#prepareClip(context, item.clip);
+          const source = await this.#resolveLayer(
+            context,
+            item.clip,
+            tUs,
+            composition,
+            false,
+            scale,
+          );
           const matteClip = item.matte?.source ?? null;
           if (matteClip === null) return { source };
-          await this.#prepareColour(context, matteClip);
-          return { source, matte: await this.#resolveLayer(context, matteClip, tUs, composition) };
+          await this.#prepareClip(context, matteClip);
+          return {
+            source,
+            matte: await this.#resolveLayer(context, matteClip, tUs, composition, false, scale),
+          };
         }
         await Promise.all([
-          this.#prepareColour(context, item.from),
-          this.#prepareColour(context, item.to),
+          this.#prepareClip(context, item.from),
+          this.#prepareClip(context, item.to),
         ]);
         const [a, b] = await Promise.all([
-          this.#resolveLayer(context, item.from, tUs, composition, true),
-          this.#resolveLayer(context, item.to, tUs, composition, true),
+          this.#resolveLayer(context, item.from, tUs, composition, true, scale),
+          this.#resolveLayer(context, item.to, tUs, composition, true, scale),
         ]);
         return { a, b };
       }),
@@ -267,10 +363,13 @@ export class Engine {
 
     // Nested compositions were drawn above (while resolving); from here on we draw this one.
     context.frameUs = (1_000_000 * composition.fps.den) / composition.fps.num;
-    let accum = this.#compositor.pool.acquire(composition.width, composition.height);
-    let scratch = this.#compositor.pool.acquire(composition.width, composition.height);
+    let accum = this.#compositor.pool.acquire(size.width, size.height);
+    let scratch = this.#compositor.pool.acquire(size.width, size.height);
     this.#compositor.clear(accum, composition.background);
     const frame = frameIndexOf(composition, tUs);
+    // Drawing is synchronous (all awaiting happened above), so the view can't leak into a sibling.
+    const outerView = context.view;
+    context.view = view === undefined ? IDENTITY : viewMatrix(view);
     plan.items.forEach((item, i) => {
       const entry = resolved[i];
       if (entry === undefined) return;
@@ -283,7 +382,6 @@ export class Engine {
           entry.a ?? null,
           entry.b ?? null,
           tUs,
-          composition,
           frame,
         ));
         return;
@@ -319,7 +417,6 @@ export class Engine {
             entry.source,
             entry.matte ?? null,
             tUs,
-            composition,
             frame,
           ));
           return;
@@ -335,6 +432,7 @@ export class Engine {
         frame,
       ));
     });
+    context.view = outerView;
     this.#compositor.pool.release(scratch);
     return accum;
   }
@@ -343,14 +441,23 @@ export class Engine {
    * The picture of a clip's path masks for this frame, as a texture (cached by what the masks are
    * and where the layer sits, so an unanimated mask is drawn once).
    */
-  #maskTexture(clip: Clip, place: LayerGeometry): WebGLTexture | undefined {
-    const key = `m:${JSON.stringify(clip.masks)}:${[place.x0, place.y0, place.s, place.pad, place.width, place.height].join(",")}`;
+  #maskTexture(
+    clip: Clip,
+    place: LayerGeometry & { source: { width: number; height: number } },
+  ): WebGLTexture | undefined {
+    const bitmaps = this.#bitmapsFor(clip);
+    const versions = clip.masks.map((m) => this.#maskOverrides.get(m.id)?.version ?? 0).join(",");
+    const key = `m:${JSON.stringify(clip.masks)}:${versions}:${[place.x0, place.y0, place.s, place.pad, place.width, place.height, place.source.width, place.source.height].join(",")}`;
     const cached = this.#cache.get(key);
     if (cached !== undefined) {
       this.#cache.pin(key);
       return cached.texture;
     }
-    const canvas = renderMasks(clip.masks, place);
+    const canvas = renderMasks(
+      clip.masks,
+      { ...place, layerWidth: place.source.width, layerHeight: place.source.height },
+      bitmaps,
+    );
     if (canvas === null) return undefined;
     const bitmap = canvas.transferToImageBitmap();
     try {
@@ -434,7 +541,7 @@ export class Engine {
             anchorX: props.transform.anchorX + source.anchorShift.x,
             anchorY: props.transform.anchorY + source.anchorShift.y,
           };
-    const matrix = layerMatrix(transform);
+    const matrix = multiply(context.view, layerMatrix(transform));
     let draw: LayerDraw = {
       texture: source.texture,
       sourceKind: source.sourceKind,
@@ -452,9 +559,11 @@ export class Engine {
         context.diagnostics.add({ clipId: clip.id, level: "warning", code, message });
       };
       let mask: WebGLTexture | undefined;
-      if (props.clip.masks.some((m) => m.kind === "path")) {
+      if (props.clip.masks.length > 0) {
         const geometry = this.#fx.geometry(source, props, matrix, report);
-        if (!("error" in geometry)) mask = this.#maskTexture(props.clip, geometry);
+        if (!("error" in geometry)) {
+          mask = this.#maskTexture(props.clip, { ...geometry, source });
+        }
       }
       const result = this.#fx.process(source, props, matrix, frame, report, mask);
       if ("error" in result) {
@@ -511,11 +620,10 @@ export class Engine {
     source: LayerSource,
     matteSource: LayerSource | null,
     tUs: number,
-    composition: Composition,
     frame: number,
   ): { accum: Target; scratch: Target } {
     const pool = this.#compositor.pool;
-    const { width, height } = composition;
+    const { width, height } = accum;
     const alone = this.#drawAlone(context, clip, source, tUs, frame, width, height);
     const matteClip = matte.source;
     const stencil = this.#drawAlone(
@@ -560,7 +668,6 @@ export class Engine {
     a: LayerSource | null,
     b: LayerSource | null,
     tUs: number,
-    composition: Composition,
     frame: number,
   ): { accum: Target; scratch: Target } {
     const def = transitionById(item.transition.transitionId);
@@ -578,7 +685,7 @@ export class Engine {
         : this.#drawClip(context, accum, scratch, cut.clip, cut.source, tUs, frame);
     }
     const pool = this.#compositor.pool;
-    const { width, height } = composition;
+    const { width, height } = accum;
     const from = this.#drawAlone(context, item.from, a, tUs, frame, width, height);
     const to = this.#drawAlone(context, item.to, b, tUs, frame, width, height);
     const blended = this.#fx.transition(
@@ -742,12 +849,16 @@ export class Engine {
     context: RenderContext,
     clip: Clip,
     tUs: number,
+    scale: number,
   ): Promise<LayerSource | null> {
     context.usedClips.add(clip.id);
     const props = resolveClipProps(clip, tUs);
     const shape = props.clip.shape;
     if (shape === undefined || shape.items.length === 0) return null;
-    const drawn = Math.max(Math.abs(props.transform.scaleX), Math.abs(props.transform.scaleY), 1);
+    const drawn = Math.max(
+      Math.max(Math.abs(props.transform.scaleX), Math.abs(props.transform.scaleY)) * scale,
+      1,
+    );
     const resolution = Math.min(4, 2 ** Math.ceil(Math.log2(drawn)));
     const key = `sh:${JSON.stringify(shape)}:${String(resolution)}`;
     const metrics = shapeMetrics(shape);
@@ -772,6 +883,125 @@ export class Engine {
     };
   }
 
+  /**
+   * Paint layers: brush and eraser strokes drawn (with Canvas 2D stamps) onto a canvas that covers
+   * the composition plus wherever strokes reach outside it, at a power-of-two fraction of full
+   * size that suits the zoom. New strokes are added to the live canvas; the picture is uploaded when
+   * the list changes.
+   */
+  async #resolvePaint(
+    context: RenderContext,
+    clip: Clip,
+    composition: Composition,
+    scale: number,
+  ): Promise<LayerSource | null> {
+    context.usedClips.add(clip.id);
+    const strokes = clip.paint?.strokes ?? [];
+    if (strokes.length === 0) return null;
+    const extent = paintExtent(strokes, composition.width, composition.height);
+    const drawn =
+      Math.max(Math.abs(clip.transform.scaleX), Math.abs(clip.transform.scaleY)) * scale;
+    const res = paintResolution(drawn, extent.width, extent.height);
+    const width = Math.max(1, Math.ceil(extent.width * res));
+    const height = Math.max(1, Math.ceil(extent.height * res));
+    let raster = this.#paintRasters.get(clip.id);
+    if (raster?.canvas.width !== width || raster.canvas.height !== height) {
+      raster = new PaintRaster(width, height);
+      this.#paintRasters.set(clip.id, raster);
+    }
+    raster.update(strokes, { x0: extent.x0, y0: extent.y0, scale: res });
+    const key = `p:${clip.id}:${String(res)}:${[extent.x0, extent.y0, extent.width, extent.height].join(",")}:${hashIds(strokes)}`;
+    const live = raster;
+    const entry = await this.#shared(key, async () => {
+      const bitmap = await createImageBitmap(live.canvas, { premultiplyAlpha: "premultiply" });
+      try {
+        return this.#cache.put(key, width, height, (texture, reused) => {
+          uploadSource(this.#gl, texture, bitmap, reused);
+        });
+      } finally {
+        bitmap.close();
+      }
+    });
+    return {
+      ...this.#asLayer(entry, { width: extent.width, height: extent.height }),
+      anchorShift: { x: -extent.x0, y: -extent.y0 },
+    };
+  }
+
+  /** The composition with live bitmap-mask edits applied to its clips (itself when there are none). */
+  #withOverrides(composition: Composition): Composition {
+    if (this.#maskOverrides.size === 0) return composition;
+    const edits = [...this.#maskOverrides.values()];
+    if (
+      !composition.tracks.some((t) => t.clips.some((c) => edits.some((e) => e.clipId === c.id)))
+    ) {
+      return composition;
+    }
+    return {
+      ...composition,
+      tracks: composition.tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          const mine = edits.filter((e) => e.clipId === clip.id);
+          if (mine.length === 0) return clip;
+          let masks = clip.masks;
+          for (const { mask } of mine) {
+            masks = masks.some((m) => m.id === mask.id)
+              ? masks.map((m) => (m.id === mask.id ? mask : m))
+              : [...masks, mask];
+          }
+          return { ...clip, masks };
+        }),
+      })),
+    };
+  }
+
+  /** The pictures of a clip's bitmap masks that are loaded (a live edit wins over the saved asset). */
+  #bitmapsFor(clip: Clip): MaskBitmaps {
+    const found = new Map<string, ImageBitmap>();
+    for (const mask of clip.masks) {
+      if (mask.kind !== "raster") continue;
+      const bitmap =
+        this.#maskOverrides.get(mask.id)?.bitmap ?? this.#maskBitmaps.get(mask.assetId);
+      if (bitmap !== undefined) found.set(mask.id, bitmap);
+    }
+    return found;
+  }
+
+  /** Loads what a clip needs before it can be drawn: its LUT and the pictures of its bitmap masks. */
+  async #prepareClip(context: RenderContext, clip: Clip): Promise<void> {
+    await this.#prepareMasks(context, clip);
+    await this.#prepareColour(context, clip);
+  }
+
+  async #prepareMasks(context: RenderContext, clip: Clip): Promise<void> {
+    for (const mask of clip.masks) {
+      if (mask.kind !== "raster" || this.#maskOverrides.has(mask.id)) continue;
+      if (this.#maskBitmaps.has(mask.assetId)) continue;
+      try {
+        const url = await this.#resolver.resolve(mask.assetId, "image");
+        this.#maskBitmaps.set(
+          mask.assetId,
+          await loadImageBitmap(mask.assetId, url, this.caps.maxTextureSize),
+        );
+        // Keep the few most recently loaded; older ones are reloaded if needed again.
+        for (const [id, bitmap] of this.#maskBitmaps) {
+          if (this.#maskBitmaps.size <= 12) break;
+          if (id === mask.assetId) continue;
+          bitmap.close();
+          this.#maskBitmaps.delete(id);
+        }
+      } catch (error) {
+        context.diagnostics.add({
+          clipId: clip.id,
+          level: "warning",
+          code: "raster_mask_unavailable",
+          message: `A bitmap mask couldn't be loaded (${error instanceof Error ? error.message : String(error)}); it is left out.`,
+        });
+      }
+    }
+  }
+
   /** Loads the clip's LUT (if any) before drawing, and reports it if it can't be used. */
   async #prepareColour(context: RenderContext, clip: Clip): Promise<void> {
     const ref = clip.color.lut;
@@ -793,10 +1023,13 @@ export class Engine {
     tUs: number,
     composition: Composition,
     extended = false,
+    scale = 1,
   ): Promise<LayerSource | null> {
     reportIgnoredFeatures(clip, context.diagnostics);
     try {
-      if (clip.type === "media") return await this.#resolveMedia(context, clip, tUs, extended);
+      if (clip.type === "media") {
+        return await this.#resolveMedia(context, clip, tUs, extended, scale);
+      }
       if (clip.type === "composition") {
         return await this.#resolveNested(context, clip, tUs, extended);
       }
@@ -804,14 +1037,9 @@ export class Engine {
       if (clip.type === "text" || clip.type === "caption") {
         return await this.#resolveText(context, clip, tUs);
       }
-      if (clip.type === "shape") return await this.#resolveShape(context, clip, tUs);
-      if (clip.type === "adjustment") return null; // drawn from the composite, see #drawAdjustment
-      context.diagnostics.add({
-        clipId: clip.id,
-        level: "warning",
-        code: "unsupported_clip_type",
-        message: `${clip.type} clips aren't drawn yet.`,
-      });
+      if (clip.type === "shape") return await this.#resolveShape(context, clip, tUs, scale);
+      if (clip.type === "paint") return await this.#resolvePaint(context, clip, composition, scale);
+      // Every other kind is an adjustment clip, drawn from the composite (see #drawAdjustment).
       return null;
     } catch (error) {
       context.diagnostics.add({
@@ -829,6 +1057,7 @@ export class Engine {
     clip: Clip,
     tUs: number,
     extended: boolean,
+    scale: number,
   ): Promise<LayerSource | null> {
     const fail = (code: string, message: string): null => {
       context.diagnostics.add({ clipId: clip.id, level: "error", code, message });
@@ -841,27 +1070,27 @@ export class Engine {
     context.usedClips.add(clip.id);
 
     if (asset.kind === "image") {
-      const entry = await this.#shared(`i:${asset.id}`, async () => {
-        const bitmap = await loadImageBitmap(
-          asset.id,
-          await this.#resolver.resolve(asset.id, "image"),
-        );
+      // While editing, an image that is drawn small uses its 2048 px preview (a proxy); drawn
+      // larger (zoomed in, or exported) it uses the original. Images the GPU can't hold whole are
+      // shrunk to fit; export draws large compositions in tiles.
+      const long = Math.max(asset.image?.width ?? 0, asset.image?.height ?? 0);
+      const sizeScale = Math.max(
+        Math.abs(resolveClipProps(clip, tUs).transform.scaleX),
+        Math.abs(resolveClipProps(clip, tUs).transform.scaleY),
+      );
+      const useProxy = long > PREVIEW_SIDE && long * sizeScale * scale <= PREVIEW_SIDE;
+      const rendition = useProxy ? "preview" : "image";
+      const key = `i:${asset.id}:${rendition}`;
+      const entry = await this.#shared(key, async () => {
+        const url = await this.#resolver.resolve(asset.id, rendition).catch((error: unknown) => {
+          if (rendition === "image") throw error;
+          return this.#resolver.resolve(asset.id, "image"); // no preview rendition: use the original
+        });
+        const bitmap = await loadImageBitmap(asset.id, url, this.caps.maxTextureSize);
         try {
-          if (Math.max(bitmap.width, bitmap.height) > this.caps.maxTextureSize) {
-            throw new MediaError(
-              asset.id,
-              `the image is ${String(bitmap.width)}×${String(bitmap.height)}, larger than this GPU's ` +
-                `${String(this.caps.maxTextureSize)} px texture limit`,
-            );
-          }
-          return this.#cache.put(
-            `i:${asset.id}`,
-            bitmap.width,
-            bitmap.height,
-            (texture, reused) => {
-              uploadSource(this.#gl, texture, bitmap, reused);
-            },
-          );
+          return this.#cache.put(key, bitmap.width, bitmap.height, (texture, reused) => {
+            uploadSource(this.#gl, texture, bitmap, reused);
+          });
         } finally {
           bitmap.close();
         }
@@ -921,7 +1150,8 @@ export class Engine {
         ? extendedSourceInstantUs(clip, tUs, child.durationUs)
         : sourceInstantUs(clip, tUs);
     const hash = compositionHash(project, child, this.#hashMemo);
-    const key = `n:${child.id}:${hash}:${String(childTime)}`;
+    const edits = [...this.#maskOverrides.values()].map((e) => `${e.mask.id}.${String(e.version)}`);
+    const key = `n:${child.id}:${hash}:${edits.join(",")}:${String(childTime)}`;
     const entry = await this.#shared(key, async () => {
       this.stats.nestedRenders += 1;
       const rendered = await this.#renderComposition(context, child, childTime);

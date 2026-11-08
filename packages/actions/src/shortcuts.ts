@@ -61,6 +61,8 @@ export interface KeyEventLike {
   metaKey: boolean;
   altKey: boolean;
   shiftKey: boolean;
+  /** Physical key ("KeyB", "Digit1"): with Alt held, macOS types symbols ("∫") instead of letters. */
+  code?: string;
 }
 
 /** Canonical shortcut for a keyboard event, or null for a lone modifier key. */
@@ -72,7 +74,12 @@ export function shortcutFromEvent(event: KeyEventLike, isMac: boolean): string |
   // Shift is part of printable characters like "?" or "/"; only count it for named keys/letters.
   const printable = event.key.length === 1 && !/[a-z]/i.test(event.key);
   if (event.shiftKey && !printable) mods.push("Shift");
-  return [...mods, canonicalKey(event.key)].join("+");
+  let key = event.key;
+  if (event.altKey && event.code !== undefined) {
+    const physical = /^Key([A-Z])$/.exec(event.code) ?? /^Digit(\d)$/.exec(event.code);
+    if (physical?.[1] !== undefined) key = physical[1];
+  }
+  return [...mods, canonicalKey(key)].join("+");
 }
 
 const MAC_SYMBOLS: Record<string, string> = { Mod: "⌘", Alt: "⌥", Shift: "⇧" };

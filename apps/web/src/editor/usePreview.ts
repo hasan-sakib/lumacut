@@ -1,6 +1,6 @@
-import { PlaybackSession, type Diagnostic } from "@lumacut/engine";
+import { PlaybackSession, type Diagnostic, type ViewWindow } from "@lumacut/engine";
 import type { ScopeSample } from "@lumacut/engine/scopes";
-import type { Project } from "@lumacut/schema";
+import type { Project, RasterMask } from "@lumacut/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createApiAssetResolver } from "../engine/resolver.ts";
 import { useEditorStore } from "../stores/editor.ts";
@@ -18,6 +18,17 @@ export interface Preview {
   seek: (us: number) => void;
   /** The current picture shrunk to `width` pixels across (for the video scopes), or null before the preview is ready. */
   readScope: (width?: number) => Promise<ScopeSample | null>;
+  /**
+   * Draw only this window of the composition (composition pixels, with the output scale), or all
+   * of it (null). The canvas then holds just the window, so the page must position it. Used by the
+   * photo editor to render the visible part of a large canvas at screen resolution.
+   */
+  setView: (view: ViewWindow | null) => void;
+  /** Shows a bitmap mask live while it is painted (null clears it); the bitmap is handed over. */
+  setMaskOverride: (
+    maskId: string,
+    entry: { clipId: string; mask: RasterMask; bitmap: ImageBitmap } | null,
+  ) => Promise<void>;
 }
 
 /**
@@ -33,6 +44,8 @@ export function usePreview(project: Project | null, compositionId: string | null
   const [playing, setPlaying] = useState(false);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // The window asked for most recently; applied when a session starts and on every change.
+  const wantedView = useRef<ViewWindow | null>(null);
 
   // The session. The canvas is made here, not in JSX: its control can be handed to the worker only once.
   useEffect(() => {
@@ -67,6 +80,7 @@ export function usePreview(project: Project | null, compositionId: string | null
         }
         created = session;
         sessionRef.current = session;
+        if (wantedView.current !== null) void session.setView(wantedView.current);
         setReady(true);
       },
       (e: unknown) => {
@@ -162,5 +176,35 @@ export function usePreview(project: Project | null, compositionId: string | null
     return session === null ? null : session.readScope(width);
   }, []);
 
-  return { attachStage: setStage, ready, playing, diagnostics, error, togglePlay, seek, readScope };
+  const setView = useCallback((view: ViewWindow | null) => {
+    wantedView.current = view;
+    const session = sessionRef.current;
+    if (session === null) return;
+    session.setView(view).catch((e: unknown) => {
+      setError(String(e));
+    });
+  }, []);
+
+  const setMaskOverride = useCallback(
+    async (
+      maskId: string,
+      entry: { clipId: string; mask: RasterMask; bitmap: ImageBitmap } | null,
+    ) => {
+      await sessionRef.current?.setMaskOverride(maskId, entry);
+    },
+    [],
+  );
+
+  return {
+    attachStage: setStage,
+    ready,
+    playing,
+    diagnostics,
+    error,
+    togglePlay,
+    seek,
+    readScope,
+    setView,
+    setMaskOverride,
+  };
 }

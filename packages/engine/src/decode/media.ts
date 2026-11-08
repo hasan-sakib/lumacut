@@ -1,4 +1,4 @@
-export type MediaKind = "video" | "audio" | "image" | "lut";
+export type MediaKind = "video" | "audio" | "image" | "preview" | "lut";
 
 /**
  * Where the engine finds media. The web app implements it from the library API (presigned proxy /

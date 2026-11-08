@@ -33,6 +33,7 @@ import {
 } from "../../overlay/pen.ts";
 import { moveOp, rotateOp, scaleOp } from "../../overlay/transform-ops.ts";
 import { clientToComp, screenScale, type Point } from "../../overlay/viewport.ts";
+import { isPhotoTool } from "../../photo/types.ts";
 import type { CanvasTool, PenMode } from "../../stores/editor.ts";
 
 interface PreviewOverlayProps {
@@ -48,6 +49,8 @@ interface PreviewOverlayProps {
   /** Run a registry action (`shape.add`, `mask.addPath`…). */
   onRun: (id: string, args?: unknown) => void;
   onSelectClips: (ids: string[]) => void;
+  /** What part of the composition the SVG shows ("x y width height", composition pixels); default all of it. */
+  viewBox?: string;
 }
 
 type Drag =
@@ -691,10 +694,11 @@ export function PreviewOverlay(props: PreviewOverlayProps) {
       ref={svgRef}
       data-testid="preview-overlay"
       data-tool={canvasTool}
-      viewBox={`0 0 ${String(composition.width)} ${String(composition.height)}`}
+      viewBox={props.viewBox ?? `0 0 ${String(composition.width)} ${String(composition.height)}`}
       preserveAspectRatio="xMidYMid meet"
       className="absolute inset-0 h-full w-full touch-none"
-      style={{ cursor }}
+      // The photo tools (marquee, crop, brush…) have their own layer on top; this one stands aside.
+      style={{ cursor, ...(isPhotoTool(canvasTool) ? { pointerEvents: "none" } : {}) }}
       onPointerDown={onBackgroundDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
@@ -711,7 +715,7 @@ export function PreviewOverlay(props: PreviewOverlayProps) {
         }
       }}
     >
-      <rect x={0} y={0} width={composition.width} height={composition.height} fill="transparent" />
+      <rect x={-1e7} y={-1e7} width={2e7} height={2e7} fill="transparent" />
       {pathLayer}
       {motion}
       {gizmo}

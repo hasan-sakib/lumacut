@@ -106,7 +106,15 @@ async def _save(
 @router.post("", status_code=status.HTTP_201_CREATED, responses=error_responses(401, 422))
 async def create_project(body: ProjectCreate, user: CurrentUser, session: SessionDep) -> ProjectOut:
     """Create a project with one empty composition."""
-    doc = validate_document(default_document(body.name.strip() or "Untitled", body.kind))
+    doc = validate_document(
+        default_document(
+            body.name.strip() or "Untitled",
+            body.kind,
+            body.width,
+            body.height,
+            body.background,
+        )
+    )
     row = ProjectRecord(
         id=str(doc["id"]), owner_id=user.id, name=str(doc["name"])[:255], kind=body.kind, doc=doc
     )

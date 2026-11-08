@@ -9,17 +9,28 @@ export interface MaskPlacement {
   pad: number;
   width: number;
   height: number;
+  /** The layer's own size in layer pixels (a bitmap mask is stretched over it). */
+  layerWidth: number;
+  layerHeight: number;
 }
 
+/** What a bitmap mask is drawn from: its alpha channel is the mask. */
+export type MaskBitmaps = ReadonlyMap<string, CanvasImageSource>;
+
 /**
- * Draws a layer's path masks into one alpha picture the size of the processed layer. Masks combine
+ * Draws a layer's masks into one alpha picture the size of the processed layer. Masks combine
  * in order (add / subtract / intersect). If the first mask isn't "add" the start is the whole
  * layer, so a lone subtract cuts a hole. Each mask has its opacity, expansion (grow or shrink by a
  * stroke), feather (a Gaussian blur) and an invert switch. Returns null when there is nothing to
  * draw (no path masks).
  */
-export function renderMasks(masks: readonly Mask[], place: MaskPlacement): OffscreenCanvas | null {
-  const paths = masks.filter((m) => m.kind === "path");
+export function renderMasks(
+  masks: readonly Mask[],
+  place: MaskPlacement,
+  bitmaps: MaskBitmaps = new Map(),
+): OffscreenCanvas | null {
+  // A bitmap mask whose picture isn't there (still loading, failed) is left out.
+  const paths = masks.filter((m) => m.kind === "path" || bitmaps.has(m.id));
   const first = paths[0];
   if (first === undefined) return null;
   const { width, height } = place;
@@ -46,22 +57,30 @@ export function renderMasks(masks: readonly Mask[], place: MaskPlacement): Offsc
     const ctx = shape.getContext("2d");
     if (ctx === null) continue;
     setView(ctx);
-    const path = new Path2D();
-    addOutline(path, { ...pathOutline(mask.path), closed: true });
-    ctx.fillStyle = "#000";
-    ctx.globalAlpha = mask.opacity;
-    ctx.fill(path);
-    if (mask.expansion !== 0) {
-      ctx.lineJoin = "round";
-      ctx.lineWidth = Math.abs(mask.expansion) * 2;
-      if (mask.expansion > 0) {
-        ctx.strokeStyle = "#000";
-      } else {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.globalAlpha = 1;
+    if (mask.kind === "raster") {
+      const bitmap = bitmaps.get(mask.id);
+      if (bitmap === undefined) continue;
+      ctx.globalAlpha = mask.opacity;
+      ctx.drawImage(bitmap, 0, 0, place.layerWidth, place.layerHeight);
+      ctx.globalAlpha = 1;
+    } else {
+      const path = new Path2D();
+      addOutline(path, { ...pathOutline(mask.path), closed: true });
+      ctx.fillStyle = "#000";
+      ctx.globalAlpha = mask.opacity;
+      ctx.fill(path);
+      if (mask.expansion !== 0) {
+        ctx.lineJoin = "round";
+        ctx.lineWidth = Math.abs(mask.expansion) * 2;
+        if (mask.expansion > 0) {
+          ctx.strokeStyle = "#000";
+        } else {
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.globalAlpha = 1;
+        }
+        ctx.stroke(path);
+        ctx.globalCompositeOperation = "source-over";
       }
-      ctx.stroke(path);
-      ctx.globalCompositeOperation = "source-over";
     }
     let contribution: OffscreenCanvas = shape;
     if (mask.inverted) {

@@ -104,11 +104,7 @@ export class LayerFx {
 
   /** True when the clip needs colour or effect passes (otherwise it is drawn directly). */
   needs(clip: Clip): boolean {
-    return (
-      this.needsColour(clip) ||
-      clip.effects.some((e) => e.enabled) ||
-      clip.masks.some((m) => m.kind === "path")
-    );
+    return this.needsColour(clip) || clip.effects.some((e) => e.enabled) || clip.masks.length > 0;
   }
 
   /**

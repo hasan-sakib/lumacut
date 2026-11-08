@@ -46,10 +46,4 @@ export function reportIgnoredFeatures(clip: Clip, sink: DiagnosticSink): void {
       `Keyframes on ${unanimated.map(([path]) => `"${path}"`).join(", ")} can't be animated yet.`,
     );
   }
-  if (clip.masks.some((m) => m.kind === "raster")) {
-    warn(
-      "ignored_raster_mask",
-      "Bitmap masks aren't applied yet (they arrive with the photo tools).",
-    );
-  }
 }

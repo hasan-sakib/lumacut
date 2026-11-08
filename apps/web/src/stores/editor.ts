@@ -1,11 +1,19 @@
 import { create } from "zustand";
+import {
+  DEFAULT_BRUSH,
+  FIT_VIEW,
+  type BrushSettings,
+  type PhotoTool,
+  type PhotoView,
+  type Selection,
+} from "../photo/types.ts";
 import type { Attributes, ClipboardData } from "../timeline/clipboard.ts";
 import { DEFAULT_PX_PER_SEC, clampZoom } from "../timeline/geometry.ts";
 
 export type BottomPanel = "timeline" | "graph";
 
 /** What the preview canvas does with the pointer: edit the selection, or draw. */
-export type CanvasTool = "select" | "pen" | "rect" | "ellipse" | "polygon" | "star";
+export type CanvasTool = "select" | "pen" | "rect" | "ellipse" | "polygon" | "star" | PhotoTool;
 /** What the pen draws: a new shape layer, or a mask on the selected clip. */
 export type PenMode = "shape" | "mask";
 
@@ -22,6 +30,12 @@ interface EditorState {
   tool: Tool;
   canvasTool: CanvasTool;
   penMode: PenMode;
+  /** Photo workspace: brush options, the current selection and where the canvas is on screen. */
+  brush: BrushSettings;
+  selection: Selection | null;
+  photoView: PhotoView;
+  /** Size of the photo workspace's canvas area on screen, in pixels (set by the workspace). */
+  photoViewport: { width: number; height: number };
   /** Timeline zoom in pixels per second. */
   zoomPxPerSec: number;
   /** Time at the left edge of the visible timeline. */
@@ -45,6 +59,10 @@ interface EditorState {
   setTool: (tool: Tool) => void;
   setCanvasTool: (tool: CanvasTool) => void;
   setPenMode: (mode: PenMode) => void;
+  setBrush: (patch: Partial<BrushSettings>) => void;
+  setSelection: (selection: Selection | null) => void;
+  setPhotoView: (view: PhotoView) => void;
+  setPhotoViewport: (size: { width: number; height: number }) => void;
   setZoom: (pxPerSec: number) => void;
   setScroll: (us: number) => void;
   setViewportPx: (px: number) => void;
@@ -64,6 +82,10 @@ const INITIAL = {
   tool: "select" as Tool,
   canvasTool: "select" as CanvasTool,
   penMode: "shape" as PenMode,
+  brush: DEFAULT_BRUSH,
+  selection: null as Selection | null,
+  photoView: FIT_VIEW,
+  photoViewport: { width: 0, height: 0 },
   zoomPxPerSec: DEFAULT_PX_PER_SEC,
   scrollUs: 0,
   viewportPx: 0,
@@ -126,6 +148,18 @@ export const useEditorStore = create<EditorState>()((set) => ({
   },
   setPenMode: (penMode) => {
     set({ penMode });
+  },
+  setBrush: (patch) => {
+    set((state) => ({ brush: { ...state.brush, ...patch } }));
+  },
+  setSelection: (selection) => {
+    set({ selection });
+  },
+  setPhotoView: (photoView) => {
+    set({ photoView });
+  },
+  setPhotoViewport: (photoViewport) => {
+    set({ photoViewport });
   },
   setTool: (tool) => {
     set({ tool });
