@@ -63,13 +63,21 @@ export const CompositionPatch = named(
     fps: true,
     durationUs: true,
     background: true,
+    audio: true,
   }).partial(),
 );
 export type CompositionPatch = z.infer<typeof CompositionPatch>;
 
 export const TrackPatch = named(
   "TrackPatch",
-  Track.pick({ name: true, muted: true, locked: true, hidden: true, solo: true }).partial(),
+  Track.pick({
+    name: true,
+    muted: true,
+    locked: true,
+    hidden: true,
+    solo: true,
+    audio: true,
+  }).partial(),
 );
 export type TrackPatch = z.infer<typeof TrackPatch>;
 

@@ -18,6 +18,24 @@ export type Marker = z.infer<typeof Marker>;
 export const TrackKind = named("TrackKind", z.enum(["visual", "audio"]));
 export type TrackKind = z.infer<typeof TrackKind>;
 
+export const TrackAudio = named(
+  "TrackAudio",
+  z.strictObject({
+    volume: z.number().min(0).max(4),
+    pan: z.number().min(-1).max(1),
+  }),
+  "A track's mixer fader and pan: volume is a linear gain (1 = unity, 4 = +12 dB), pan -1..1. " +
+    "Missing means unity and centre.",
+);
+export type TrackAudio = z.infer<typeof TrackAudio>;
+
+export const CompositionAudio = named(
+  "CompositionAudio",
+  z.strictObject({ volume: z.number().min(0).max(4) }),
+  "The composition's master fader (linear gain). Missing means unity.",
+);
+export type CompositionAudio = z.infer<typeof CompositionAudio>;
+
 export const Track = named(
   "Track",
   z.strictObject({
@@ -28,6 +46,7 @@ export const Track = named(
     locked: z.boolean(),
     hidden: z.boolean(),
     solo: z.boolean(),
+    audio: TrackAudio.optional(),
     clips: z.array(Clip),
   }),
   "A track; shown as a layer in the photo UI and the Pro motion UI.",
@@ -46,6 +65,7 @@ export const Composition = named(
     background: Color,
     tracks: z.array(Track),
     markers: z.array(Marker),
+    audio: CompositionAudio.optional(),
   }),
   "A composition. tracks[0] is the bottom track; tracks composite bottom-to-top. " +
     "A photo is a composition with durationUs = 0, rendered at t = 0 only.",

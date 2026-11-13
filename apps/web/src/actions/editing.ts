@@ -27,6 +27,29 @@ import {
 } from "../timeline/clipboard.ts";
 import { roundToFrame } from "../timeline/geometry.ts";
 
+/** What the audio actions need from the page: an offline mixdown, a download, a place to show results. */
+export interface AudioServices {
+  /** Renders a composition's sound offline (stereo, 48 kHz). */
+  renderMix: (
+    compositionId: string,
+    fromUs: number,
+    toUs: number,
+  ) => Promise<{
+    channels: Float32Array[];
+    sampleRate: number;
+  }>;
+  download: (blob: Blob, filename: string) => void;
+  /** Shows a measured loudness in the mixer. */
+  showLoudness: (report: {
+    integrated: number;
+    truePeak: number;
+    shortTermMax: number;
+    momentaryMax: number;
+  }) => void;
+  /** Starts a new running loudness measurement in the meters. */
+  resetLoudness: () => void;
+}
+
 /** What the photo workspace lets actions change (editor state, never the document). */
 export interface PhotoServices {
   setBrush: (patch: Partial<BrushSettings>) => void;
@@ -66,6 +89,8 @@ export interface EditingServices {
   showShortcuts: () => void;
   /** Opens the export window (optional: only the editor page has one). */
   openExport?: () => void;
+  /** Sound: render the mix offline, save files, and show what was measured. */
+  audio?: AudioServices;
   /** The preview: start/stop playing, and jump to a time (moves the picture and the sound). */
   playback: { togglePlay: () => void; seek: (us: number) => void };
   /** Editor view state that isn't part of the document. */
@@ -76,7 +101,7 @@ export interface EditingServices {
     toggleSnapping: () => void;
     selectClips: (ids: string[]) => void;
     /** Shows the timeline or the graph editor in the bottom dock. */
-    setBottomPanel: (panel: "timeline" | "graph") => void;
+    setBottomPanel: (panel: "timeline" | "graph" | "mixer") => void;
     /** Opens a nested composition for editing / goes back up a level. */
     /** What the preview canvas does with the pointer (draw shapes, pen) and what the pen makes. */
     setCanvasTool?: (tool: CanvasTool) => void;

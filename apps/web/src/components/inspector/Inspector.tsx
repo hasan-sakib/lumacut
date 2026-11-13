@@ -5,6 +5,7 @@ import { toggleKeyframeOp } from "../../inspector/animation.ts";
 import { buildInspector, opForField } from "../../inspector/selection.ts";
 import { formatDuration } from "../../lib/format.ts";
 import { ColorExtras } from "../color/ColorExtras.tsx";
+import { AudioEffectsInspector } from "../effects/AudioEffectsInspector.tsx";
 import { EffectsInspector } from "../effects/EffectsInspector.tsx";
 import { TransitionInspector } from "../effects/TransitionInspector.tsx";
 import { MasksInspector } from "../masks/MasksInspector.tsx";
@@ -187,6 +188,12 @@ export function Inspector({
           onChange={onChange}
         />
       )}
+      {items.length === 1 &&
+        first !== undefined &&
+        ((first.track?.kind === "audio" && first.clip.type === "media") ||
+          first.clip.type === "composition") && (
+          <AudioEffectsInspector item={first} playheadUs={playheadUs} onChange={onChange} />
+        )}
       {items.length === 1 && first?.clip.type === "shape" && (
         <ShapeInspector item={first} playheadUs={playheadUs} onChange={onChange} />
       )}

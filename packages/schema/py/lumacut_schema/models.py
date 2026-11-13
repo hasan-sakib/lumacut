@@ -617,6 +617,7 @@ class Clip(BaseModel):
     inUs: TimeUs
     outUs: TimeUs
     speed: Annotated[StrictFloat, Field(gt=0.0)]
+    preservePitch: StrictBool | MISSING = MISSING
     reversed: StrictBool
     freezeAtUs: TimeUs | MISSING = MISSING
     transform: Transform
@@ -656,6 +657,21 @@ class Marker(BaseModel):
 type TrackKind = Literal["visual", "audio"]
 
 
+class TrackAudio(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    volume: Annotated[StrictFloat, Field(ge=0.0, le=4.0)]
+    pan: Annotated[StrictFloat, Field(ge=-1.0, le=1.0)]
+
+
+class CompositionAudio(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    volume: Annotated[StrictFloat, Field(ge=0.0, le=4.0)]
+
+
 class Track(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -667,6 +683,7 @@ class Track(BaseModel):
     locked: StrictBool
     hidden: StrictBool
     solo: StrictBool
+    audio: TrackAudio | MISSING = MISSING
     clips: list[Clip]
 
 
@@ -683,6 +700,7 @@ class Composition(BaseModel):
     background: Color
     tracks: list[Track]
     markers: list[Marker]
+    audio: CompositionAudio | MISSING = MISSING
 
 
 type AssetKind = Literal["video", "audio", "image", "lut", "font"]
@@ -809,6 +827,7 @@ class CompositionPatch(BaseModel):
     fps: Rational | MISSING = MISSING
     durationUs: TimeUs | MISSING = MISSING
     background: Color | MISSING = MISSING
+    audio: CompositionAudio | MISSING = MISSING
 
 
 class TrackPatch(BaseModel):
@@ -820,6 +839,7 @@ class TrackPatch(BaseModel):
     locked: StrictBool | MISSING = MISSING
     hidden: StrictBool | MISSING = MISSING
     solo: StrictBool | MISSING = MISSING
+    audio: TrackAudio | MISSING = MISSING
 
 
 class ClipPatch(BaseModel):
@@ -832,6 +852,7 @@ class ClipPatch(BaseModel):
     inUs: TimeUs | MISSING = MISSING
     outUs: TimeUs | MISSING = MISSING
     speed: Annotated[StrictFloat | MISSING, Field(gt=0.0)] = MISSING
+    preservePitch: StrictBool | MISSING = MISSING
     reversed: StrictBool | MISSING = MISSING
     freezeAtUs: TimeUs | MISSING = MISSING
     transform: Transform | MISSING = MISSING

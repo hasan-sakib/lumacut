@@ -1,6 +1,7 @@
 import { runAction, type AnyAction } from "@lumacut/actions";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { editingActions, type EditingContext, type EditingServices } from "../actions/editing.ts";
+import "../actions/audio.ts";
 import "../actions/canvas.ts";
 import "../actions/canvasEdit.ts";
 import "../actions/colour.ts";
@@ -18,7 +19,10 @@ import "../actions/shapes.ts";
 import "../actions/text.ts";
 import "../actions/transitions.ts";
 import "../actions/keyframes.ts";
+import { renderMix } from "@lumacut/engine";
+import { createApiAssetResolver } from "../engine/resolver.ts";
 import { newId } from "../lib/ids.ts";
+import { useAudioStore } from "../stores/audio.ts";
 import { downloadBlob, renderProjectImage } from "../photo/export-image.ts";
 import { fitZoom, zoomBy } from "../timeline/geometry.ts";
 import { resolveAssetQuery } from "../lib/project-assets.ts";
@@ -30,6 +34,8 @@ export interface EditingUi {
   openPalette: () => void;
   showShortcuts: () => void;
   openExport?: () => void;
+  /** Starts a new running loudness measurement in the live meters. */
+  resetLoudness?: () => void;
   togglePlay: () => void;
   seek: (us: number) => void;
 }
@@ -62,7 +68,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   const photoViewport = useEditorStore((s) => s.photoViewport);
   const clipboard = useEditorStore((s) => s.clipboard);
   const attributes = useEditorStore((s) => s.attributes);
-  const { openPalette, showShortcuts, openExport, togglePlay, seek } = ui;
+  const { openPalette, showShortcuts, openExport, resetLoudness, togglePlay, seek } = ui;
 
   const services = useMemo<EditingServices>(
     () => ({
@@ -86,6 +92,25 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       openPalette,
       showShortcuts,
       ...(openExport === undefined ? {} : { openExport }),
+      audio: {
+        renderMix: async (compositionId, fromUs, toUs) => {
+          const current = projectStore.getState().project;
+          if (current === null) throw new Error("No project is open.");
+          const mix = await renderMix(current, createApiAssetResolver(), {
+            compositionId,
+            fromUs,
+            toUs,
+          });
+          return { channels: mix.channels, sampleRate: mix.sampleRate };
+        },
+        download: downloadBlob,
+        showLoudness: (report) => {
+          useAudioStore.getState().setMeasured(report);
+        },
+        resetLoudness: () => {
+          resetLoudness?.();
+        },
+      },
       playback: { togglePlay, seek },
       editor: {
         setTool: (tool) => {
@@ -144,7 +169,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         },
       },
     }),
-    [openPalette, showShortcuts, openExport, togglePlay, seek],
+    [openPalette, showShortcuts, openExport, resetLoudness, togglePlay, seek],
   );
 
   const ctx = useMemo<EditingContext>(

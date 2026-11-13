@@ -180,6 +180,7 @@ export const Clip = named(
     inUs: TimeUs,
     outUs: TimeUs,
     speed: z.number().positive(),
+    preservePitch: z.boolean().optional(),
     reversed: z.boolean(),
     freezeAtUs: TimeUs.optional(),
     transform: Transform,

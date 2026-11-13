@@ -10,7 +10,7 @@ import {
 import type { Attributes, ClipboardData } from "../timeline/clipboard.ts";
 import { DEFAULT_PX_PER_SEC, clampZoom } from "../timeline/geometry.ts";
 
-export type BottomPanel = "timeline" | "graph";
+export type BottomPanel = "timeline" | "graph" | "mixer";
 
 /** What the preview canvas does with the pointer: edit the selection, or draw. */
 export type CanvasTool = "select" | "pen" | "rect" | "ellipse" | "polygon" | "star" | PhotoTool;

@@ -5,8 +5,10 @@ import { editingActions } from "../actions/editing.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
 import { Icon } from "../components/Icon.tsx";
+import { AudioEffectsBrowser } from "../components/effects/AudioEffectsBrowser.tsx";
 import { EffectsBrowser } from "../components/effects/EffectsBrowser.tsx";
 import { GraphEditor } from "../components/graph/GraphEditor.tsx";
+import { MixerPanel } from "../components/mixer/MixerPanel.tsx";
 import { CanvasPanel } from "../components/photo/CanvasPanel.tsx";
 import { ExportDialog } from "../components/photo/ExportDialog.tsx";
 import { FiltersPanel } from "../components/photo/FiltersPanel.tsx";
@@ -91,6 +93,7 @@ export function ProjectPage() {
     togglePlay,
     seek,
     readScope,
+    resetLoudness,
   } = preview;
 
   const ui = useMemo(
@@ -104,10 +107,11 @@ export function ProjectPage() {
       openExport: () => {
         setExportOpen(true);
       },
+      resetLoudness,
       togglePlay,
       seek,
     }),
-    [togglePlay, seek],
+    [togglePlay, seek, resetLoudness],
   );
   const host = useEditingHost(ui);
   useShortcuts(editingActions, host.ctx, host.runAction);
@@ -501,6 +505,14 @@ export function ProjectPage() {
                   />
                 )}
                 {tab === "effects" && (
+                  <AudioEffectsBrowser
+                    canAdd={selectedInfos.some(
+                      (i) => i.track?.kind === "audio" || i.clip.type === "composition",
+                    )}
+                    run={(id, args) => void run(id, args)}
+                  />
+                )}
+                {tab === "effects" && (
                   <EffectsBrowser
                     canAdd={selectedInfos.some((i) => i.track?.kind !== "audio")}
                     canTransition={selectedInfos.some(
@@ -615,6 +627,7 @@ export function ProjectPage() {
                   [
                     ["timeline", "Timeline", "panel.showTimeline"],
                     ["graph", "Graph editor", "panel.showGraph"],
+                    ["mixer", "Mixer", "panel.showMixer"],
                   ] as const
                 ).map(([id, title, action]) => (
                   <button
@@ -633,7 +646,20 @@ export function ProjectPage() {
                   </button>
                 ))}
               </div>
-              {editor.bottomPanel === "graph" ? (
+              {editor.bottomPanel === "mixer" ? (
+                <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+                  <MixerPanel
+                    composition={composition}
+                    ctx={host.ctx}
+                    playing={playing}
+                    readMeters={preview.meters}
+                    previewLevel={preview.previewLevel}
+                    resetLoudness={resetLoudness}
+                    onRunAction={host.runAction}
+                    run={run}
+                  />
+                </div>
+              ) : editor.bottomPanel === "graph" ? (
                 <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
                   <GraphEditor
                     clip={selectedInfos.length === 1 ? selectedInfos[0]?.clip : undefined}

@@ -147,8 +147,8 @@ export function maskGroups(clip: Clip): ItemGroup[] {
     if (mask.kind === "raster") {
       rows.unshift({
         type: "button",
-        label: "Bitmap mask (not applied yet)",
-        description: "Bitmap masks arrive with the photo tools.",
+        label: "Bitmap mask (paint it with the mask brush)",
+        description: "A painted mask: edit it with the mask brush (Alt+K) in the photo workspace.",
         op: () => null,
       });
     }

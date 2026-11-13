@@ -1,4 +1,9 @@
-import { PlaybackSession, type Diagnostic, type ViewWindow } from "@lumacut/engine";
+import {
+  PlaybackSession,
+  type Diagnostic,
+  type MeterReading,
+  type ViewWindow,
+} from "@lumacut/engine";
 import type { ScopeSample } from "@lumacut/engine/scopes";
 import type { Project, RasterMask } from "@lumacut/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,6 +29,12 @@ export interface Preview {
    * photo editor to render the visible part of a large canvas at screen resolution.
    */
   setView: (view: ViewWindow | null) => void;
+  /** Levels and running loudness of the mix (null before the preview is ready). */
+  meters: () => MeterReading | null;
+  /** Starts a new running loudness measurement. */
+  resetLoudness: () => void;
+  /** Moves a track's (null: the master's) level on the playing sound while a fader is dragged. */
+  previewLevel: (trackId: string | null, volume: number, pan?: number) => void;
   /** Shows a bitmap mask live while it is painted (null clears it); the bitmap is handed over. */
   setMaskOverride: (
     maskId: string,
@@ -185,6 +196,15 @@ export function usePreview(project: Project | null, compositionId: string | null
     });
   }, []);
 
+  const meters = useCallback((): MeterReading | null => sessionRef.current?.meters() ?? null, []);
+  const resetLoudness = useCallback(() => {
+    sessionRef.current?.resetLoudness();
+  }, []);
+
+  const previewLevel = useCallback((trackId: string | null, volume: number, pan = 0) => {
+    sessionRef.current?.previewLevel(trackId, volume, pan);
+  }, []);
+
   const setMaskOverride = useCallback(
     async (
       maskId: string,
@@ -206,5 +226,8 @@ export function usePreview(project: Project | null, compositionId: string | null
     readScope,
     setView,
     setMaskOverride,
+    meters,
+    resetLoudness,
+    previewLevel,
   };
 }

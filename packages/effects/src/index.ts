@@ -30,3 +30,17 @@ export {
   searchTransitions,
   transitionById,
 } from "./registry.ts";
+export {
+  AUDIO_EFFECTS,
+  AUDIO_EFFECT_CATEGORIES,
+  NoiseGate,
+  audioEffectById,
+  audioEffectsByCategory,
+  dbToGain,
+  defineAudioEffect,
+  type AudioEffectCategory,
+  type AudioEffectDefinition,
+  type AudioGraph,
+  type GateSettings,
+  type SampleProcessor,
+} from "./audio/index.ts";

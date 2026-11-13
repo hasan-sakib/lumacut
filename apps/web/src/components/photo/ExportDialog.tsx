@@ -12,8 +12,9 @@ interface ExportDialogProps {
   run: (id: string, args?: unknown) => Promise<string | null>;
 }
 
-type Format = "png" | "jpeg" | "webp";
+type Format = "png" | "jpeg" | "webp" | "wav";
 const LABEL: Record<Format, string> = {
+  wav: "Audio: WAV (the whole mix)",
   png: "PNG (lossless, keeps transparency)",
   jpeg: "JPEG (smaller, no transparency)",
   webp: "WebP (small, keeps transparency)",
@@ -27,20 +28,25 @@ export function ExportDialog({ open, onOpenChange, canvas, frame, run }: ExportD
   const [flatten, setFlatten] = useState(false);
   const [colour, setColour] = useState("#ffffff");
   const [busy, setBusy] = useState(false);
+  const [loudness, setLoudness] = useState<"none" | "social" | "broadcast">("social");
+  const [bits, setBits] = useState<"16" | "24">("24");
   const [error, setError] = useState<string | null>(null);
   const width = Math.max(1, Math.round((canvas.width * percent) / 100));
   const height = Math.max(1, Math.round((canvas.height * percent) / 100));
-  const lossy = format !== "png";
+  const audio = format === "wav";
+  const lossy = format === "jpeg" || format === "webp";
 
   async function start() {
     setBusy(true);
     setError(null);
-    const message = await run("export.image", {
-      format,
-      quality,
-      percent,
-      ...(format === "jpeg" || flatten ? { background: colour } : {}),
-    });
+    const message = audio
+      ? await run("export.audio", { target: loudness, bits })
+      : await run("export.image", {
+          format,
+          quality,
+          percent,
+          ...(format === "jpeg" || flatten ? { background: colour } : {}),
+        });
     setBusy(false);
     if (message === null) onOpenChange(false);
     else setError(message);
@@ -60,7 +66,7 @@ export function ExportDialog({ open, onOpenChange, canvas, frame, run }: ExportD
           className="fixed left-1/2 top-24 z-50 w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-neutral-700 bg-neutral-900 p-5 shadow-2xl"
         >
           <Dialog.Title className="mb-3 text-base font-semibold text-neutral-100">
-            {frame ? "Export this frame" : "Export image"}
+            {audio ? "Export audio" : frame ? "Export this frame" : "Export image"}
           </Dialog.Title>
           <div className="flex flex-col gap-3 text-sm text-neutral-200">
             <label className="flex flex-col gap-1">
@@ -72,11 +78,13 @@ export function ExportDialog({ open, onOpenChange, canvas, frame, run }: ExportD
                 }}
                 className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
               >
-                {(Object.keys(LABEL) as Format[]).map((f) => (
-                  <option key={f} value={f}>
-                    {LABEL[f]}
-                  </option>
-                ))}
+                {(Object.keys(LABEL) as Format[])
+                  .filter((f) => f !== "wav" || frame)
+                  .map((f) => (
+                    <option key={f} value={f}>
+                      {LABEL[f]}
+                    </option>
+                  ))}
               </select>
             </label>
             {lossy && (
@@ -96,26 +104,64 @@ export function ExportDialog({ open, onOpenChange, canvas, frame, run }: ExportD
                 <span className="w-9 text-right tabular-nums text-neutral-400">{quality}</span>
               </label>
             )}
-            <label className="flex items-center gap-2">
-              Size
-              <input
-                type="range"
-                min={10}
-                max={400}
-                step={5}
-                value={percent}
-                aria-label="Size in percent"
-                onChange={(e) => {
-                  setPercent(Number(e.target.value));
-                }}
-                className="flex-1"
-              />
-              <span className="w-12 text-right tabular-nums text-neutral-400">{percent}%</span>
-            </label>
-            <p className="text-xs text-neutral-400">
-              {width} × {height} px
-            </p>
-            {format !== "jpeg" && (
+            {audio && (
+              <>
+                <label className="flex flex-col gap-1">
+                  Loudness
+                  <select
+                    value={loudness}
+                    onChange={(e) => {
+                      setLoudness(e.target.value as "none" | "social" | "broadcast");
+                    }}
+                    className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  >
+                    <option value="social">−14 LUFS (social media, streaming)</option>
+                    <option value="broadcast">−23 LUFS (broadcast, EBU R 128)</option>
+                    <option value="none">As mixed (no change)</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2">
+                  Bit depth
+                  <select
+                    value={bits}
+                    onChange={(e) => {
+                      setBits(e.target.value as "16" | "24");
+                    }}
+                    className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1"
+                  >
+                    <option value="24">24-bit</option>
+                    <option value="16">16-bit</option>
+                  </select>
+                </label>
+                <p className="text-xs text-neutral-400">
+                  The whole composition, stereo 48 kHz. True peaks are kept under −1 dBTP.
+                </p>
+              </>
+            )}
+            {!audio && (
+              <label className="flex items-center gap-2">
+                Size
+                <input
+                  type="range"
+                  min={10}
+                  max={400}
+                  step={5}
+                  value={percent}
+                  aria-label="Size in percent"
+                  onChange={(e) => {
+                    setPercent(Number(e.target.value));
+                  }}
+                  className="flex-1"
+                />
+                <span className="w-12 text-right tabular-nums text-neutral-400">{percent}%</span>
+              </label>
+            )}
+            {!audio && (
+              <p className="text-xs text-neutral-400">
+                {width} × {height} px
+              </p>
+            )}
+            {!audio && format !== "jpeg" && (
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -127,7 +173,7 @@ export function ExportDialog({ open, onOpenChange, canvas, frame, run }: ExportD
                 Fill transparent areas with a colour
               </label>
             )}
-            {(format === "jpeg" || flatten) && (
+            {!audio && (format === "jpeg" || flatten) && (
               <label className="flex items-center gap-2">
                 Background
                 <input

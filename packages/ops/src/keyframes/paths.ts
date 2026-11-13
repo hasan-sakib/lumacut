@@ -167,13 +167,18 @@ function resolveBase(
   }
 
   if (head === "audio" && third === undefined && isOneOf(AUDIO_SCALARS, second)) {
-    if (clip.audio === undefined) return undefined; // nothing to animate (and `set` would be a silent no-op)
+    // A clip without audio settings has the defaults (unity volume, centre pan).
     return {
       path,
       kind: "number",
       get: (c) => c.audio?.[second] ?? (second === "volume" ? 1 : 0),
-      set: (c, v) =>
-        c.audio === undefined ? c : { ...c, audio: { ...c.audio, [second]: num(v) } },
+      set: (c, v) => ({
+        ...c,
+        audio: {
+          ...(c.audio ?? { volume: 1, pan: 0, fadeInUs: 0, fadeOutUs: 0, effects: [] }),
+          [second]: num(v),
+        },
+      }),
       drives: [path],
     };
   }

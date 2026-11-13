@@ -12,7 +12,7 @@
 | M4 | Keyframes + graph editor + transitions + text + captions + colour pipeline + scopes + LUTs + effect system (40 effects) | **built 2026-11-07, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request (tests come after all milestones); only `tsc` and `eslint` | 2026-11-07 |
 | M5 | Motion graphics: shapes/pen, masks, mattes, text animators, precompose, presets, motion blur, paths | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc` and `eslint` | 2026-11-08 |
 | M6 | Photo workspace: canvas, layers panel, adjustment layers, crop/straighten, selections→masks, brush/eraser, image export, large images | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc`, `eslint` and `prettier` (plus `ruff` and `make gen-openapi` for the API change) | 2026-11-08 |
-| M7 | Audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness | not started | — |
+| M7 | Audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness | **built 2026-11-13, not verified**: no tests, e2e or `make check` were run at the owner's request; only `tsc`, `eslint`, `prettier`, `ruff` and `make gen-schema` / `gen-openapi` | 2026-11-13 |
 | M8 | Export: video (browser + server), image, GIF, audio + parity test | not started | — |
 | M9 | Simple mode + 20 templates + effect/preset browser + workspaces + onboarding + tooltips + inspector search | not started | — |
 | M10 | AI analysis pipeline | not started | — |
@@ -21,6 +21,15 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
+**M7 is built as one milestone (2026-11-13) and has never been tested** (same arrangement as M4–M6: features first, tests after all milestones; `tsc` on every package, `eslint --max-warnings 0`, `prettier --check`, `ruff`: all clean; nothing is committed). Docs: `docs/audio.md`.
+
+**What to test for M7** (add to the verification pass below):
+1. **Loudness maths** (`packages/engine/src/audio/loudness.ts`) against the EBU Tech 3341 / 3342 reference signals (1 kHz stereo sine at −23 LUFS reads −23.0, the gating cases), K-weighting at 44.1 / 48 / 96 kHz, true peak on known inter-sample overs; `normalizeLoudness` lands within ±0.2 LU and never exceeds −1 dBTP; `encodeWav` header and samples.
+2. **DSP:** WSOLA output length = input / speed and the pitch stays put (spectral peak) at 0.5× and 2×, streaming in odd chunk sizes equals one big chunk; noise gate open/close/hold; limiter never exceeds the ceiling; reverse.
+3. **Engine (offline renders through `renderMix`):** plain playback still identical to M2 (re-run the M2 audio sync tests), fades, volume/pan keyframes match `evaluate`, speed with and without Keep pitch, reverse, each effect builds and renders, track and master faders, mute/solo, nested compositions (incl. after precompose), diagnostics left (nested speed ≠ 1, reverse > 10 min, freeze).
+4. **Actions and UI:** every `audio.*`, `track.setVolume/Pan`, `mixer.setMasterVolume`, `clip.setPreservePitch`, `export.audio`, `audio.measureLoudness`; Mixer meters move while playing, fader drag is live and saves once; audio effects Inspector rows; ◆ on volume/pan; the paths change (a clip without `audio` can now take volume keyframes).
+5. **Acceptance e2e (SPEC §13 M7):** a voice clip + a music clip (music ducked by hand with volume keyframes), export WAV at −14 and at −23, re-measure the files: within ±1 LU, true peak ≤ −1 dBTP.
+
 **M6 is built as one milestone (2026-11-08) and has never been tested** (same arrangement as M4 and M5: features first, tests after all milestones; `tsc` on every package, `eslint --max-warnings 0`, `prettier --check`, `ruff` on the API: all clean; nothing is committed). Docs: `docs/photo.md` (also `docs/masks.md`).
 
 **What to test for M6** (add to the verification pass below):
@@ -54,7 +63,7 @@ Verified earlier in this milestone (these have tests, and passed when written): 
 
 **Verification record, M2 + M3 (2026-11-07)**: `make check` green; `make test-engine` and `make smoke-render` green; `make perf` on the GPU (Apple M2, Metal via installed Chrome) passed every gate (60.0 fps, p95 render 4.0 ms, 0% frames never shown, frames opened = closed, 0.47 MB memory growth over 20 s + 2000 seeks; SwiftShader floor 8.2 fps); `make test-stack`: integration 26 passed / 1 skipped, e2e 16 of 18 on a loaded machine and the 2 failures (`player.spec.ts`, `resume.spec.ts`) passed alone with `--workers=1` (CPU contention; run with `--workers=2` or on a quiet machine); the M3 acceptance e2e passed. Not run: `make test-samples` (~25 min, M1 pipeline) and a manual browser pass. Cross-backend finding: the compositor is bit-identical on SwiftShader and the GPU for stills; video differs only through the decoder (SSIM ≈ 0.998), so golden images must use still-image inputs.
 
-Next: **M7** (audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness). Plan it and wait for approval; the owner wants M7 and later built whole, not split.
+Next: **M8** (export: video in the browser and on the server, GIF, audio formats, parity test). Plan it and wait for approval; the owner wants M8 and later built whole, not split.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -244,7 +253,7 @@ Getting started in a new session:
 
 **2026-11-07 — M4 (one milestone; see `docs/ops.md`, `docs/color.md`, `docs/effects.md`)**
 - **Keyframes:** `evaluate`/`animatedClip` live in `packages/ops/src/keyframes` (the engine depends on ops). `addKeyframe` now validates the path and value kind (`invalid_property`); two animated properties can't drive the same field (`transform.x` vs `transform.position`); `removeEffect` removes the effect's keyframes. A segment's behaviour is set by its first keyframe; bezier uses AE influence/speed along a *distance* coordinate (value difference, spatial path arc length, linear-light colour distance); a missing ease is linear. `splitClip` splits a spanning segment with De Casteljau so neither half jumps and bakes a constant into a half left without keyframes (this changed the old "no boundary keyframe" behaviour).
-- **UI:** one ◆ control (`components/params/KeyframeToggle`) on every animatable inspector field, effect parameter and colour parameter; position/scale/anchor are point properties (X and Y share one keyframe track, AE-style). Volume and pan have no ◆ until M7 (the audio engine doesn't apply keyframes). Editing an animated field at the playhead writes a keyframe. Graph editor: value and speed graphs, drag keys and ease handles, presets (ease in/out, hold, linear, and baked overshoot/bounce/elastic); bottom dock tab next to the Timeline; no zoom/pan.
+- **UI:** one ◆ control (`components/params/KeyframeToggle`) on every animatable inspector field, effect parameter and colour parameter; position/scale/anchor are point properties (X and Y share one keyframe track, AE-style). Volume and pan got their ◆ in M7. Editing an animated field at the playhead writes a keyframe. Graph editor: value and speed graphs, drag keys and ease handles, presets (ease in/out, hold, linear, and baked overshoot/bounce/elastic); bottom dock tab next to the Timeline; no zoom/pan.
 - **Colour:** one shader, specified by `packages/engine/src/color/reference.ts` (`docs/color.md`). A layer with colour or effects is first drawn into a layer-local target in linear light (cropped, on a whole-pixel grid, at no more resolution than it is drawn at), then transformed, so such layers are filtered in linear light while plain layers keep M2's encoded-space filtering.
 - **LUTs:** `builtin:*` ids are eight formula-generated looks (no files, no licence); a user `.cube` is a library asset of kind `lut` (worker validates it, keeps the file as the `lut` rendition; the engine resolves it with `resolve(id, "lut")` and parses it). Choosing a library LUT adds it to the project in the same undo step.
 - **Scopes:** engine option `scopeWidth` blits the canvas to a small RGBA8 target (GPU) and reads it back; waveform, parade, vectorscope, histogram are pure functions over that sample. Updated at most ~8×/s paused, ~2.5×/s while playing.
@@ -265,6 +274,13 @@ Getting started in a new session:
 - **Overlay:** one SVG layer in composition pixels over the preview; geometry is pure (`apps/web/src/overlay/*`), `PreviewOverlay.tsx` only maps pointer events to ops. Tools (`V`, `P`, `R`, `E`, `Shift+P`, `Shift+E`, `Alt+P` for pen mode) are registry actions; the editor store keeps `canvasTool`, `penMode`, `compositionTrail`.
 - **Presets:** pure keyframe generators in `packages/ops/src/presets` (15, four categories); `setFrames` replaces keyframes inside the window so re-applying is idempotent; shake/glitch use a seeded PRNG keyed by clip id and start. `preset.apply` and `motion.blur` are actions; a Presets tab lists them.
 - Lint-driven: no `!` non-null assertions (bind to a local first); drop `as` casts the type-aware lint reports as unnecessary.
+
+**2026-11-13 — M7 (one milestone; see `docs/audio.md`)**
+- **Schema (optional, no migration):** `Track.audio {volume, pan}`, `Composition.audio {volume}`, `Clip.preservePitch` (default true); `TrackPatch`/`CompositionPatch` gained `audio`. The `audio.volume`/`audio.pan` keyframe paths now accept a clip without `audio` (defaults are created on write).
+- **Audio engine rewritten** around the same scheduling/clock contract: per-clip chain (JS sample processors → effect nodes → keyframed volume × equal-power fades → pan) → track bus (fader, pan, meter) → master (fader, L/R meters, K-weighted loudness tap). Nested compositions sound (speed 1, forwards). Speed: in-house streaming **WSOLA** for Keep pitch, `playbackRate` otherwise; reverse decodes the range (≤ 10 min).
+- **Audio effects are definitions** in `packages/effects/src/audio` (EQ, compressor, limiter, noise gate, reverb, delay) with `ParamDef`s, built from native Web Audio nodes or a JS sample processor (the gate); the reverb impulse is seeded. Their params aren't keyframeable yet.
+- **Loudness:** exact BS.1770-4 module (integrated, momentary, short-term, true peak); live meters are an approximation from analyser polling. **Export:** offline `renderMix` → `normalizeLoudness` (gain, look-ahead limiter at −1 dBTP, second pass) → WAV 16/24-bit. ≤ 30 minutes in the browser; longer is M8's server path.
+- **Mixer** is a bottom-dock tab (Shift+X), not a separate workspace (workspaces are M9); faders preview live through `AudioEngine.previewLevel` and save on release.
 
 **2026-11-08 — M6 (one milestone; see `docs/photo.md`)**
 - **One preview window instead of a full-size canvas:** `RenderOptions.view` / `Engine.setView` draw a window of a composition at a scale (canvas = the window's size, layer matrices pre-multiplied by the view matrix; nested compositions are still drawn whole). The photo stage draws only the visible part at screen resolution; the same mechanism tiles exports. Image layers use the 2048 px `preview` rendition when drawn small, the original otherwise; originals above the GPU limit are shrunk on load.
@@ -296,6 +312,7 @@ Getting started in a new session:
 - **M3a schema additions** beyond SPEC §4: `index` on three add-ops and `unset` on `setProps`/`updateAsset` (see Decisions).
 - **M4 schema additions** beyond SPEC §4: optional `Clip.solid {color}`; optional `CaptionData.highlightColor`, `maxLines`, `maxCharsPerLine`; new op error code `invalid_property`; `lut` asset kind is now produced by the API/worker.
 - **M5 deviations:** shapes are Canvas 2D rasters, not tessellation/SDF (SPEC §6 says "tessellation or SDF"); mask feather uses the canvas blur filter; no `Lower third` starter (that is a template, M9); raster masks deferred to M6/M11; no new schema fields were needed (shapes, masks, mattes, motion blur and animators were already in the schema).
+- **M7 deviations:** time-stretch is an in-house WSOLA (no library) rather than a phase vocoder; the mixer is a dock tab, not a saved workspace (M9); MP3/AAC and sound inside video exports are M8 (they will reuse `renderMix` + `normalizeLoudness`); audio export is WAV only.
 - **M6 deviations:** AI subject select is M11 (not in M6); layers panel has no thumbnails; merge/flatten, magic wand, selection boolean ops and selection-clipped brushes are not built; image export is the M6 part of SPEC §11 (video/GIF/audio stay M8); the API grew optional `width`, `height`, `background` on project creation (no schema change).
 - **M4: no `packages/ui-kit`** (components stay in `apps/web`), **no morph-cut**, 40 effects = the 36 named in SPEC §6 plus invert, threshold, duotone and scanlines (SPEC asks for at least 40 but names 36).
 - **M1:**
@@ -332,7 +349,7 @@ Getting started in a new session:
   - **Cross-backend tolerance (measured):** the compositor is bit-identical between SwiftShader and the GPU (image asset, 0/255 difference); the video difference is decoder-only (SSIM ≈ 0.998 on the same composition). Golden-image tests for effects (M4a-3) must therefore use still-image inputs, with video only for non-pixel-exact checks.
   - No full-size-media seek test in `make test-engine` (it only runs the existing suites).
   - Keyframes are not evaluated (`resolveClipProps` is static until M4a). Masks, colour grade, effects, mattes, motion blur and text/shape/adjustment/caption/paint clips are diagnosed, not drawn. The `solid` clip type has no colour field in the schema.
-  - Audio fades, keyframed volume, effects, reverse, freeze and `speed ≠ 1` audio are diagnosed, not played (M7).
+  - (M7 now plays fades, keyframed volume, effects, reverse and `speed ≠ 1` audio; freeze frames stay silent.)
   - Images larger than the GPU texture limit fail with a diagnostic (tiling in M6). Images above 8192 px are laid out at their downscaled size (the declared size is the normalized one).
   - BT.709 vs sRGB transfer is approximated; no HDR. No anti-aliasing on rotated layer edges. WebGPU is an interface only.
   - The full SPEC perf scenario (text, shapes, colour, effects) is added to M4a and M5 acceptance.
@@ -374,6 +391,12 @@ Getting started in a new session:
   - Track mattes: the matte must be in the same composition; no matte chains; the hidden matte clip is only explained in the inspector.
   - Presets: 15 presets, no custom/saved presets, no preview thumbnails, no per-preset parameters beyond strength and length; text presets need a text or caption clip.
   - Playback still pauses on every project edit (M2 limit), so dragging on the canvas while playing is interrupted.
+- **M7 gaps:**
+  - **Nothing in M7 was tested** (see Current focus): the rewritten engine, DSP, loudness maths, effects, mixer UI and export have no tests; the acceptance e2e isn't written; M2's audio sync tests must be re-run against the new engine.
+  - Not built: audio crossfades on transitions (still a cut), keyframed effect parameters, track inserts / sends, audio scrubbing while dragging the playhead, a waveform-drawn volume line on timeline clips, ducking (M12), denoise (M11), MP3/AAC (M8).
+  - Nested composition audio only at speed 1, forwards; reversed audio limited to 10 minutes per clip; offline mixdown limited to 30 minutes (memory); WSOLA quality is fine for voice, so-so for dense music.
+  - Live loudness is approximate (polling); faders and mixer edits still pause playback on release (M2 limit: every project edit reloads the engine).
+  - Fixed in passing: the Masks inspector still said bitmap masks "arrive with the photo tools" (stale since M6).
 - **M6 gaps:**
   - **Nothing in M6 was tested** (see Current focus): the engine `view` has no equivalence tests, paint/bitmap masks/selection/canvas maths/layer actions/export have none, the acceptance e2e isn't written, and the overlay, stage zoom/pan and tool options were never used by hand.
   - Engine: text is rasterised at 1× (soft when zoomed far in); effects whose noise depends on pixel position differ between scales and tiles; nested compositions render whole at native size inside a windowed render; a bitmap mask is stretched over the layer's declared size.
@@ -385,6 +408,8 @@ Getting started in a new session:
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
+_M7 added no dependencies (time-stretch, loudness, limiter and WAV are in-house TypeScript)._
+
 _M5 added no dependencies (Canvas 2D, OffscreenCanvas and the existing GL stack only); the engine package gained a `./shapes` export._
 
 **npm (direct)**

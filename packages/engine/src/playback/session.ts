@@ -1,5 +1,5 @@
 import type { Project, RasterMask } from "@lumacut/schema";
-import { AudioEngine } from "../audio/audio-engine.ts";
+import { AudioEngine, type MeterReading } from "../audio/audio-engine.ts";
 import type { MediaResolver } from "../decode/media.ts";
 import type { Diagnostic } from "../render/diagnostics.ts";
 import type { ReadbackRenderResult } from "../render/engine.ts";
@@ -150,6 +150,21 @@ export class PlaybackSession {
       this.#callbacks.onChange();
     });
     await controller.seek(Math.min(keep, this.#durationUs));
+  }
+
+  /** Levels of each track and the master, and the master's running loudness (call while playing). */
+  meters(): MeterReading {
+    return this.#audio.meters();
+  }
+
+  /** Moves a track's (or, with null, the master's) level on the playing sound; see `AudioEngine.previewLevel`. */
+  previewLevel(trackId: string | null, volume: number, pan = 0): void {
+    this.#audio.previewLevel(trackId, volume, pan);
+  }
+
+  /** Starts a new running loudness measurement. */
+  resetLoudness(): void {
+    this.#audio.resetLoudness();
   }
 
   /** Shows a bitmap mask live (the mask brush); null clears it. The bitmap is transferred. */
