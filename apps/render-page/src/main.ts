@@ -10,6 +10,7 @@ import type {
   BenchmarkOptions,
 } from "./api.ts";
 import { mediaResolver, runBenchmark, runSoak } from "./bench.ts";
+import { runServerExport } from "./export.ts";
 import { mulberry32 } from "./metrics.ts";
 import { perfProject, singleClipProject, type PerfMediaEntry } from "./scenarios.ts";
 
@@ -97,6 +98,7 @@ const api: LumacutApi = {
   benchmark: async (options: BenchmarkOptions) =>
     runBenchmark(perfProject(await perfMedia()), options),
   soak: async (options: SoakOptions) => runSoak(perfProject(await perfMedia()), options),
+  runExport: runServerExport,
 };
 window.__lumacut = api;
 const status = document.getElementById("status");

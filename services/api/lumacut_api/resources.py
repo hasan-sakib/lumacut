@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 log = structlog.get_logger()
 
 MEDIA_QUEUE = "media"
+EXPORT_QUEUE = "export"
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class Resources:
     redis: AsyncRedis
     sync_redis: Redis
     media_queue: Queue
+    export_queue: Queue
     s3: S3Client
     s3_public: S3Client  # presigning only: URLs must carry the browser-facing host
 
@@ -87,6 +89,7 @@ async def open_resources(settings: Settings) -> AsyncIterator[Resources]:
             redis=redis,
             sync_redis=sync_redis,
             media_queue=Queue(MEDIA_QUEUE, connection=sync_redis),
+            export_queue=Queue(EXPORT_QUEUE, connection=sync_redis),
             s3=s3,
             s3_public=s3_public,
         )

@@ -23,6 +23,9 @@ import { renderMix } from "@lumacut/engine";
 import { createApiAssetResolver } from "../engine/resolver.ts";
 import { newId } from "../lib/ids.ts";
 import { useAudioStore } from "../stores/audio.ts";
+import { useExportsStore } from "../stores/exports.ts";
+import { exportInBrowser } from "../export/browser.ts";
+import { cancelServerExport, createServerExport } from "../export/server.ts";
 import { downloadBlob, renderProjectImage } from "../photo/export-image.ts";
 import { fitZoom, zoomBy } from "../timeline/geometry.ts";
 import { resolveAssetQuery } from "../lib/project-assets.ts";
@@ -36,6 +39,8 @@ export interface EditingUi {
   openExport?: () => void;
   /** Starts a new running loudness measurement in the live meters. */
   resetLoudness?: () => void;
+  /** Shows the server exports list. */
+  openExports?: () => void;
   togglePlay: () => void;
   seek: (us: number) => void;
 }
@@ -68,7 +73,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   const photoViewport = useEditorStore((s) => s.photoViewport);
   const clipboard = useEditorStore((s) => s.clipboard);
   const attributes = useEditorStore((s) => s.attributes);
-  const { openPalette, showShortcuts, openExport, resetLoudness, togglePlay, seek } = ui;
+  const { openPalette, showShortcuts, openExport, resetLoudness, openExports, togglePlay, seek } =
+    ui;
 
   const services = useMemo<EditingServices>(
     () => ({
@@ -92,6 +98,51 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       openPalette,
       showShortcuts,
       ...(openExport === undefined ? {} : { openExport }),
+      exports: {
+        inBrowser: async (compositionId, settings) => {
+          const current = projectStore.getState().project;
+          if (current === null) throw new Error("No project is open.");
+          const store = useExportsStore.getState();
+          const label = `${settings.format.toUpperCase()} ${settings.resolution}`;
+          const handle = exportInBrowser(current, compositionId, settings, (phase, done, total) => {
+            const running = useExportsStore.getState().browser;
+            if (running !== null) store.setBrowser({ ...running, phase, done, total });
+          });
+          store.setBrowser({ label, phase: "sound", done: 0, total: 1, cancel: handle.cancel });
+          try {
+            const { blob } = await handle.done;
+            const name = (current.name.replace(/[^\w .-]+/g, "").trim() || "export").replace(
+              /\s+/g,
+              "-",
+            );
+            downloadBlob(blob, `${name}.${settings.format}`);
+          } finally {
+            store.setBrowser(null);
+          }
+        },
+        onServer: async (compositionId, settings) => {
+          const project = projectStore.getState();
+          if (project.project === null) throw new Error("No project is open.");
+          // The server exports the saved project: save what is on screen first.
+          await project.saveNow();
+          if (projectStore.getState().saveState !== "saved") {
+            throw new Error("The project couldn't be saved, so the server can't export it yet.");
+          }
+          const item = await createServerExport(project.project.id, compositionId, settings);
+          useExportsStore.getState().upsert(item);
+        },
+        cancel: async (id) => {
+          if (id === null) {
+            useExportsStore.getState().browser?.cancel();
+            return;
+          }
+          await cancelServerExport(id);
+        },
+        openPanel: () => {
+          openExports?.();
+        },
+        busy: () => useExportsStore.getState().browser !== null,
+      },
       audio: {
         renderMix: async (compositionId, fromUs, toUs) => {
           const current = projectStore.getState().project;
@@ -169,7 +220,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         },
       },
     }),
-    [openPalette, showShortcuts, openExport, resetLoudness, togglePlay, seek],
+    [openPalette, showShortcuts, openExport, resetLoudness, openExports, togglePlay, seek],
   );
 
   const ctx = useMemo<EditingContext>(

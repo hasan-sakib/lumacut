@@ -17,9 +17,14 @@ export interface VideoMedia {
 export class MediaRegistry {
   readonly #resolver: MediaResolver;
   readonly #videos = new Map<string, Promise<VideoMedia>>();
+  readonly #preferOriginal: boolean;
+  /** Assets whose original couldn't be used, so their proxy was (and why). */
+  readonly fallbacks = new Map<string, string>();
 
-  constructor(resolver: MediaResolver) {
+  /** With `preferOriginal` (exports) the uploaded file is read, falling back to the proxy. */
+  constructor(resolver: MediaResolver, preferOriginal = false) {
     this.#resolver = resolver;
+    this.#preferOriginal = preferOriginal;
   }
 
   video(assetId: string): Promise<VideoMedia> {
@@ -36,7 +41,18 @@ export class MediaRegistry {
   }
 
   async #open(assetId: string): Promise<VideoMedia> {
-    const url = await this.#resolver.resolve(assetId, "video");
+    if (this.#preferOriginal) {
+      try {
+        return await this.#openKind(assetId, "original");
+      } catch (error) {
+        this.fallbacks.set(assetId, error instanceof Error ? error.message : String(error));
+      }
+    }
+    return this.#openKind(assetId, "video");
+  }
+
+  async #openKind(assetId: string, kind: "video" | "original"): Promise<VideoMedia> {
+    const url = await this.#resolver.resolve(assetId, kind);
     const input = new Input({ formats: ALL_FORMATS, source: new UrlSource(url) });
     try {
       const track = await input.getPrimaryVideoTrack();

@@ -57,6 +57,8 @@ export interface EngineOptions {
   fontBaseUrl?: string;
   limits?: Partial<EngineLimits>;
   clock?: Clock;
+  /** `original` (exports) reads uploaded files, falling back to proxies; default `proxy`. */
+  media?: "proxy" | "original";
 }
 
 export interface RenderOptions {
@@ -155,7 +157,7 @@ export class Engine {
     const { gl, caps } = createGl(options.canvas);
     this.#gl = gl;
     this.caps = caps;
-    this.#registry = new MediaRegistry(options.resolver);
+    this.#registry = new MediaRegistry(options.resolver, options.media === "original");
     this.#cache = new TextureCache(gl, limits.textureBudgetBytes, this.stats);
     this.#readers = new ReaderPool(limits.maxReaders, this.stats);
     this.#compositor = new Compositor(gl, this.stats);
@@ -1113,6 +1115,15 @@ export class Engine {
     const key = `v:${asset.id}:${String(frame)}`;
     const entry = await this.#shared(key, async () => {
       const media = await this.#registry.video(asset.id);
+      const fallback = this.#registry.fallbacks.get(asset.id);
+      if (fallback !== undefined) {
+        context.diagnostics.add({
+          clipId: clip.id,
+          level: "warning",
+          code: "proxy_used",
+          message: `The original file couldn't be used (${fallback}); its proxy was.`,
+        });
+      }
       const reader = this.#readers.acquire(clip.id, media, fps);
       const decoded = await reader.frame(frame);
       try {

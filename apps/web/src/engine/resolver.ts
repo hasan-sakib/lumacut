@@ -35,9 +35,11 @@ export function pickUrl(asset: AssetOut, kind: MediaKind): string {
       ? asset.urls.normalized
       : kind === "preview"
         ? asset.urls.preview
-        : kind === "lut"
-          ? asset.urls.lut
-          : asset.urls.proxy;
+        : kind === "original"
+          ? asset.urls.original
+          : kind === "lut"
+            ? asset.urls.lut
+            : asset.urls.proxy;
   if (url === undefined || url === null) {
     throw new AssetUnavailableError(`"${asset.name}" has no ${kind} rendition`);
   }

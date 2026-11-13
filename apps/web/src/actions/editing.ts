@@ -15,6 +15,7 @@ import {
 import * as z from "zod";
 import { lastFrameUs, skipTarget, stepTarget } from "../engine/transport.ts";
 import type { BrushSettings, ImageExportRequest, PhotoView, Selection } from "../photo/types.ts";
+import type { ExportSettings } from "@lumacut/engine";
 import type { CanvasTool, PenMode, Tool } from "../stores/editor.ts";
 import { placedClips, splitOps, withLinked, type Placed } from "../timeline/clips.ts";
 import {
@@ -26,6 +27,20 @@ import {
   type ClipboardData,
 } from "../timeline/clipboard.ts";
 import { roundToFrame } from "../timeline/geometry.ts";
+
+/** What the export actions need from the page. */
+export interface ExportServices {
+  /** Exports MP4 / WebM in this browser and downloads it; resolves when done. */
+  inBrowser: (compositionId: string, settings: ExportSettings) => Promise<void>;
+  /** Saves the project and asks the server to export it; resolves once it is queued. */
+  onServer: (compositionId: string, settings: ExportSettings) => Promise<void>;
+  /** Stops the browser export (null) or a server export (its id). */
+  cancel: (id: string | null) => Promise<void>;
+  /** Shows the list of server exports. */
+  openPanel: () => void;
+  /** Is a browser export running? */
+  busy: () => boolean;
+}
 
 /** What the audio actions need from the page: an offline mixdown, a download, a place to show results. */
 export interface AudioServices {
@@ -91,6 +106,8 @@ export interface EditingServices {
   openExport?: () => void;
   /** Sound: render the mix offline, save files, and show what was measured. */
   audio?: AudioServices;
+  /** Video, GIF and MP3 exports (in this browser or on the server). */
+  exports?: ExportServices;
   /** The preview: start/stop playing, and jump to a time (moves the picture and the sound). */
   playback: { togglePlay: () => void; seek: (us: number) => void };
   /** Editor view state that isn't part of the document. */

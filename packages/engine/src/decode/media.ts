@@ -1,4 +1,8 @@
-export type MediaKind = "video" | "audio" | "image" | "preview" | "lut";
+/**
+ * Which file the engine reads: `video`/`audio` are the proxies used while editing, `original` the
+ * upload itself (exports), `image` the normalised still, `preview` its 2048 px copy, `lut` a `.cube`.
+ */
+export type MediaKind = "video" | "audio" | "image" | "preview" | "lut" | "original";
 
 /**
  * Where the engine finds media. The web app implements it from the library API (presigned proxy /

@@ -60,6 +60,8 @@ class AssetUrls(CamelModel):
     thumb: str | None = None
     normalized: str | None = None
     lut: str | None = None
+    #: The upload itself (video and audio): exports read it instead of the proxy.
+    original: str | None = None
 
 
 class AssetOut(CamelModel):
@@ -89,6 +91,8 @@ async def to_asset_out(asset: Asset, s3_public: S3Client, bucket: str) -> AssetO
             key = renditions.get(field)
             if isinstance(key, str):
                 setattr(urls, field, await presign_get(s3_public, bucket, key))
+        if asset.kind in ("video", "audio") and asset.original_key:
+            urls.original = await presign_get(s3_public, bucket, asset.original_key)
         thumbs = renditions.get("thumbs")
         if isinstance(thumbs, dict):
             urls.thumb_index = await presign_get(s3_public, bucket, str(thumbs["index"]))

@@ -12,6 +12,7 @@ dependencies = [
   "structlog",
   "numpy>=2.5.4",
   "pillow>=13.0.0",
+  "playwright>=1.55",
 ]
 
 [dependency-groups]

@@ -13,6 +13,8 @@ export interface MixOptions {
   fromUs: number;
   toUs: number;
   sampleRate?: number;
+  /** Read the uploaded files instead of the proxies (exports). */
+  media?: "proxy" | "original";
 }
 
 export interface Mix {
@@ -40,7 +42,13 @@ export async function renderMix(
   }
   const frames = Math.max(1, Math.round(seconds * sampleRate));
   const context = new OfflineAudioContext({ numberOfChannels: 2, length: frames, sampleRate });
-  const engine = new AudioEngine({ context, resolver, meters: false, lookaheadUs: 0 });
+  const engine = new AudioEngine({
+    context,
+    resolver,
+    meters: false,
+    lookaheadUs: 0,
+    ...(options.media === undefined ? {} : { media: options.media }),
+  });
   try {
     engine.setProject(project);
     await engine.start(options.compositionId, options.fromUs, 0);

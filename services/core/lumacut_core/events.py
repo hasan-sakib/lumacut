@@ -16,6 +16,24 @@ def user_assets_channel(user_id: str) -> str:
     return f"lumacut:user:{user_id}:assets"
 
 
+def user_exports_channel(user_id: str) -> str:
+    return f"lumacut:user:{user_id}:exports"
+
+
+ExportStatus = Literal["queued", "running", "done", "failed", "cancelled"]
+
+
+class ExportStateEvent(CamelModel):
+    """Full state of one server export (never a delta)."""
+
+    export_id: str
+    project_id: str
+    status: ExportStatus
+    progress: float
+    error_message: str | None
+    deleted: bool = False
+
+
 class AssetStateEvent(CamelModel):
     asset_id: str
     status: AssetStatus

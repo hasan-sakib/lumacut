@@ -1,6 +1,7 @@
 from lumacut_core.db.models import (
     Asset,
     Base,
+    ExportJob,
     ProjectRecord,
     ProjectSnapshot,
     RefreshToken,
@@ -11,6 +12,7 @@ from lumacut_core.db.session import create_engine, create_sessionmaker
 __all__ = [
     "Asset",
     "Base",
+    "ExportJob",
     "ProjectRecord",
     "ProjectSnapshot",
     "RefreshToken",

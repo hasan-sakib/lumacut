@@ -36,6 +36,8 @@ export interface AudioEngineOptions {
   lookaheadUs?: number;
   /** Make level meters (live playback); offline mixdown doesn't need them. Default true. */
   meters?: boolean;
+  /** `original` (exports) reads the uploaded files' sound, falling back to proxies. */
+  media?: "proxy" | "original";
 }
 
 /** A level reading, in dBFS (−∞ for silence). */
@@ -154,7 +156,7 @@ export class AudioEngine {
 
   constructor(options: AudioEngineOptions) {
     this.#context = options.context;
-    this.#registry = new AudioRegistry(options.resolver);
+    this.#registry = new AudioRegistry(options.resolver, options.media === "original");
     this.#lookaheadUs = options.lookaheadUs ?? DEFAULT_LOOKAHEAD_US;
     this.#withMeters = options.meters ?? true;
     this.#master = options.context.createGain();

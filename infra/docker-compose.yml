@@ -104,6 +104,29 @@ services:
       timeout: 5s
       retries: 40
 
+  # Server exports (headless Chromium + FFmpeg) run on their own worker so a long export never
+  # holds up media processing.
+  export-worker:
+    build:
+      context: ..
+      dockerfile: services/worker/Dockerfile
+    environment:
+      <<: *lumacut-env
+      LUMACUT_QUEUES: '["export"]'
+    shm_size: 1gb
+    depends_on:
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, sys, socket; from redis import Redis; from rq import Worker; r = Redis.from_url(os.environ['LUMACUT_REDIS_URL']); sys.exit(0 if any(w.name == 'lumacut-worker-' + socket.gethostname() for w in Worker.all(connection=r)) else 1)"
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
   web:
     build:
       context: ..

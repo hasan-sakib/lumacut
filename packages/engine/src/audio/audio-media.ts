@@ -11,9 +11,12 @@ export interface AudioMedia {
 export class AudioRegistry {
   readonly #resolver: MediaResolver;
   readonly #audio = new Map<string, Promise<AudioMedia>>();
+  readonly #preferOriginal: boolean;
 
-  constructor(resolver: MediaResolver) {
+  /** With `preferOriginal` (exports) the uploaded file's sound is read, falling back to the proxy. */
+  constructor(resolver: MediaResolver, preferOriginal = false) {
     this.#resolver = resolver;
+    this.#preferOriginal = preferOriginal;
   }
 
   audio(assetId: string): Promise<AudioMedia> {
@@ -29,7 +32,18 @@ export class AudioRegistry {
   }
 
   async #open(assetId: string): Promise<AudioMedia> {
-    const url = await this.#resolver.resolve(assetId, "audio");
+    if (this.#preferOriginal) {
+      try {
+        return await this.#openKind(assetId, "original");
+      } catch {
+        // The original can't be read here: the audio proxy is.
+      }
+    }
+    return this.#openKind(assetId, "audio");
+  }
+
+  async #openKind(assetId: string, kind: "audio" | "original"): Promise<AudioMedia> {
+    const url = await this.#resolver.resolve(assetId, kind);
     const input = new Input({ formats: ALL_FORMATS, source: new UrlSource(url) });
     try {
       const track = await input.getPrimaryAudioTrack();

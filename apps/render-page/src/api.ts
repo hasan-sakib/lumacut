@@ -1,6 +1,7 @@
 import type { Diagnostic, StatsSnapshot } from "@lumacut/engine";
 import type { Project } from "@lumacut/schema";
 import type { PlaybackReport } from "./metrics.ts";
+import type { ServerExportJob, ServerExportReport } from "./export.ts";
 import type { PerfMediaEntry } from "./scenarios.ts";
 
 /** What the page exposes to Playwright scripts as `window.__lumacut`. */
@@ -13,6 +14,8 @@ export interface LumacutApi {
   soak(options: SoakOptions): Promise<SoakResult>;
   /** Frame-exact seek check on a real rendition: `seeks` random frames, each read by barcode. */
   seekCheck(entry: PerfMediaEntry, seeks: number, seed: number): Promise<SeekCheckResult>;
+  /** Server export: draw every frame and the mix and POST them to the job (M8). */
+  runExport(job: ServerExportJob): Promise<ServerExportReport>;
 }
 
 export interface PageInfo {

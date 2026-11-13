@@ -171,11 +171,80 @@ export interface paths {
     };
     /**
      * Events
-     * @description Live asset state (SSE). Events: `snapshot` (JSON list) then `asset` (JSON object).
+     * @description Live asset and export state (SSE). Events: `snapshot` (JSON list of assets), then `asset`
+     *     and `export` (JSON objects) as they change.
      */
     get: operations["events_api_events_get"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/exports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Exports
+     * @description The user's server exports (of one project, if given), newest first.
+     */
+    get: operations["list_exports_api_exports_get"];
+    put?: never;
+    /**
+     * Create Export
+     * @description Export a composition on the server. The project is copied as it is now.
+     */
+    post: operations["create_export_api_exports_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/exports/{export_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Export
+     * @description One export, with a download link when it is done.
+     */
+    get: operations["get_export_api_exports__export_id__get"];
+    put?: never;
+    post?: never;
+    /**
+     * Delete Export
+     * @description Remove an export and its file (a running one is cancelled first).
+     */
+    delete: operations["delete_export_api_exports__export_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/exports/{export_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel Export
+     * @description Stop an export that hasn't finished (the worker notices within a few frames).
+     */
+    post: operations["cancel_export_api_exports__export_id__cancel_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -444,6 +513,8 @@ export interface components {
       lut?: string | null;
       /** Normalized */
       normalized?: string | null;
+      /** Original */
+      original?: string | null;
       /** Poster */
       poster?: string | null;
       /** Preview */
@@ -536,6 +607,94 @@ export interface components {
     /** ErrorResponse */
     ErrorResponse: {
       error: components["schemas"]["ErrorBody"];
+    };
+    /** ExportCreate */
+    ExportCreate: {
+      /** Compositionid */
+      compositionId: string;
+      /** Name */
+      name?: string | null;
+      /** Projectid */
+      projectId: string;
+      settings: components["schemas"]["ExportSettingsIn"];
+    };
+    /** ExportList */
+    ExportList: {
+      /** Items */
+      items: components["schemas"]["ExportOut"][];
+    };
+    /** ExportOut */
+    ExportOut: {
+      /** Compositionid */
+      compositionId: string;
+      /**
+       * Createdat
+       * Format: date-time
+       */
+      createdAt: string;
+      /** Downloadurl */
+      downloadUrl?: string | null;
+      /** Errormessage */
+      errorMessage: string | null;
+      /** Finishedat */
+      finishedAt: string | null;
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Progress */
+      progress: number;
+      /** Projectid */
+      projectId: string;
+      settings: components["schemas"]["ExportSettingsIn"];
+      /** Sizebytes */
+      sizeBytes: number | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "queued" | "running" | "done" | "failed" | "cancelled";
+      /** Warnings */
+      warnings: string[];
+    };
+    /**
+     * ExportSettingsIn
+     * @description What to make; mirrors `ExportSettings` in packages/engine/src/export/settings.ts.
+     */
+    ExportSettingsIn: {
+      /**
+       * Format
+       * @enum {string}
+       */
+      format: "mp4" | "webm" | "gif" | "mp3";
+      /**
+       * Fps
+       * @default 30
+       * @enum {integer}
+       */
+      fps: 24 | 25 | 30 | 60;
+      /** Fromus */
+      fromUs: number;
+      /**
+       * Loudness
+       * @default none
+       * @enum {string}
+       */
+      loudness: "social" | "broadcast" | "none";
+      /**
+       * Quality
+       * @default high
+       * @enum {string}
+       */
+      quality: "high" | "medium" | "small";
+      /**
+       * Resolution
+       * @default 1080p
+       * @enum {string}
+       */
+      resolution: "720p" | "1080p" | "source";
+      /** Tous */
+      toUs: number;
     };
     /** HealthReport */
     HealthReport: {
@@ -1177,7 +1336,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description snapshot + asset events */
+      /** @description snapshot + asset events + export events */
       200: {
         headers: {
           [name: string]: unknown;
@@ -1188,6 +1347,242 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  list_exports_api_exports_get: {
+    parameters: {
+      query?: {
+        projectId?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExportList"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  create_export_api_exports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExportCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExportOut"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Unprocessable Entity */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  get_export_api_exports__export_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        export_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExportOut"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  delete_export_api_exports__export_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        export_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  cancel_export_api_exports__export_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        export_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExportOut"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
         headers: {
           [name: string]: unknown;
         };

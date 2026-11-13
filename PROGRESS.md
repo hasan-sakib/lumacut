@@ -13,7 +13,7 @@
 | M5 | Motion graphics: shapes/pen, masks, mattes, text animators, precompose, presets, motion blur, paths | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc` and `eslint` | 2026-11-08 |
 | M6 | Photo workspace: canvas, layers panel, adjustment layers, crop/straighten, selections→masks, brush/eraser, image export, large images | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc`, `eslint` and `prettier` (plus `ruff` and `make gen-openapi` for the API change) | 2026-11-08 |
 | M7 | Audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness | **built 2026-11-13, not verified**: no tests, e2e or `make check` were run at the owner's request; only `tsc`, `eslint`, `prettier`, `ruff` and `make gen-schema` / `gen-openapi` | 2026-11-13 |
-| M8 | Export: video (browser + server), image, GIF, audio + parity test | not started | — |
+| M8 | Export: video (browser + server), image, GIF, audio + parity test | **built 2026-11-13, not verified**: no tests, e2e, parity run or `make check`; only `tsc`, `eslint`, `prettier`, `ruff`, `mypy`, `make gen-openapi`; the new worker image was never built | 2026-11-13 |
 | M9 | Simple mode + 20 templates + effect/preset browser + workspaces + onboarding + tooltips + inspector search | not started | — |
 | M10 | AI analysis pipeline | not started | — |
 | M11 | AI tools (SPEC §10.2) with preview/apply UI | not started | — |
@@ -21,6 +21,15 @@
 | M13 | Hardening | not started | — |
 
 ## Current focus
+**M8 is built as one milestone (2026-11-13) and has never been run** (features first, tests after all milestones; `tsc` everywhere, `eslint --max-warnings 0`, `prettier --check`, `ruff`, `mypy`: clean; nothing committed). Docs: `docs/export.md`. **Before trying it:** `make up` must rebuild the worker image (new Node stage + Chromium) and the API must run Alembic `0003_exports`; there is a new `export-worker` service.
+
+**What to test for M8** (add to the verification pass below):
+1. **Docker:** the worker image builds (render page `vite build` in the Node stage, `playwright install --with-deps chromium`), `export-worker` registers on the `export` queue, migration `0003` up/down.
+2. **Browser export:** MP4 and WebM play in VLC and QuickTime (H.264 High yuv420p, `faststart`), exact frame count and duration, A/V sync (a clap clip: sound onset vs flash frame ≤ 1 frame), 720p / 1080p / source sizes (even, short side), 24/25/30/60 fps, loudness at −14 / −23 (re-measure ±1 LU), cancel, unsupported-codec message, originals vs `proxy_used` fallback (rotated phone video, ProRes).
+3. **Server export:** the same files from the server, GIF (≤ 15 s, palette), MP3; progress and SSE `export` events; cancel mid-way; failure paths (FFmpeg error, page error, timeout callback); storage key and presigned download; delete.
+4. **Parity (SPEC acceptance):** write `make parity`: one project exported in the browser and on the server, SSIM ≥ 0.98 on sampled frames (decode both with FFmpeg).
+5. **Units:** `export/settings.ts` (sizes, frame plan, bitrates, estimate) and the Python mirrors (`output_size`, `frame_count`), FFmpeg command builders, the local server (static, media proxy with ranges, frame ordering, cancel → 409), `exports` API routes and validation (GIF 15 s, 4 h cap, unknown composition).
+
 **M7 is built as one milestone (2026-11-13) and has never been tested** (same arrangement as M4–M6: features first, tests after all milestones; `tsc` on every package, `eslint --max-warnings 0`, `prettier --check`, `ruff`: all clean; nothing is committed). Docs: `docs/audio.md`.
 
 **What to test for M7** (add to the verification pass below):
@@ -63,7 +72,7 @@ Verified earlier in this milestone (these have tests, and passed when written): 
 
 **Verification record, M2 + M3 (2026-11-07)**: `make check` green; `make test-engine` and `make smoke-render` green; `make perf` on the GPU (Apple M2, Metal via installed Chrome) passed every gate (60.0 fps, p95 render 4.0 ms, 0% frames never shown, frames opened = closed, 0.47 MB memory growth over 20 s + 2000 seeks; SwiftShader floor 8.2 fps); `make test-stack`: integration 26 passed / 1 skipped, e2e 16 of 18 on a loaded machine and the 2 failures (`player.spec.ts`, `resume.spec.ts`) passed alone with `--workers=1` (CPU contention; run with `--workers=2` or on a quiet machine); the M3 acceptance e2e passed. Not run: `make test-samples` (~25 min, M1 pipeline) and a manual browser pass. Cross-backend finding: the compositor is bit-identical on SwiftShader and the GPU for stills; video differs only through the decoder (SSIM ≈ 0.998), so golden images must use still-image inputs.
 
-Next: **M8** (export: video in the browser and on the server, GIF, audio formats, parity test). Plan it and wait for approval; the owner wants M8 and later built whole, not split.
+Next: **M9** (Simple mode, 20 templates, effect/preset browser, workspaces, onboarding, tooltips, inspector search). Plan it and wait for approval; the owner wants M9 and later built whole, not split.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -275,6 +284,13 @@ Getting started in a new session:
 - **Presets:** pure keyframe generators in `packages/ops/src/presets` (15, four categories); `setFrames` replaces keyframes inside the window so re-applying is idempotent; shake/glitch use a seeded PRNG keyed by clip id and start. `preset.apply` and `motion.blur` are actions; a Presets tab lists them.
 - Lint-driven: no `!` non-null assertions (bind to a local first); drop `as` casts the type-aware lint reports as unnecessary.
 
+**2026-11-13 — M8 (one milestone; see `docs/export.md`)**
+- **Two export paths, one engine:** browser (WebCodecs through Mediabunny in a dedicated worker, ≤ 10 min, whole file in memory) and server (Python Playwright drives the render page in headless Chromium on SwiftShader; frames go to FFmpeg). Both draw with the same `Engine` at the export frame rate and size (`setView`), so the parity check compares like with like.
+- **Frames reach FFmpeg by HTTP, not CDP:** the job runs a local server (`127.0.0.1`) that serves the built page, proxies media from storage (same origin, so no CORS/COEP trouble) and takes raw RGBA frames in order plus the mix as WAV; much cheaper than base64 through Playwright.
+- **Originals on export** (SPEC §6): `urls.original` in the API, resolver kind `original`, `EngineOptions.media`; a file that can't be decoded (codec, rotation) falls back to its proxy with a `proxy_used` warning.
+- **Server exports copy the saved project** (the editor saves first) into the `exports` row, so later edits don't change a running export. A separate `export-worker` service consumes the `export` queue so long exports never hold up uploads. Export events share the user's SSE stream (`event: export`).
+- **A/V sync by construction:** frame `i` = time `from + i/fps`, sound = offline mix of the same range from 0, both muxed from 0. 720p/1080p mean the short side; sides even.
+
 **2026-11-13 — M7 (one milestone; see `docs/audio.md`)**
 - **Schema (optional, no migration):** `Track.audio {volume, pan}`, `Composition.audio {volume}`, `Clip.preservePitch` (default true); `TrackPatch`/`CompositionPatch` gained `audio`. The `audio.volume`/`audio.pan` keyframe paths now accept a clip without `audio` (defaults are created on write).
 - **Audio engine rewritten** around the same scheduling/clock contract: per-clip chain (JS sample processors → effect nodes → keyframed volume × equal-power fades → pan) → track bus (fader, pan, meter) → master (fader, L/R meters, K-weighted loudness tap). Nested compositions sound (speed 1, forwards). Speed: in-house streaming **WSOLA** for Keep pitch, `playbackRate` otherwise; reverse decodes the range (≤ 10 min).
@@ -312,6 +328,7 @@ Getting started in a new session:
 - **M3a schema additions** beyond SPEC §4: `index` on three add-ops and `unset` on `setProps`/`updateAsset` (see Decisions).
 - **M4 schema additions** beyond SPEC §4: optional `Clip.solid {color}`; optional `CaptionData.highlightColor`, `maxLines`, `maxCharsPerLine`; new op error code `invalid_property`; `lut` asset kind is now produced by the API/worker.
 - **M5 deviations:** shapes are Canvas 2D rasters, not tessellation/SDF (SPEC §6 says "tessellation or SDF"); mask feather uses the canvas blur filter; no `Lower third` starter (that is a template, M9); raster masks deferred to M6/M11; no new schema fields were needed (shapes, masks, mattes, motion blur and animators were already in the schema).
+- **M8 deviations:** frames go from the page to FFmpeg over a local HTTP server rather than "piped" through Playwright; GIF and MP3 are server-only; no in/out range in the UI yet (whole composition; the API takes any range); the parity test is deferred to the verification pass.
 - **M7 deviations:** time-stretch is an in-house WSOLA (no library) rather than a phase vocoder; the mixer is a dock tab, not a saved workspace (M9); MP3/AAC and sound inside video exports are M8 (they will reuse `renderMix` + `normalizeLoudness`); audio export is WAV only.
 - **M6 deviations:** AI subject select is M11 (not in M6); layers panel has no thumbnails; merge/flatten, magic wand, selection boolean ops and selection-clipped brushes are not built; image export is the M6 part of SPEC §11 (video/GIF/audio stay M8); the API grew optional `width`, `height`, `background` on project creation (no schema change).
 - **M4: no `packages/ui-kit`** (components stay in `apps/web`), **no morph-cut**, 40 effects = the 36 named in SPEC §6 plus invert, threshold, duotone and scanlines (SPEC asks for at least 40 but names 36).
@@ -391,6 +408,12 @@ Getting started in a new session:
   - Track mattes: the matte must be in the same composition; no matte chains; the hidden matte clip is only explained in the inspector.
   - Presets: 15 presets, no custom/saved presets, no preview thumbnails, no per-preset parameters beyond strength and length; text presets need a text or caption clip.
   - Playback still pauses on every project edit (M2 limit), so dragging on the canvas while playing is interrupted.
+- **M8 gaps:**
+  - **Nothing in M8 was run**, including the new worker image (Chromium, Playwright, render-page build), migration `0003`, both export paths and the parity test (not written).
+  - Not built: in/out range in the export window, H.265/AV1, alpha video (ProRes 4444), chapters, export presets per platform, batch browser exports, resuming a crashed server export, GPU rendering in the worker, upload of browser exports to the library.
+  - Server export speed: SwiftShader + raw RGBA over HTTP is a few frames per second at 1080p; job timeout is generous (30 min + 1 s per output frame).
+  - Browser export keeps the whole file in memory (10-minute cap); Safari/Firefox WebCodecs support varies (checked up front).
+  - The API (`ExportSettingsIn`), engine (`settings.ts`) and worker (`output_size`, `frame_count`) each describe the settings: keep them in step.
 - **M7 gaps:**
   - **Nothing in M7 was tested** (see Current focus): the rewritten engine, DSP, loudness maths, effects, mixer UI and export have no tests; the acceptance e2e isn't written; M2's audio sync tests must be re-run against the new engine.
   - Not built: audio crossfades on transitions (still a cut), keyframed effect parameters, track inserts / sends, audio scrubbing while dragging the playhead, a waveform-drawn volume line on timeline clips, ducking (M12), denoise (M11), MP3/AAC (M8).
@@ -408,6 +431,8 @@ Getting started in a new session:
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
+_M8 added **Playwright for Python** (`playwright` 1.65, Apache-2.0) to the worker and, in the worker image, **Chromium** (BSD-style, via Playwright) and a Node build stage. FFmpeg (Debian build, GPL) now also encodes exports (libx264, libvpx-vp9, libopus, libmp3lame, AAC) — server-side only, not distributed to users._
+
 _M7 added no dependencies (time-stretch, loudness, limiter and WAV are in-house TypeScript)._
 
 _M5 added no dependencies (Canvas 2D, OffscreenCanvas and the existing GL stack only); the engine package gained a `./shapes` export._

@@ -19,7 +19,7 @@ from lumacut_api.auth.tokens import InvalidTokenError
 from lumacut_api.deps import UNAUTHORIZED, ResourcesDep, TokenServiceDep
 from lumacut_api.errors import error_responses
 from lumacut_core.db import Asset, User
-from lumacut_core.events import user_assets_channel
+from lumacut_core.events import user_assets_channel, user_exports_channel
 
 router = APIRouter(tags=["events"])
 _bearer = HTTPBearer(auto_error=False)
@@ -50,7 +50,10 @@ async def stream_user_id(
     "/api/events",
     response_class=EventSourceResponse,
     responses={
-        200: {"content": {"text/event-stream": {}}, "description": "snapshot + asset events"},
+        200: {
+            "content": {"text/event-stream": {}},
+            "description": "snapshot + asset events + export events",
+        },
         **error_responses(401),
     },
 )
@@ -59,11 +62,13 @@ async def events(
     resources: ResourcesDep,
     user_id: Annotated[str, Depends(stream_user_id)],
 ) -> EventSourceResponse:
-    """Live asset state (SSE). Events: `snapshot` (JSON list) then `asset` (JSON object)."""
+    """Live asset and export state (SSE). Events: `snapshot` (JSON list of assets), then `asset`
+    and `export` (JSON objects) as they change."""
 
     async def stream() -> AsyncIterator[ServerSentEvent]:
         pubsub = resources.redis.pubsub()
-        await pubsub.subscribe(user_assets_channel(user_id))
+        assets_channel = user_assets_channel(user_id)
+        await pubsub.subscribe(assets_channel, user_exports_channel(user_id))
         try:
             async with resources.sessions() as session:
                 rows = await session.scalars(
@@ -75,8 +80,11 @@ async def events(
                 message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
                 if message is not None:
                     data = message["data"]
+                    channel = message["channel"]
+                    name = channel.decode() if isinstance(channel, bytes) else str(channel)
                     yield ServerSentEvent(
-                        event="asset", data=data.decode() if isinstance(data, bytes) else data
+                        event="asset" if name == assets_channel else "export",
+                        data=data.decode() if isinstance(data, bytes) else data,
                     )
         finally:
             await pubsub.unsubscribe()

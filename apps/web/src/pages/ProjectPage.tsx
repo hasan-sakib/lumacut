@@ -10,7 +10,10 @@ import { EffectsBrowser } from "../components/effects/EffectsBrowser.tsx";
 import { GraphEditor } from "../components/graph/GraphEditor.tsx";
 import { MixerPanel } from "../components/mixer/MixerPanel.tsx";
 import { CanvasPanel } from "../components/photo/CanvasPanel.tsx";
-import { ExportDialog } from "../components/photo/ExportDialog.tsx";
+import { ExportDialog } from "../components/export/ExportDialog.tsx";
+import { ExportsPanel } from "../components/export/ExportsPanel.tsx";
+import { useExportEvents } from "../editor/useExportEvents.ts";
+import { deleteServerExport } from "../export/server.ts";
 import { FiltersPanel } from "../components/photo/FiltersPanel.tsx";
 import { LayersPanel } from "../components/photo/LayersPanel.tsx";
 import { PhotoStage } from "../components/photo/PhotoStage.tsx";
@@ -76,6 +79,7 @@ export function ProjectPage() {
     | "layers"
     | "filters"
     | "canvas"
+    | "exports"
     | null
   >(null);
   const photoMode = project?.kind === "photo";
@@ -108,12 +112,16 @@ export function ProjectPage() {
         setExportOpen(true);
       },
       resetLoudness,
+      openExports: () => {
+        setTab("exports");
+      },
       togglePlay,
       seek,
     }),
     [togglePlay, seek, resetLoudness],
   );
   const host = useEditingHost(ui);
+  useExportEvents(project?.kind === "photo" ? null : (project?.id ?? null));
   useShortcuts(editingActions, host.ctx, host.runAction);
 
   useEffect(() => {
@@ -442,6 +450,7 @@ export function ProjectPage() {
                       "presets",
                       "text",
                       "scopes",
+                      "exports",
                       "history",
                     ] as const)
                 ).map((id) => (
@@ -580,6 +589,16 @@ export function ProjectPage() {
                       </ul>
                     )}
                   </section>
+                )}
+                {tab === "exports" && (
+                  <ExportsPanel
+                    run={run}
+                    onRemove={(id) => {
+                      void deleteServerExport(id).catch((e: unknown) => {
+                        setNotice(e instanceof Error ? e.message : String(e));
+                      });
+                    }}
+                  />
                 )}
                 {tab === "history" && (
                   <section aria-label="History" className="p-3">

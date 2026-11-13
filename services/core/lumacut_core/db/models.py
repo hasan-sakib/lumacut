@@ -122,6 +122,35 @@ class ProjectRecord(Base):
     )
 
 
+class ExportJob(Base):
+    """A server export: what to make from a snapshot of a project, and how far it has got.
+
+    `doc` is the project document at the moment the export was asked for, so later edits don't
+    change a running export. `output_key` is set when the file is in storage.
+    """
+
+    __tablename__ = "exports"
+    __table_args__ = (Index("ix_exports_owner_created", "owner_id", text("created_at DESC")),)
+
+    id: Mapped[str] = mapped_column(ID, primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    composition_id: Mapped[str] = mapped_column(ID)
+    name: Mapped[str] = mapped_column(String(255))
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    doc: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    progress: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    error_message: Mapped[str | None] = mapped_column(Text)
+    warnings: Mapped[list[str] | None] = mapped_column(JSONB)
+    output_key: Mapped[str | None] = mapped_column(Text)
+    size_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = _now()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class ProjectSnapshot(Base):
     """A named copy of a project document at one version (restorable)."""
 

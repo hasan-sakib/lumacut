@@ -42,3 +42,6 @@ export * from "./playback/controller.ts";
 export * from "./playback/frame-ports.ts";
 export * from "./playback/session.ts";
 export * from "./render/view.ts";
+export * from "./worker/export-client.ts";
+export * from "./export/settings.ts";
+export { exportVideo, type VideoExportJob, type VideoExportResult } from "./export/video.ts";
