@@ -151,6 +151,23 @@ class ExportJob(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class TemplateRecord(Base):
+    """A template someone saved: a project document whose placeholder clips are its slots."""
+
+    __tablename__ = "templates"
+    __table_args__ = (Index("ix_templates_owner_created", "owner_id", text("created_at DESC")),)
+
+    id: Mapped[str] = mapped_column(ID, primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    category: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text, default="", server_default="")
+    #: "9:16", "16:9", "1:1", "4:5" or "w:h" of the main composition.
+    aspect: Mapped[str] = mapped_column(String(16))
+    doc: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _now()
+
+
 class ProjectSnapshot(Base):
     """A named copy of a project document at one version (restorable)."""
 

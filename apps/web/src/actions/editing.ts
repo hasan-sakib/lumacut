@@ -108,6 +108,34 @@ export interface EditingServices {
   audio?: AudioServices;
   /** Video, GIF and MP3 exports (in this browser or on the server). */
   exports?: ExportServices;
+  /** Saving the project as a template, and onboarding progress. */
+  templates?: {
+    save: (
+      name: string,
+      category: "reels" | "intros" | "lowerThirds" | "slideshows" | "quoteCards" | "mine",
+      description: string,
+    ) => Promise<void>;
+  };
+  /** Ticks a "Getting started" step (made something, replaced media, exported…). */
+  markStep?: (step: string) => void;
+  /** Panel arrangements: show one, read the current one, replay the tour. */
+  workspace?: {
+    apply: (layout: {
+      id: string;
+      sideTab: string;
+      bottom: "timeline" | "graph" | "mixer";
+    }) => void;
+    current: () => { sideTab: string; bottom: "timeline" | "graph" | "mixer" };
+    save: (name: string) => void;
+    remove: (id: string) => void;
+    saved: () => readonly {
+      id: string;
+      name: string;
+      sideTab: string;
+      bottom: "timeline" | "graph" | "mixer";
+    }[];
+    tour: () => void;
+  };
   /** The preview: start/stop playing, and jump to a time (moves the picture and the sound). */
   playback: { togglePlay: () => void; seek: (us: number) => void };
   /** Editor view state that isn't part of the document. */
@@ -123,6 +151,10 @@ export interface EditingServices {
     /** What the preview canvas does with the pointer (draw shapes, pen) and what the pen makes. */
     setCanvasTool?: (tool: CanvasTool) => void;
     setPenMode?: (mode: PenMode) => void;
+    /** Simple or Pro layout (a view choice; the project doesn't change). */
+    setMode?: (mode: "simple" | "pro") => void;
+    /** Shows a side panel tab (slots, media, effects…). */
+    showTab?: (tab: string) => void;
     /** The photo workspace's brush, selection and view. */
     photo?: PhotoServices;
     openComposition?: (id: string) => void;
@@ -140,6 +172,8 @@ export interface EditingContext {
   /** What the preview canvas is doing with the pointer, and what the pen makes. */
   canvasTool?: CanvasTool;
   penMode?: PenMode;
+  /** The editor layout: Simple or Pro. */
+  mode?: "simple" | "pro";
   /** Photo workspace state: the brush, the selection and where the canvas is on screen. */
   photo?: PhotoContext;
   canUndo: boolean;

@@ -13,6 +13,7 @@ COPY packages/actions/package.json packages/actions/package.json
 COPY packages/effects/package.json packages/effects/package.json
 COPY packages/engine/package.json packages/engine/package.json
 COPY packages/ops/package.json packages/ops/package.json
+COPY packages/templates/package.json packages/templates/package.json
 # "@lumacut/web..." = the app plus the workspace packages it depends on.
 RUN pnpm install --frozen-lockfile --filter "@lumacut/web..."
 
@@ -22,6 +23,8 @@ COPY packages/actions/src packages/actions/src
 COPY packages/effects/src packages/effects/src
 COPY packages/engine/src packages/engine/src
 COPY packages/ops/src packages/ops/src
+COPY packages/templates/src packages/templates/src
+COPY packages/templates/tsconfig.json packages/templates/tsconfig.json
 COPY apps/web apps/web
 RUN pnpm --filter @lumacut/web build
 

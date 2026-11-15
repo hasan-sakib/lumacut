@@ -1,3 +1,4 @@
+import { editingActions } from "../../actions/editing.ts";
 import { useState } from "react";
 import type { Anchor } from "../../photo/canvas-ops.ts";
 
@@ -118,6 +119,7 @@ export function CanvasPanel({ canvas, run }: CanvasPanelProps) {
           </label>
         </div>
         <button
+          title={editingActions.get("canvas.resize").description}
           type="button"
           className={`${BUTTON} self-start !bg-sky-700 text-white`}
           disabled={!valid}
@@ -131,6 +133,7 @@ export function CanvasPanel({ canvas, run }: CanvasPanelProps) {
         <h3 className="font-semibold text-neutral-300">Rotate and flip</h3>
         <div className="flex flex-wrap gap-1">
           <button
+            title={editingActions.get("canvas.rotateLeft").description}
             type="button"
             className={BUTTON}
             onMouseDown={press}
@@ -139,6 +142,7 @@ export function CanvasPanel({ canvas, run }: CanvasPanelProps) {
             ⟲ Rotate left
           </button>
           <button
+            title={editingActions.get("canvas.rotateRight").description}
             type="button"
             className={BUTTON}
             onMouseDown={press}
@@ -147,6 +151,7 @@ export function CanvasPanel({ canvas, run }: CanvasPanelProps) {
             ⟳ Rotate right
           </button>
           <button
+            title={editingActions.get("canvas.flip").description}
             type="button"
             className={BUTTON}
             onMouseDown={press}
@@ -155,6 +160,7 @@ export function CanvasPanel({ canvas, run }: CanvasPanelProps) {
             Flip ↔
           </button>
           <button
+            title={editingActions.get("canvas.flip").description}
             type="button"
             className={BUTTON}
             onMouseDown={press}

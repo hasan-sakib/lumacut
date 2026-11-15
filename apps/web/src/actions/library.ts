@@ -13,6 +13,12 @@ export interface LibraryServices {
    * to that library image and starting with the image as its first layer.
    */
   createPhoto?: (options: { width: number; height: number; assetId?: string }) => Promise<void>;
+  /** Create an empty video project of this size and open it. */
+  createVideo?: (width: number, height: number) => Promise<void>;
+  /** Start a project from a template (built-in id, or `saved:<id>`). */
+  useTemplate?: (key: string) => Promise<void>;
+  /** Remove one of your saved templates. */
+  deleteTemplate?: (id: string) => Promise<void>;
   focusSearch: () => void;
   setView: (view: ViewMode) => void;
   askDelete: (assetId: string) => void;
@@ -207,6 +213,80 @@ libraryActions.register({
   when: () => true,
   run: (ctx) => {
     void ctx.services.logout();
+    return undefined;
+  },
+});
+
+const ASPECTS = {
+  "9:16": [1080, 1920],
+  "16:9": [1920, 1080],
+  "1:1": [1080, 1080],
+  "4:5": [1080, 1350],
+} as const;
+
+libraryActions.register({
+  id: "project.newVideo",
+  title: "New video",
+  description:
+    "Create an empty video project in a shape: 9:16 (reels, TikTok, Shorts), 16:9 (YouTube), 1:1 or 4:5 (posts).",
+  keywords: [
+    "new",
+    "video",
+    "reel",
+    "vertical",
+    "portrait",
+    "landscape",
+    "square",
+    "aspect",
+    "9:16",
+    "16:9",
+  ],
+  category: "Project",
+  icon: "plus",
+  argsSchema: z.object({ aspect: z.enum(["9:16", "16:9", "1:1", "4:5"]) }),
+  when: (ctx) => ctx.services.createVideo !== undefined,
+  run: (ctx, args) => {
+    const [width, height] = ASPECTS[args.aspect];
+    void ctx.services.createVideo?.(width, height);
+    return undefined;
+  },
+});
+
+libraryActions.register({
+  id: "template.use",
+  title: "Start from a template",
+  description:
+    "Create a project from a template (reels, intros, lower thirds, slideshows, quote cards) and open it with its slots ready to fill.",
+  keywords: [
+    "template",
+    "start",
+    "reel",
+    "intro",
+    "lower third",
+    "slideshow",
+    "quote",
+    "preset project",
+  ],
+  category: "Project",
+  icon: "layers",
+  argsSchema: z.object({ template: z.string().describe("Template id (see the gallery)") }),
+  when: (ctx) => ctx.services.useTemplate !== undefined,
+  run: (ctx, args) => {
+    void ctx.services.useTemplate?.(args.template);
+    return undefined;
+  },
+});
+
+libraryActions.register({
+  id: "template.delete",
+  title: "Remove a saved template",
+  description: "Remove one of your own templates (projects made from it are not affected).",
+  keywords: ["template", "delete", "remove"],
+  category: "Project",
+  argsSchema: z.object({ template: z.string() }),
+  when: (ctx) => ctx.services.deleteTemplate !== undefined,
+  run: (ctx, args) => {
+    void ctx.services.deleteTemplate?.(args.template.replace(/^saved:/, ""));
     return undefined;
   },
 });

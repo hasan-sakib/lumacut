@@ -16,13 +16,19 @@ import "../actions/photoLayers.ts";
 import "../actions/photoTools.ts";
 import "../actions/presets.ts";
 import "../actions/shapes.ts";
+import "../actions/simple.ts";
+import "../actions/templates.ts";
 import "../actions/text.ts";
 import "../actions/transitions.ts";
+import "../actions/workspaces.ts";
 import "../actions/keyframes.ts";
 import { renderMix } from "@lumacut/engine";
 import { createApiAssetResolver } from "../engine/resolver.ts";
 import { newId } from "../lib/ids.ts";
 import { useAudioStore } from "../stores/audio.ts";
+import { usePrefsStore } from "../stores/prefs.ts";
+import { saveTemplate } from "../api/templates.ts";
+import { packMainTrackOps } from "../timeline/magnetic.ts";
 import { useExportsStore } from "../stores/exports.ts";
 import { exportInBrowser } from "../export/browser.ts";
 import { cancelServerExport, createServerExport } from "../export/server.ts";
@@ -41,6 +47,15 @@ export interface EditingUi {
   resetLoudness?: () => void;
   /** Shows the server exports list. */
   openExports?: () => void;
+  /** Shows a side panel tab. */
+  showTab?: (tab: string) => void;
+  /** Shows a panel arrangement, and reads the current one. */
+  applyWorkspace?: (layout: {
+    id: string;
+    sideTab: string;
+    bottom: "timeline" | "graph" | "mixer";
+  }) => void;
+  currentLayout?: () => { sideTab: string; bottom: "timeline" | "graph" | "mixer" };
   togglePlay: () => void;
   seek: (us: number) => void;
 }
@@ -73,8 +88,19 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   const photoViewport = useEditorStore((s) => s.photoViewport);
   const clipboard = useEditorStore((s) => s.clipboard);
   const attributes = useEditorStore((s) => s.attributes);
-  const { openPalette, showShortcuts, openExport, resetLoudness, openExports, togglePlay, seek } =
-    ui;
+  const {
+    openPalette,
+    showShortcuts,
+    openExport,
+    resetLoudness,
+    openExports,
+    showTab,
+    applyWorkspace,
+    currentLayout,
+    togglePlay,
+    seek,
+  } = ui;
+  const mode = usePrefsStore((s) => s.mode);
 
   const services = useMemo<EditingServices>(
     () => ({
@@ -98,6 +124,35 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       openPalette,
       showShortcuts,
       ...(openExport === undefined ? {} : { openExport }),
+      templates: {
+        save: async (name, category, description) => {
+          const current = projectStore.getState().project;
+          if (current === null) throw new Error("No project is open.");
+          await saveTemplate(name, category, description, current);
+        },
+      },
+      markStep: (step) => {
+        usePrefsStore.getState().completeStep(step);
+      },
+      workspace: {
+        apply: (layout) => {
+          applyWorkspace?.(layout);
+          usePrefsStore.getState().setWorkspace(layout.id);
+        },
+        current: () => currentLayout?.() ?? { sideTab: "inspector", bottom: "timeline" },
+        save: (name) => {
+          const now = currentLayout?.() ?? { sideTab: "inspector", bottom: "timeline" as const };
+          const id = `saved-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+          usePrefsStore.getState().saveWorkspace({ id, name, ...now });
+        },
+        remove: (id) => {
+          usePrefsStore.getState().deleteWorkspace(id);
+        },
+        saved: () => usePrefsStore.getState().savedWorkspaces,
+        tour: () => {
+          usePrefsStore.getState().resetTour();
+        },
+      },
       exports: {
         inBrowser: async (compositionId, settings) => {
           const current = projectStore.getState().project;
@@ -195,6 +250,12 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         setPenMode: (mode) => {
           useEditorStore.getState().setPenMode(mode);
         },
+        setMode: (next) => {
+          usePrefsStore.getState().setMode(next);
+        },
+        showTab: (tab) => {
+          showTab?.(tab);
+        },
         photo: {
           setBrush: (patch) => {
             useEditorStore.getState().setBrush(patch);
@@ -220,7 +281,18 @@ export function useEditingHost(ui: EditingUi): EditingHost {
         },
       },
     }),
-    [openPalette, showShortcuts, openExport, resetLoudness, openExports, togglePlay, seek],
+    [
+      openPalette,
+      showShortcuts,
+      openExport,
+      resetLoudness,
+      openExports,
+      showTab,
+      applyWorkspace,
+      currentLayout,
+      togglePlay,
+      seek,
+    ],
   );
 
   const ctx = useMemo<EditingContext>(
@@ -232,6 +304,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       playheadUs,
       canvasTool,
       penMode,
+      mode,
       photo: { brush, selection, view: photoView, viewport: photoViewport },
       canUndo,
       canRedo,
@@ -249,6 +322,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       playheadUs,
       canvasTool,
       penMode,
+      mode,
       brush,
       selection,
       photoView,
@@ -262,16 +336,23 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   );
 
   const latest = useRef(ctx);
+  const runs = useRef(0);
   useEffect(() => {
     latest.current = ctx;
   });
 
   const run = useCallback(async (id: string, args?: unknown): Promise<string | null> => {
     try {
+      // One key per run: the action's edit and Simple mode's gap closing are one undo step.
+      runs.current += 1;
+      const coalesceKey = `run:${String(runs.current)}`;
       await runAction(editingActions, id, latest.current, args, (op, label) => {
-        const result = projectStore.getState().dispatch(op, { label });
+        const result = projectStore.getState().dispatch(op, { label, coalesceKey });
         if (!result.ok) throw new Error(result.message);
       });
+      closeMainGaps(coalesceKey);
+      const step = STEP_OF[id];
+      if (step !== undefined) usePrefsStore.getState().completeStep(step);
       return null;
     } catch (error) {
       return error instanceof Error ? error.message : "That didn't work.";
@@ -286,4 +367,33 @@ export function useEditingHost(ui: EditingUi): EditingHost {
   );
 
   return { ctx, run, runAction: runFromUi };
+}
+
+/** "Getting started" steps that an action completes when it succeeds. */
+const STEP_OF: Record<string, string> = {
+  "caption.add": "captions",
+  "caption.importSrt": "captions",
+  "export.video": "export",
+  "export.gif": "export",
+  "export.mp3": "export",
+  "export.audio": "export",
+  "export.image": "export",
+  "timeline.addAssetAtPlayhead": "media",
+};
+
+/**
+ * Simple mode's magnetic main track: after an edit, the bottom picture track's clips are slid
+ * together (merged into the same undo step through `coalesceKey`). Pro mode leaves gaps alone.
+ */
+export function closeMainGaps(coalesceKey: string): void {
+  if (usePrefsStore.getState().mode !== "simple") return;
+  const state = projectStore.getState();
+  const editor = useEditorStore.getState();
+  const comp = state.project?.compositions.find(
+    (c) => c.id === (editor.activeCompositionId ?? state.project?.mainCompositionId),
+  );
+  if (comp === undefined || state.project?.kind === "photo") return;
+  const ops = packMainTrackOps(comp);
+  if (ops.length === 0) return;
+  state.dispatch({ type: "batch", label: "Close gaps", ops }, { coalesceKey });
 }

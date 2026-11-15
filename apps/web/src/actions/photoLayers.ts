@@ -448,7 +448,11 @@ editingActions.register({
         type: "adjustment",
         startUs: 0,
         inUs: 0,
-        outUs: DEFAULT_IMAGE_US,
+        // A photo has one frame; on a video the look covers the whole composition.
+        outUs:
+          ctx.project?.kind === "photo"
+            ? DEFAULT_IMAGE_US
+            : Math.max(DEFAULT_IMAGE_US, comp.durationUs),
         color: {
           ...neutralColor(),
           lut: { lutId: args.look, intensity: (args.intensity ?? 100) / 100 },

@@ -34,6 +34,7 @@ export function Section({
         <button
           type="button"
           onClick={onToggle}
+          title={expanded ? `Fold ${title} away` : `Show ${title}`}
           aria-expanded={expanded}
           className="flex flex-1 items-center gap-1 text-left text-sm font-semibold text-neutral-100"
         >
@@ -46,6 +47,7 @@ export function Section({
           <button
             type="button"
             onClick={onToggleAdvanced}
+            title={advanced ? "Show only the basic settings" : "Show every setting of this section"}
             aria-pressed={advanced}
             className="rounded px-1.5 py-0.5 text-xs text-sky-300 hover:bg-neutral-800"
           >

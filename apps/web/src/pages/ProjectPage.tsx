@@ -1,14 +1,29 @@
-import type { Op } from "@lumacut/schema";
+import type { Op, Project } from "@lumacut/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { editingActions } from "../actions/editing.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
 import { Icon } from "../components/Icon.tsx";
-import { AudioEffectsBrowser } from "../components/effects/AudioEffectsBrowser.tsx";
-import { EffectsBrowser } from "../components/effects/EffectsBrowser.tsx";
 import { GraphEditor } from "../components/graph/GraphEditor.tsx";
 import { MixerPanel } from "../components/mixer/MixerPanel.tsx";
+import { Tour } from "../components/onboarding/Tour.tsx";
+import { WorkspaceMenu } from "../components/simple/WorkspaceMenu.tsx";
+import { Browser } from "../components/browser/Browser.tsx";
+import {
+  KIND_LABEL,
+  allItems,
+  searchItems,
+  type BrowserItem,
+  type BrowserKind,
+} from "../browser/items.ts";
+import { applyOp } from "@lumacut/ops";
+import { ModeSwitch } from "../components/simple/ModeSwitch.tsx";
+import { SimpleBar } from "../components/simple/SimpleBar.tsx";
+import { StickersPanel } from "../components/simple/StickersPanel.tsx";
+import { SlotsPanel } from "../components/templates/SlotsPanel.tsx";
+import { usePrefsStore } from "../stores/prefs.ts";
+import { projectSlots } from "@lumacut/templates";
 import { CanvasPanel } from "../components/photo/CanvasPanel.tsx";
 import { ExportDialog } from "../components/export/ExportDialog.tsx";
 import { ExportsPanel } from "../components/export/ExportsPanel.tsx";
@@ -27,15 +42,14 @@ import { TextBrowser } from "../components/text/TextBrowser.tsx";
 import type { LutAsset } from "../components/color/LutPicker.tsx";
 import { Inspector } from "../components/inspector/Inspector.tsx";
 import { ActionContextMenu } from "../components/palette/ActionContextMenu.tsx";
-import { CommandPalette } from "../components/palette/CommandPalette.tsx";
+import { CommandPalette, type PaletteExtra } from "../components/palette/CommandPalette.tsx";
 import { ShortcutHelp } from "../components/palette/ShortcutHelp.tsx";
 import { SaveStatus } from "../components/project/SaveStatus.tsx";
 import { Timeline } from "../components/timeline/Timeline.tsx";
 import { Toolbar } from "../components/timeline/Toolbar.tsx";
-import { useEditingHost } from "../editor/useEditingHost.ts";
+import { closeMainGaps, useEditingHost } from "../editor/useEditingHost.ts";
 import { usePreview } from "../editor/usePreview.ts";
 import { newId } from "../lib/ids.ts";
-import { touchingPrevious } from "../inspector/transition-ops.ts";
 import { toProjectAsset } from "../lib/project-assets.ts";
 import type { ClipInfo } from "../inspector/fields.ts";
 import { findPlaced } from "../timeline/clips.ts";
@@ -50,6 +64,68 @@ import { projectStore, useProjectStore } from "../stores/project.ts";
  * history. Everything that changes the project goes through the editing actions or through a
  * timeline gesture, and from there through `projectStore.dispatch`.
  */
+/** The side panel's tabs. */
+type PanelTab =
+  | "inspector"
+  | "media"
+  | "effects"
+  | "presets"
+  | "text"
+  | "scopes"
+  | "history"
+  | "layers"
+  | "filters"
+  | "canvas"
+  | "exports"
+  | "slots"
+  | "stickers";
+
+const BROWSER_KINDS: readonly BrowserKind[] = ["effect", "transition", "audio", "preset", "look"];
+
+/** Effects, transitions, presets and looks in the palette (SPEC §5.2), each through its action. */
+const PALETTE_ITEMS = allItems().filter((i) => i.kind !== "template");
+const paletteExtras = (query: string): PaletteExtra[] =>
+  searchItems(PALETTE_ITEMS, query).map((i) => ({
+    key: i.key,
+    title: i.name,
+    description: i.description,
+    category: KIND_LABEL[i.kind],
+    actionId: i.action.id,
+    args: i.action.args,
+  }));
+
+const TAB_HINT: Record<PanelTab, string> = {
+  inspector: "Settings of the selected clip",
+  media: "Your library: add photos, videos and music",
+  effects: "Effects, transitions, audio effects, presets and looks (hover to preview)",
+  presets: "Motion presets with strength and length",
+  text: "Titles and captions",
+  scopes: "Waveform, vectorscope, histogram",
+  history: "Every edit, newest first",
+  layers: "The photo's layers",
+  filters: "Looks and the effect library",
+  canvas: "Canvas size, rotation and flips",
+  exports: "Server exports: progress and downloads",
+  slots: "The template's slots: your media, words and colours",
+  stickers: "Stickers and shapes",
+};
+
+const TAB_LABEL: Record<PanelTab, string> = {
+  inspector: "Properties",
+  media: "Media",
+  effects: "Effects",
+  presets: "Presets",
+  text: "Text",
+  scopes: "Scopes",
+  history: "History",
+  layers: "Layers",
+  filters: "Filters",
+  canvas: "Canvas",
+  exports: "Exports",
+  slots: "Template",
+  stickers: "Stickers",
+};
+
 export function ProjectPage() {
   const { projectId } = useParams();
   const project = useProjectStore((s) => s.project);
@@ -68,27 +144,64 @@ export function ProjectPage() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tabChoice, setTab] = useState<
-    | "inspector"
-    | "media"
-    | "effects"
-    | "presets"
-    | "text"
-    | "scopes"
-    | "history"
-    | "layers"
-    | "filters"
-    | "canvas"
-    | "exports"
-    | null
-  >(null);
+  const [tabChoice, setTab] = useState<PanelTab | null>(null);
   const photoMode = project?.kind === "photo";
-  // A photo opens on its layers, a video on the inspector, until a tab is picked.
-  const tab = tabChoice ?? (photoMode ? "layers" : "inspector");
-  const startAsset = (useLocation().state as { assetId?: string } | null)?.assetId;
+  const mode = usePrefsStore((s) => s.mode);
+  const simple = mode === "simple" && !photoMode;
+  const hasSlots = project !== null && projectSlots(project).length > 0;
+  const location = useLocation();
+  const navState = location.state as { assetId?: string; fromTemplate?: boolean } | null;
+  const startAsset = navState?.assetId;
+  // A photo opens on its layers, a template on its slots, Simple mode on media, Pro on the
+  // inspector, until a tab is picked.
+  const tab: PanelTab =
+    tabChoice ??
+    (photoMode
+      ? "layers"
+      : navState?.fromTemplate === true && hasSlots
+        ? "slots"
+        : simple
+          ? "media"
+          : "inspector");
+  const layoutRef = useRef({ tab: "inspector" });
+  useEffect(() => {
+    layoutRef.current.tab = tab;
+  });
+  const tabs: readonly PanelTab[] = photoMode
+    ? ["layers", "inspector", "filters", "canvas", "media", "history"]
+    : simple
+      ? [
+          ...(hasSlots ? (["slots"] as const) : []),
+          "media",
+          "effects",
+          "text",
+          "stickers",
+          "inspector",
+          "exports",
+        ]
+      : [
+          "inspector",
+          "media",
+          "effects",
+          "presets",
+          "text",
+          ...(hasSlots ? (["slots"] as const) : []),
+          "scopes",
+          "exports",
+          "history",
+        ];
 
   const compositionId = editor.activeCompositionId ?? project?.mainCompositionId ?? null;
-  const preview = usePreview(project, compositionId);
+  // While an effect or preset is hovered in the browser, the preview shows a copy of the project
+  // with it applied; nothing is saved until it is clicked.
+  const [previewState, setPreviewState] = useState<{ base: Project; shown: Project } | null>(null);
+  // A preview made from an older version of the project (it was edited since) is dropped.
+  const previewProject =
+    previewState !== null && previewState.base === project ? previewState.shown : null;
+  const setPreviewProject = (shown: Project | null, base?: Project) => {
+    setPreviewState(shown === null || base === undefined ? null : { base, shown });
+  };
+  const preview = usePreview(previewProject ?? project, compositionId);
   const {
     attachStage,
     playing,
@@ -115,6 +228,17 @@ export function ProjectPage() {
       openExports: () => {
         setTab("exports");
       },
+      showTab: (next: string) => {
+        setTab(next as PanelTab);
+      },
+      applyWorkspace: (layout: { sideTab: string; bottom: "timeline" | "graph" | "mixer" }) => {
+        setTab(layout.sideTab as PanelTab);
+        useEditorStore.getState().setBottomPanel(layout.bottom);
+      },
+      currentLayout: () => ({
+        sideTab: layoutRef.current.tab,
+        bottom: useEditorStore.getState().bottomPanel,
+      }),
       togglePlay,
       seek,
     }),
@@ -171,9 +295,37 @@ export function ProjectPage() {
     [host],
   );
 
+  // The browser's hover preview: the item's ops applied to a copy of the project (not saved).
+  const previewRequest = useRef(0);
+  const previewItem = useCallback(
+    async (item: BrowserItem | null) => {
+      previewRequest.current += 1;
+      const request = previewRequest.current;
+      const current = projectStore.getState().project;
+      if (item === null || current === null || playing) {
+        setPreviewProject(null);
+        return;
+      }
+      try {
+        const result = await editingActions.execute(item.action.id, host.ctx, item.action.args);
+        if (request !== previewRequest.current || result === undefined) return;
+        const ops = Array.isArray(result) ? result : [result];
+        let next = current;
+        for (const op of ops) next = applyOp(next, op).project;
+        setPreviewProject(next, current);
+      } catch {
+        setPreviewProject(null);
+      }
+    },
+    [host.ctx, playing],
+  );
+  const gestures = useRef(0);
   const commit = useCallback((op: Op, label: string) => {
-    const result = projectStore.getState().dispatch(op, { label });
+    gestures.current += 1;
+    const coalesceKey = `gesture:${String(gestures.current)}`;
+    const result = projectStore.getState().dispatch(op, { label, coalesceKey });
     setNotice(result.ok ? null : result.message);
+    if (result.ok) closeMainGaps(coalesceKey);
   }, []);
 
   const commitField = useCallback((op: Op, coalesceKey: string | undefined) => {
@@ -271,13 +423,30 @@ export function ProjectPage() {
           {project?.name ?? "Project"}
         </h1>
         <SaveStatus state={saveState} detail={saveError} />
-        <div className="ml-auto flex items-center gap-1">
-          <ActionButton
-            action={editingActions.get("export.open")}
-            ctx={host.ctx}
-            onRun={host.runAction}
-            className="text-neutral-200 hover:bg-neutral-800"
-          />
+        <div className="ml-auto flex items-center gap-2">
+          {!photoMode && (
+            <span data-tour="mode">
+              <ModeSwitch ctx={host.ctx} onRun={host.runAction} />
+            </span>
+          )}
+          {!simple && <WorkspaceMenu ctx={host.ctx} onRun={host.runAction} photo={photoMode} />}
+          <span data-tour="palette">
+            <ActionButton
+              action={editingActions.get("palette.open")}
+              ctx={host.ctx}
+              variant="icon"
+              onRun={host.runAction}
+              className="text-neutral-200 hover:bg-neutral-800"
+            />
+          </span>
+          <span data-tour="export">
+            <ActionButton
+              action={editingActions.get("export.open")}
+              ctx={host.ctx}
+              onRun={host.runAction}
+              className="text-neutral-200 hover:bg-neutral-800"
+            />
+          </span>
           <ActionButton
             action={editingActions.get("help.shortcuts")}
             ctx={host.ctx}
@@ -362,7 +531,11 @@ export function ProjectPage() {
             </nav>
           )}
           <div className="flex min-h-0 flex-1 gap-3 p-3">
-            <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col gap-2">
+            <section
+              aria-label="Preview"
+              data-tour="preview"
+              className="flex min-w-0 flex-1 flex-col gap-2"
+            >
               {(notice !== null || previewError !== null) && (
                 <p
                   role="alert"
@@ -371,6 +544,7 @@ export function ProjectPage() {
                   {notice ?? previewError}
                 </p>
               )}
+              {simple && <SimpleBar ctx={host.ctx} onRun={host.runAction} hasSlots={hasSlots} />}
               {photoMode && (
                 <>
                   <ToolOptions
@@ -438,26 +612,16 @@ export function ProjectPage() {
             >
               <div
                 role="tablist"
+                data-tour="panels"
                 aria-label="Panels"
-                className="flex border-b border-neutral-800 text-xs"
+                className="flex overflow-x-auto border-b border-neutral-800 text-xs"
               >
-                {(photoMode
-                  ? (["layers", "inspector", "filters", "canvas", "media", "history"] as const)
-                  : ([
-                      "inspector",
-                      "media",
-                      "effects",
-                      "presets",
-                      "text",
-                      "scopes",
-                      "exports",
-                      "history",
-                    ] as const)
-                ).map((id) => (
+                {tabs.map((id) => (
                   <button
                     key={id}
                     type="button"
                     role="tab"
+                    title={TAB_HINT[id]}
                     aria-selected={tab === id}
                     onMouseDown={(event) => {
                       event.preventDefault();
@@ -465,15 +629,9 @@ export function ProjectPage() {
                     onClick={() => {
                       setTab(id);
                     }}
-                    className={`flex-1 px-3 py-2 capitalize ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+                    className={`shrink-0 whitespace-nowrap px-2.5 py-2 ${tab === id ? "border-b-2 border-sky-400 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
                   >
-                    {id === "media"
-                      ? photoMode
-                        ? "Images"
-                        : "Add media"
-                      : id === "inspector" && photoMode
-                        ? "Properties"
-                        : id}
+                    {id === "media" && photoMode ? "Images" : TAB_LABEL[id]}
                   </button>
                 ))}
               </div>
@@ -486,8 +644,24 @@ export function ProjectPage() {
                     lutAssets={lutAssets}
                     project={project}
                     onChange={commitField}
+                    simple={simple}
+                    onShowAdvanced={() => {
+                      usePrefsStore.getState().setMode("pro");
+                    }}
                   />
                 )}
+                {tab === "slots" && (
+                  <SlotsPanel
+                    project={project}
+                    library={library.filter((a) => a !== undefined)}
+                    run={run}
+                    selectClips={editor.selectClips}
+                    onUpload={() => {
+                      setTab("media");
+                    }}
+                  />
+                )}
+                {tab === "stickers" && <StickersPanel run={(id, args) => void run(id, args)} />}
                 {tab === "layers" && photoMode && (
                   <LayersPanel
                     composition={composition}
@@ -501,7 +675,7 @@ export function ProjectPage() {
                     }}
                   />
                 )}
-                {tab === "filters" && photoMode && (
+                {tab === "filters" && (
                   <FiltersPanel
                     canAdd={selectedInfos.some((i) => i.track?.kind === "visual")}
                     run={run}
@@ -514,22 +688,33 @@ export function ProjectPage() {
                   />
                 )}
                 {tab === "effects" && (
-                  <AudioEffectsBrowser
-                    canAdd={selectedInfos.some(
-                      (i) => i.track?.kind === "audio" || i.clip.type === "composition",
-                    )}
-                    run={(id, args) => void run(id, args)}
-                  />
-                )}
-                {tab === "effects" && (
-                  <EffectsBrowser
-                    canAdd={selectedInfos.some((i) => i.track?.kind !== "audio")}
-                    canTransition={selectedInfos.some(
-                      (i) =>
-                        i.track !== undefined && touchingPrevious(i.track, i.clip) !== undefined,
-                    )}
-                    run={(id, args) => void run(id, args)}
-                  />
+                  <>
+                    <div className="flex flex-wrap gap-1 px-3 pt-3">
+                      <ActionButton
+                        action={editingActions.get("layer.addAdjustment")}
+                        ctx={host.ctx}
+                        onRun={host.runAction}
+                        className="text-xs text-neutral-300 hover:bg-neutral-800"
+                      />
+                      <ActionButton
+                        action={editingActions.get("layer.addSolid")}
+                        ctx={host.ctx}
+                        onRun={host.runAction}
+                        className="text-xs text-neutral-300 hover:bg-neutral-800"
+                      />
+                    </div>
+                    <Browser
+                      kinds={BROWSER_KINDS}
+                      canApply={(item) => editingActions.get(item.action.id).when(host.ctx)}
+                      onApply={(item) => {
+                        setPreviewProject(null);
+                        void run(item.action.id, item.action.args);
+                      }}
+                      onPreview={(item) => {
+                        void previewItem(item);
+                      }}
+                    />
+                  </>
                 )}
                 {tab === "presets" && (
                   <PresetsBrowser
@@ -629,6 +814,7 @@ export function ProjectPage() {
           {!photoMode && (
             <>
               <Toolbar
+                simple={simple}
                 ctx={host.ctx}
                 tool={editor.tool}
                 snapping={editor.snapping}
@@ -637,35 +823,37 @@ export function ProjectPage() {
                 fps={composition.fps}
                 onRun={host.runAction}
               />
-              <div
-                role="tablist"
-                aria-label="Bottom panel"
-                className="flex shrink-0 gap-1 border-t border-neutral-800 bg-neutral-950 px-3 pt-1 text-xs"
-              >
-                {(
-                  [
-                    ["timeline", "Timeline", "panel.showTimeline"],
-                    ["graph", "Graph editor", "panel.showGraph"],
-                    ["mixer", "Mixer", "panel.showMixer"],
-                  ] as const
-                ).map(([id, title, action]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={editor.bottomPanel === id}
-                    title={`${title}: ${editingActions.get(action).description} (${editingActions.get(action).shortcut ?? ""})`}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                    }}
-                    onClick={() => void run(action)}
-                    className={`rounded-t px-3 py-1 ${editor.bottomPanel === id ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
-                  >
-                    {title}
-                  </button>
-                ))}
-              </div>
-              {editor.bottomPanel === "mixer" ? (
+              {!simple && (
+                <div
+                  role="tablist"
+                  aria-label="Bottom panel"
+                  className="flex shrink-0 gap-1 border-t border-neutral-800 bg-neutral-950 px-3 pt-1 text-xs"
+                >
+                  {(
+                    [
+                      ["timeline", "Timeline", "panel.showTimeline"],
+                      ["graph", "Graph editor", "panel.showGraph"],
+                      ["mixer", "Mixer", "panel.showMixer"],
+                    ] as const
+                  ).map(([id, title, action]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={editor.bottomPanel === id}
+                      title={`${title}: ${editingActions.get(action).description} (${editingActions.get(action).shortcut ?? ""})`}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                      }}
+                      onClick={() => void run(action)}
+                      className={`rounded-t px-3 py-1 ${editor.bottomPanel === id ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"}`}
+                    >
+                      {title}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!simple && editor.bottomPanel === "mixer" ? (
                 <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
                   <MixerPanel
                     composition={composition}
@@ -678,7 +866,7 @@ export function ProjectPage() {
                     run={run}
                   />
                 </div>
-              ) : editor.bottomPanel === "graph" ? (
+              ) : !simple && editor.bottomPanel === "graph" ? (
                 <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
                   <GraphEditor
                     clip={selectedInfos.length === 1 ? selectedInfos[0]?.clip : undefined}
@@ -728,6 +916,7 @@ export function ProjectPage() {
       )}
 
       <CommandPalette
+        extras={paletteExtras}
         registry={editingActions}
         ctx={host.ctx}
         open={paletteOpen}
@@ -735,6 +924,7 @@ export function ProjectPage() {
         run={run}
       />
       <ShortcutHelp registry={editingActions} open={helpOpen} onOpenChange={setHelpOpen} />
+      {project !== null && !loading && <Tour />}
       {composition !== undefined && (
         <ExportDialog
           open={exportOpen}

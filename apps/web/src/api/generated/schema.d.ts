@@ -286,7 +286,7 @@ export interface paths {
     put?: never;
     /**
      * Create Project
-     * @description Create a project with one empty composition.
+     * @description Create a project: one empty composition, or a copy of `doc` (a template).
      */
     post: operations["create_project_api_projects_post"];
     delete?: never;
@@ -355,6 +355,50 @@ export interface paths {
      */
     post: operations["restore_snapshot_api_projects__project_id__snapshots__snapshot_id__restore_post"];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/templates": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Templates
+     * @description Templates this user saved, newest first.
+     */
+    get: operations["list_templates_api_templates_get"];
+    put?: never;
+    /**
+     * Create Template
+     * @description Save a project document as a template (its placeholder clips are the slots).
+     */
+    post: operations["create_template_api_templates_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/templates/{template_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Template
+     * @description Remove one of your templates (projects made from it are not affected).
+     */
+    delete: operations["delete_template_api_templates__template_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -755,6 +799,10 @@ export interface components {
     /** ProjectCreate */
     ProjectCreate: {
       background?: components["schemas"]["CanvasColor"] | null;
+      /** Doc */
+      doc?: {
+        [key: string]: unknown;
+      } | null;
       /** Height */
       height?: number | null;
       /**
@@ -876,6 +924,56 @@ export interface components {
       label: string | null;
       /** Version */
       version: number;
+    };
+    /** TemplateCreate */
+    TemplateCreate: {
+      /**
+       * Category
+       * @default mine
+       * @enum {string}
+       */
+      category: "reels" | "intros" | "lowerThirds" | "slideshows" | "quoteCards" | "mine";
+      /**
+       * Description
+       * @default
+       */
+      description: string;
+      /** Doc */
+      doc: {
+        [key: string]: unknown;
+      };
+      /** Name */
+      name: string;
+    };
+    /** TemplateList */
+    TemplateList: {
+      /** Items */
+      items: components["schemas"]["TemplateOut"][];
+    };
+    /** TemplateOut */
+    TemplateOut: {
+      /** Aspect */
+      aspect: string;
+      /**
+       * Category
+       * @enum {string}
+       */
+      category: "reels" | "intros" | "lowerThirds" | "slideshows" | "quoteCards" | "mine";
+      /**
+       * Createdat
+       * Format: date-time
+       */
+      createdAt: string;
+      /** Description */
+      description: string;
+      /** Doc */
+      doc: {
+        [key: string]: unknown;
+      };
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
     };
     TimeUs: number;
     /** UploadOut */
@@ -2042,6 +2140,133 @@ export interface operations {
       };
       /** @description Precondition Required */
       428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  list_templates_api_templates_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TemplateList"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  create_template_api_templates_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TemplateCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TemplateOut"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Request Entity Too Large */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Unprocessable Entity */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  delete_template_api_templates__template_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        template_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
         headers: {
           [name: string]: unknown;
         };

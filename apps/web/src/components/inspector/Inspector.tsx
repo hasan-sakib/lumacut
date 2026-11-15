@@ -1,4 +1,5 @@
-import type { Composition, Op, Project } from "@lumacut/schema";
+import { isNeutralColor } from "@lumacut/engine/color";
+import type { Clip, Composition, Op, Project } from "@lumacut/schema";
 import { useMemo, useState } from "react";
 import type { ClipInfo, FieldValue, SectionId } from "../../inspector/fields.ts";
 import { toggleKeyframeOp } from "../../inspector/animation.ts";
@@ -29,6 +30,25 @@ interface InspectorProps {
   playheadUs: number;
   /** Apply a change; edits of the same field close together share `coalesceKey` (one undo step). */
   onChange: (op: Op, coalesceKey: string | undefined) => void;
+  /** Simple mode: basic settings only, and a chip when Pro settings are in use. */
+  simple?: boolean;
+  /** Switch to Pro mode (from the chip). */
+  onShowAdvanced?: () => void;
+}
+
+/** What Pro settings a clip uses that Simple mode doesn't show (empty: none). */
+export function advancedSettings(clip: Clip): string[] {
+  const used: string[] = [];
+  if (Object.values(clip.keyframes).some((k) => k.length > 0)) used.push("keyframes");
+  if (clip.masks.length > 0) used.push("masks");
+  if (clip.trackMatte !== undefined) used.push("track matte");
+  if (clip.effects.length > 1) used.push("several effects");
+  if (!isNeutralColor(clip.color)) used.push("colour grading");
+  if (clip.blendMode !== "normal") used.push("blend mode");
+  if (clip.motionBlur.enabled) used.push("motion blur");
+  if ((clip.text?.animators.length ?? 0) > 0) used.push("text animators");
+  if ((clip.audio?.effects.length ?? 0) > 0) used.push("audio effects");
+  return used;
 }
 
 /**
@@ -43,13 +63,15 @@ export function Inspector({
   lutAssets = [],
   project,
   onChange,
+  simple = false,
+  onShowAdvanced,
 }: InspectorProps) {
   const [query, setQuery] = useState("");
   const [advanced, setAdvanced] = useState<Partial<Record<SectionId, boolean>>>({});
   const [collapsed, setCollapsed] = useState<Partial<Record<SectionId, boolean>>>({});
   const sections = useMemo(
-    () => buildInspector(items, { query, showAdvanced: advanced, playheadUs }),
-    [items, query, advanced, playheadUs],
+    () => buildInspector(items, { query, showAdvanced: simple ? {} : advanced, playheadUs }),
+    [items, query, advanced, playheadUs, simple],
   );
   const searching = query.trim() !== "";
 
@@ -67,6 +89,11 @@ export function Inspector({
   }
 
   const first = items[0];
+  // While searching, the generated sections (effects, masks, shapes…) show only if they match.
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = (haystack: string): boolean =>
+    !searching || words.every((w) => haystack.toLowerCase().includes(w));
+  const single = items.length === 1 && first !== undefined && first.track?.kind !== "audio";
   // Look-up table, HSL ranges and curves: for one picture clip, shown unless a search excludes them.
   const showColorExtras =
     items.length === 1 &&
@@ -122,7 +149,7 @@ export function Inspector({
           onToggle={() => {
             setCollapsed((c) => ({ ...c, [section.id]: c[section.id] !== true }));
           }}
-          hasAdvanced={section.hasAdvanced}
+          hasAdvanced={section.hasAdvanced && !simple}
           hiddenAdvanced={section.hiddenAdvanced}
           advanced={advanced[section.id] === true}
           onToggleAdvanced={() => {
@@ -152,18 +179,33 @@ export function Inspector({
           ))}
         </Section>
       ))}
-      {showColorExtras && first !== undefined && (
+      {simple && first !== undefined && advancedSettings(first.clip).length > 0 && (
+        <button
+          type="button"
+          data-testid="advanced-chip"
+          title={`This clip uses ${advancedSettings(first.clip).join(", ")}. They are kept; switch to Pro mode to see and change them.`}
+          onClick={onShowAdvanced}
+          className="self-start rounded-full border border-amber-700/70 bg-amber-950/40 px-3 py-1 text-xs text-amber-200 hover:bg-amber-900/40"
+        >
+          Advanced settings applied · open in Pro
+        </button>
+      )}
+      {showColorExtras && !simple && first !== undefined && (
         <ColorExtras clip={first.clip} lutAssets={lutAssets} onChange={onChange} />
       )}
-      {showColorExtras && first !== undefined && (
-        <EffectsInspector item={first} playheadUs={playheadUs} onChange={onChange} />
-      )}
-      {showColorExtras && first !== undefined && (
+      {single &&
+        matches(`effects effect ${first.clip.effects.map((e) => e.effectId).join(" ")}`) && (
+          <EffectsInspector item={first} playheadUs={playheadUs} onChange={onChange} />
+        )}
+      {single && matches("transition dissolve wipe fade") && (
         <TransitionInspector item={first} playheadUs={playheadUs} onChange={onChange} />
       )}
       {items.length === 1 &&
         first !== undefined &&
-        (first.clip.type === "text" || first.clip.type === "caption") && (
+        (first.clip.type === "text" || first.clip.type === "caption") &&
+        matches(
+          "text font size colour color words animator tracking line stroke shadow background",
+        ) && (
           <TextInspector
             clip={first.clip}
             item={first}
@@ -171,7 +213,7 @@ export function Inspector({
             onChange={onChange}
           />
         )}
-      {showColorExtras && first !== undefined && (
+      {single && !simple && matches("mask masks feather expansion invert") && (
         <MasksInspector
           item={first}
           project={project}
@@ -180,7 +222,7 @@ export function Inspector({
           onChange={onChange}
         />
       )}
-      {showColorExtras && first !== undefined && (
+      {single && !simple && matches("matte track matte alpha luma") && (
         <MatteInspector
           item={first}
           project={project}
@@ -191,19 +233,24 @@ export function Inspector({
       {items.length === 1 &&
         first !== undefined &&
         ((first.track?.kind === "audio" && first.clip.type === "media") ||
-          first.clip.type === "composition") && (
-          <AudioEffectsInspector item={first} playheadUs={playheadUs} onChange={onChange} />
+          first.clip.type === "composition") &&
+        matches(
+          `audio effects eq equaliser equalizer compressor limiter gate reverb delay ${(first.clip.audio?.effects ?? []).map((e) => e.effectId).join(" ")}`,
+        ) && <AudioEffectsInspector item={first} playheadUs={playheadUs} onChange={onChange} />}
+      {items.length === 1 &&
+        first?.clip.type === "shape" &&
+        matches("shape fill stroke trim corner rectangle ellipse polygon star path") && (
+          <ShapeInspector item={first} playheadUs={playheadUs} onChange={onChange} />
         )}
-      {items.length === 1 && first?.clip.type === "shape" && (
-        <ShapeInspector item={first} playheadUs={playheadUs} onChange={onChange} />
-      )}
-      {items.length === 1 && first?.clip.type === "caption" && (
-        <CaptionEditor
-          clip={first.clip}
-          compositionHeight={composition.height}
-          onChange={onChange}
-        />
-      )}
+      {items.length === 1 &&
+        first?.clip.type === "caption" &&
+        matches("caption captions words timing subtitle") && (
+          <CaptionEditor
+            clip={first.clip}
+            compositionHeight={composition.height}
+            onChange={onChange}
+          />
+        )}
     </div>
   );
 }

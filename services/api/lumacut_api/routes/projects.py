@@ -14,6 +14,7 @@ from lumacut_api.projects_service import (
     SnapshotCreate,
     SnapshotOut,
     default_document,
+    document_from,
     validate_document,
 )
 from lumacut_core.camel import CamelModel
@@ -105,15 +106,12 @@ async def _save(
 
 @router.post("", status_code=status.HTTP_201_CREATED, responses=error_responses(401, 422))
 async def create_project(body: ProjectCreate, user: CurrentUser, session: SessionDep) -> ProjectOut:
-    """Create a project with one empty composition."""
+    """Create a project: one empty composition, or a copy of `doc` (a template)."""
+    name = body.name.strip() or "Untitled"
     doc = validate_document(
-        default_document(
-            body.name.strip() or "Untitled",
-            body.kind,
-            body.width,
-            body.height,
-            body.background,
-        )
+        document_from(body.doc, name, body.kind)
+        if body.doc is not None
+        else default_document(name, body.kind, body.width, body.height, body.background)
     )
     row = ProjectRecord(
         id=str(doc["id"]), owner_id=user.id, name=str(doc["name"])[:255], kind=body.kind, doc=doc

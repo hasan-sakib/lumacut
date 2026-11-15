@@ -50,6 +50,8 @@ class ProjectCreate(CamelModel):
     width: int | None = Field(default=None, ge=1, le=MAX_CANVAS_SIDE)
     height: int | None = Field(default=None, ge=1, le=MAX_CANVAS_SIDE)
     background: CanvasColor | None = None
+    #: Start from this document (a template): validated, given a fresh project id and timestamps.
+    doc: dict[str, Any] | None = None
 
 
 class ProjectSave(CamelModel):
@@ -130,6 +132,20 @@ def default_document(
         ],
         "mainCompositionId": composition_id,
         "meta": {"createdAt": now, "updatedAt": now, "aiRuns": []},
+    }
+
+
+def document_from(source: dict[str, Any], name: str, kind: ProjectKind) -> dict[str, Any]:
+    """A new project document copied from `source` (a template): new id, name, kind and times."""
+    now = iso_now()
+    raw = source.get("meta")
+    meta: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    return {
+        **source,
+        "id": new_id(),
+        "name": name,
+        "kind": kind,
+        "meta": {**meta, "createdAt": now, "updatedAt": now, "aiRuns": []},
     }
 
 

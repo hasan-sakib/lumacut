@@ -13,6 +13,8 @@ interface ToolbarProps {
   playheadUs: number;
   fps: Rational;
   onRun: (action: AnyAction<EditingContext>, args?: unknown) => void;
+  /** Simple mode: history, playback and zoom only (no editing tools). */
+  simple?: boolean;
 }
 
 const TOOLS: Tool[] = ["select", "razor", "ripple", "roll", "slip", "slide"];
@@ -20,7 +22,16 @@ const GROUP = "flex items-center gap-0.5 rounded-md bg-neutral-900 p-0.5";
 const BUTTON = "text-neutral-200 hover:bg-neutral-800";
 
 /** Every button is an action from the registry: its tooltip, label and shortcut come from there. */
-export function Toolbar({ ctx, tool, snapping, playing, playheadUs, fps, onRun }: ToolbarProps) {
+export function Toolbar({
+  ctx,
+  tool,
+  snapping,
+  playing,
+  playheadUs,
+  fps,
+  onRun,
+  simple = false,
+}: ToolbarProps) {
   const button = (id: string, pressed?: boolean) => (
     <ActionButton
       key={id}
@@ -39,22 +50,26 @@ export function Toolbar({ ctx, tool, snapping, playing, playheadUs, fps, onRun }
       className="flex flex-wrap items-center gap-2 border-y border-neutral-800 bg-neutral-950 px-3 py-1.5"
     >
       <div className={GROUP}>{["history.undo", "history.redo"].map((id) => button(id))}</div>
-      <div className={GROUP} role="group" aria-label="Tools">
-        {TOOLS.map((t) => button(`tool.${t}`, tool === t))}
-      </div>
-      <div className={GROUP} role="group" aria-label="Drawing tools">
-        {(
-          [
-            ["tool.pen", "pen"],
-            ["tool.rectangle", "rect"],
-            ["tool.ellipse", "ellipse"],
-            ["tool.polygon", "polygon"],
-            ["tool.star", "star"],
-          ] as const
-        ).map(([id, canvasTool]) => button(id, ctx.canvasTool === canvasTool))}
-        {button("tool.penMode", ctx.penMode === "mask")}
-      </div>
-      <div className={GROUP}>{button("timeline.toggleSnapping", snapping)}</div>
+      {!simple && (
+        <div className={GROUP} role="group" aria-label="Tools">
+          {TOOLS.map((t) => button(`tool.${t}`, tool === t))}
+        </div>
+      )}
+      {!simple && (
+        <div className={GROUP} role="group" aria-label="Drawing tools">
+          {(
+            [
+              ["tool.pen", "pen"],
+              ["tool.rectangle", "rect"],
+              ["tool.ellipse", "ellipse"],
+              ["tool.polygon", "polygon"],
+              ["tool.star", "star"],
+            ] as const
+          ).map(([id, canvasTool]) => button(id, ctx.canvasTool === canvasTool))}
+          {button("tool.penMode", ctx.penMode === "mask")}
+        </div>
+      )}
+      {!simple && <div className={GROUP}>{button("timeline.toggleSnapping", snapping)}</div>}
       <div className={GROUP}>
         {button("playback.goToStart")}
         {button("playback.stepBack")}
@@ -70,7 +85,7 @@ export function Toolbar({ ctx, tool, snapping, playing, playheadUs, fps, onRun }
         {formatTimecode(playheadUs, fps)}
       </span>
       <div className={`${GROUP} ml-auto`}>
-        {button("marker.add")}
+        {!simple && button("marker.add")}
         {["timeline.zoomOut", "timeline.zoomIn", "timeline.zoomFit"].map((id) => button(id))}
         {button("palette.open")}
       </div>

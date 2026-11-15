@@ -14,13 +14,24 @@
 | M6 | Photo workspace: canvas, layers panel, adjustment layers, crop/straighten, selections→masks, brush/eraser, image export, large images | **built 2026-11-08, not verified**: no tests, goldens, e2e or `make check` were run at the owner's request; only `tsc`, `eslint` and `prettier` (plus `ruff` and `make gen-openapi` for the API change) | 2026-11-08 |
 | M7 | Audio: mixer, effects, keyframed volume, pitch-preserving speed, loudness | **built 2026-11-13, not verified**: no tests, e2e or `make check` were run at the owner's request; only `tsc`, `eslint`, `prettier`, `ruff` and `make gen-schema` / `gen-openapi` | 2026-11-13 |
 | M8 | Export: video (browser + server), image, GIF, audio + parity test | **built 2026-11-13, not verified**: no tests, e2e, parity run or `make check`; only `tsc`, `eslint`, `prettier`, `ruff`, `mypy`, `make gen-openapi`; the new worker image was never built | 2026-11-13 |
-| M9 | Simple mode + 20 templates + effect/preset browser + workspaces + onboarding + tooltips + inspector search | not started | — |
+| M9 | Simple mode + 20 templates + effect/preset browser + workspaces + onboarding + tooltips + inspector search | **built 2026-11-15, not verified**: no tests, e2e or `make check`; only `tsc`, `eslint`, `prettier`, `ruff`, `mypy`, `make gen-openapi` | 2026-11-15 |
 | M10 | AI analysis pipeline | not started | — |
 | M11 | AI tools (SPEC §10.2) with preview/apply UI | not started | — |
 | M12 | Auto-edit agent + Ask | not started | — |
 | M13 | Hardening | not started | — |
 
 ## Current focus
+**M9 is built as one milestone (2026-11-15) and has never been run** (features first; static checks clean; nothing committed). Docs: `docs/templates.md`, `docs/ux.md`. Before trying it: the API must run Alembic `0004_templates`; the web image now copies `packages/templates`.
+
+**What to test for M9** (add to the verification pass below):
+1. **Templates:** each of the 20 builders produces a schema-valid project that renders without errors (thumbnails), unique slot ids; `instantiateTemplate` id uniqueness and reference remapping; `replaceMediaOps` keeps keyframes/effects/timing, covers and crops the slot, rescales static and keyframed scale; `setTextOps` (text and caption re-timing), `setColorOps`; `POST /api/projects {doc}`; templates API + migration `0004`.
+2. **Simple mode:** magnetic packing after delete / move / add, one undo step with the edit; the chip lists the right settings; `project.setAspect` shifts animated positions; stickers; Simple toolbar and tabs.
+3. **Browser:** hover preview never commits, drops on leave and after edits, off while playing; favourites/recents persist; palette finds effects, presets, looks.
+4. **Workspaces:** each switches tab + dock and Pro mode; save / use / delete; shortcuts Alt+1…5.
+5. **Onboarding:** tour steps find their anchors, skip/done persist, `help.tour` replays; checklist ticks on real actions.
+6. **Tooltips:** an e2e that every button has an accessible name and a tooltip.
+7. **Acceptance (SPEC §13 M9):** usability script — a new user picks a 9:16 reel template, fills 3 media slots and 2 texts, adds captions from text and exports MP4 in under 5 minutes (scripted e2e plus a moderated run).
+
 **M8 is built as one milestone (2026-11-13) and has never been run** (features first, tests after all milestones; `tsc` everywhere, `eslint --max-warnings 0`, `prettier --check`, `ruff`, `mypy`: clean; nothing committed). Docs: `docs/export.md`. **Before trying it:** `make up` must rebuild the worker image (new Node stage + Chromium) and the API must run Alembic `0003_exports`; there is a new `export-worker` service.
 
 **What to test for M8** (add to the verification pass below):
@@ -72,7 +83,7 @@ Verified earlier in this milestone (these have tests, and passed when written): 
 
 **Verification record, M2 + M3 (2026-11-07)**: `make check` green; `make test-engine` and `make smoke-render` green; `make perf` on the GPU (Apple M2, Metal via installed Chrome) passed every gate (60.0 fps, p95 render 4.0 ms, 0% frames never shown, frames opened = closed, 0.47 MB memory growth over 20 s + 2000 seeks; SwiftShader floor 8.2 fps); `make test-stack`: integration 26 passed / 1 skipped, e2e 16 of 18 on a loaded machine and the 2 failures (`player.spec.ts`, `resume.spec.ts`) passed alone with `--workers=1` (CPU contention; run with `--workers=2` or on a quiet machine); the M3 acceptance e2e passed. Not run: `make test-samples` (~25 min, M1 pipeline) and a manual browser pass. Cross-backend finding: the compositor is bit-identical on SwiftShader and the GPU for stills; video differs only through the decoder (SSIM ≈ 0.998), so golden images must use still-image inputs.
 
-Next: **M9** (Simple mode, 20 templates, effect/preset browser, workspaces, onboarding, tooltips, inspector search). Plan it and wait for approval; the owner wants M9 and later built whole, not split.
+Next: **M10** (AI analysis pipeline). Plan it and wait for approval; the owner wants M10 and later built whole, not split.
 
 Getting started in a new session:
 - Start Docker Desktop, then `make install` (pnpm via corepack + `uv sync`) and `make up`.
@@ -284,6 +295,13 @@ Getting started in a new session:
 - **Presets:** pure keyframe generators in `packages/ops/src/presets` (15, four categories); `setFrames` replaces keyframes inside the window so re-applying is idempotent; shake/glitch use a seeded PRNG keyed by clip id and start. `preset.apply` and `motion.blur` are actions; a Presets tab lists them.
 - Lint-driven: no `!` non-null assertions (bind to a local first); drop `as` casts the type-aware lint reports as unnecessary.
 
+**2026-11-15 — M9 (one milestone; see `docs/templates.md`, `docs/ux.md`)**
+- **Templates are projects with placeholder clips**, built in code (`packages/templates`, 20 originals, bundled fonts only). Media slots are grey fills; replacing one keeps all motion and rescales scale keyframes so the picture covers the slot. Using a template re-ids compositions/tracks/clips only (in-clip ids and keyframe paths stay). `POST /api/projects` takes an optional `doc`; saved templates have their own table (`0004`) and routes.
+- **Simple / Pro is a per-browser view preference** (`stores/prefs.ts`, with favourites, recents, workspaces, onboarding). The magnetic main track works by packing the bottom picture track after each action or gesture under the same `coalesceKey`, so it is one undo step; Pro never packs.
+- **One browser** for effects, transitions, audio effects, presets and looks with hover preview by executing the action without committing and showing a copy of the project; the palette searches the same items.
+- **Workspaces are layout presets** (side tab + bottom dock), saved per browser; no docking.
+- `useItem` was renamed `noteUse` in the prefs store: ESLint's hooks rule treats any `use…` name as a hook.
+
 **2026-11-13 — M8 (one milestone; see `docs/export.md`)**
 - **Two export paths, one engine:** browser (WebCodecs through Mediabunny in a dedicated worker, ≤ 10 min, whole file in memory) and server (Python Playwright drives the render page in headless Chromium on SwiftShader; frames go to FFmpeg). Both draw with the same `Engine` at the export frame rate and size (`setView`), so the parity check compares like with like.
 - **Frames reach FFmpeg by HTTP, not CDP:** the job runs a local server (`127.0.0.1`) that serves the built page, proxies media from storage (same origin, so no CORS/COEP trouble) and takes raw RGBA frames in order plus the mix as WAV; much cheaper than base64 through Playwright.
@@ -328,6 +346,7 @@ Getting started in a new session:
 - **M3a schema additions** beyond SPEC §4: `index` on three add-ops and `unset` on `setProps`/`updateAsset` (see Decisions).
 - **M4 schema additions** beyond SPEC §4: optional `Clip.solid {color}`; optional `CaptionData.highlightColor`, `maxLines`, `maxCharsPerLine`; new op error code `invalid_property`; `lut` asset kind is now produced by the API/worker.
 - **M5 deviations:** shapes are Canvas 2D rasters, not tessellation/SDF (SPEC §6 says "tessellation or SDF"); mask feather uses the canvas blur filter; no `Lower third` starter (that is a template, M9); raster masks deferred to M6/M11; no new schema fields were needed (shapes, masks, mattes, motion blur and animators were already in the schema).
+- **M9 deviations:** workspaces are panel presets (no dockable/floating panels); preferences, favourites and workspaces live in browser storage (not synced); the Auto-edit button is left out until M12 exists; no shortcut editor (SPEC §7 Global, not in the M9 row).
 - **M8 deviations:** frames go from the page to FFmpeg over a local HTTP server rather than "piped" through Playwright; GIF and MP3 are server-only; no in/out range in the UI yet (whole composition; the API takes any range); the parity test is deferred to the verification pass.
 - **M7 deviations:** time-stretch is an in-house WSOLA (no library) rather than a phase vocoder; the mixer is a dock tab, not a saved workspace (M9); MP3/AAC and sound inside video exports are M8 (they will reuse `renderMix` + `normalizeLoudness`); audio export is WAV only.
 - **M6 deviations:** AI subject select is M11 (not in M6); layers panel has no thumbnails; merge/flatten, magic wand, selection boolean ops and selection-clipped brushes are not built; image export is the M6 part of SPEC §11 (video/GIF/audio stay M8); the API grew optional `width`, `height`, `background` on project creation (no schema change).
@@ -408,6 +427,11 @@ Getting started in a new session:
   - Track mattes: the matte must be in the same composition; no matte chains; the hidden matte clip is only explained in the inspector.
   - Presets: 15 presets, no custom/saved presets, no preview thumbnails, no per-preset parameters beyond strength and length; text presets need a text or caption clip.
   - Playback still pauses on every project edit (M2 limit), so dragging on the canvas while playing is interrupted.
+- **M9 gaps:**
+  - **Nothing in M9 was run**: templates never built at runtime (a builder error would show as "No preview" on its card), migration `0004`, Simple mode, hover preview, workspaces, tour.
+  - Simple mode reuses the Pro timeline (no special thumbnail-first main track view); no audio slot type in templates (music goes on the empty Music track by hand); template media slots are full-frame or boxed fills only (no masked shapes).
+  - Aspect change doesn't reframe content (M11); hover preview re-renders through `setProject` (pauses playback).
+  - Tooltip audit covered icon buttons and action buttons; plain dialog text buttons (Cancel, Back) rely on their visible label.
 - **M8 gaps:**
   - **Nothing in M8 was run**, including the new worker image (Chromium, Playwright, render-page build), migration `0003`, both export paths and the parity test (not written).
   - Not built: in/out range in the export window, H.265/AV1, alpha video (ProRes 4444), chapters, export presets per platform, batch browser exports, resuming a crashed server export, GPU rendering in the worker, upload of browser exports to the library.
@@ -431,6 +455,8 @@ Getting started in a new session:
 - **Python dev-stub packages** (`types-aiobotocore*`, `botocore-stubs`) must only be imported under `TYPE_CHECKING`; they aren't installed in images.
 
 ## Dependencies & licenses
+_M9 added no third-party dependencies (new workspace package `@lumacut/templates`)._
+
 _M8 added **Playwright for Python** (`playwright` 1.65, Apache-2.0) to the worker and, in the worker image, **Chromium** (BSD-style, via Playwright) and a Node build stage. FFmpeg (Debian build, GPL) now also encodes exports (libx264, libvpx-vp9, libopus, libmp3lame, AAC) — server-side only, not distributed to users._
 
 _M7 added no dependencies (time-stretch, loudness, limiter and WAV are in-house TypeScript)._

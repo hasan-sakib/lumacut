@@ -79,6 +79,8 @@ export interface NewProjectOptions {
   height?: number;
   /** Straight sRGB background, channels 0..1 (photo default: transparent). */
   background?: { r: number; g: number; b: number; a: number };
+  /** Start from this project document (a template); the server gives it a new id. */
+  doc?: Project;
 }
 
 export async function createProject(

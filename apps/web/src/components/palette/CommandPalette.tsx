@@ -17,7 +17,26 @@ interface CommandPaletteProps<Ctx> {
   onOpenChange: (open: boolean) => void;
   /** Runs an action; resolves with an error message to show, or null on success. */
   run: (id: string, args?: unknown) => Promise<string | null>;
+  /**
+   * More things to find besides actions (effects, presets, looks, templates…): each runs an action
+   * with arguments. Only searched when something is typed.
+   */
+  extras?: (query: string) => readonly PaletteExtra[];
 }
+
+/** A palette result that isn't an action itself: it runs `actionId` with `args`. */
+export interface PaletteExtra {
+  key: string;
+  title: string;
+  description: string;
+  category: string;
+  actionId: string;
+  args: unknown;
+}
+
+type Entry<Ctx> =
+  | { type: "action"; id: string; action: AnyAction<Ctx> }
+  | { type: "extra"; id: string; extra: PaletteExtra };
 
 type FieldValues = Record<string, string | boolean>;
 
@@ -47,6 +66,7 @@ export function CommandPalette<Ctx>({
   open,
   onOpenChange,
   run,
+  extras,
 }: CommandPaletteProps<Ctx>) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -58,7 +78,13 @@ export function CommandPalette<Ctx>({
         >
           <Dialog.Title className="sr-only">Command palette</Dialog.Title>
           {/* Its state lives in the body, which exists only while the dialog is open: closing resets it. */}
-          <PaletteBody registry={registry} ctx={ctx} onOpenChange={onOpenChange} run={run} />
+          <PaletteBody
+            registry={registry}
+            ctx={ctx}
+            onOpenChange={onOpenChange}
+            run={run}
+            extras={extras}
+          />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -70,6 +96,7 @@ function PaletteBody<Ctx>({
   ctx,
   onOpenChange,
   run,
+  extras,
 }: Omit<CommandPaletteProps<Ctx>, "open">) {
   const listId = useId();
   const [query, setQuery] = useState("");
@@ -82,7 +109,18 @@ function PaletteBody<Ctx>({
   const [busy, setBusy] = useState(false);
   const firstField = useRef<HTMLInputElement | HTMLSelectElement>(null);
 
-  const hits = useMemo(() => registry.search(query, ctx, 30), [registry, query, ctx]);
+  const hits = useMemo<Entry<Ctx>[]>(() => {
+    const actions: Entry<Ctx>[] = registry
+      .search(query, ctx, 30)
+      .map((h) => ({ type: "action", id: h.action.id, action: h.action }));
+    const more: Entry<Ctx>[] =
+      query.trim() === "" || extras === undefined
+        ? []
+        : extras(query)
+            .slice(0, 15)
+            .map((extra) => ({ type: "extra", id: `x:${extra.key}`, extra }));
+    return [...actions, ...more];
+  }, [registry, query, ctx, extras]);
   const mac = isMacPlatform();
 
   useEffect(() => {
@@ -106,6 +144,20 @@ function PaletteBody<Ctx>({
     }
     setValues({});
     setPending({ action, fields });
+  }
+
+  function pickEntry(entry: Entry<Ctx>) {
+    if (entry.type === "action") {
+      choose(entry.action);
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    void run(entry.extra.actionId, entry.extra.args).then((message) => {
+      setBusy(false);
+      if (message === null) onOpenChange(false);
+      else setError(message);
+    });
   }
 
   function submit(event: { preventDefault: () => void }) {
@@ -137,7 +189,7 @@ function PaletteBody<Ctx>({
               aria-expanded={hits.length > 0}
               aria-controls={listId}
               aria-activedescendant={
-                activeHit === undefined ? undefined : `${listId}-${activeHit.action.id}`
+                activeHit === undefined ? undefined : `${listId}-${activeHit.id}`
               }
               aria-autocomplete="list"
               value={query}
@@ -155,7 +207,7 @@ function PaletteBody<Ctx>({
                   setActive((i) => Math.max(i - 1, 0));
                 } else if (e.key === "Enter" && activeHit !== undefined && !busy) {
                   e.preventDefault();
-                  choose(activeHit.action);
+                  pickEntry(activeHit);
                 }
               }}
               className="w-full bg-transparent py-3 text-sm text-neutral-100 outline-none placeholder:text-neutral-500"
@@ -174,38 +226,43 @@ function PaletteBody<Ctx>({
                   : `No command matches “${query.trim()}”.`}
               </li>
             )}
-            {hits.map(({ action }, i) => (
-              <li
-                key={action.id}
-                id={`${listId}-${action.id}`}
-                role="option"
-                aria-selected={i === activeIndex}
-                data-action={action.id}
-                onMouseMove={() => {
-                  setActive(i);
-                }}
-                onClick={() => {
-                  choose(action);
-                }}
-                className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm ${i === activeIndex ? "bg-sky-900/60" : ""}`}
-              >
-                {action.icon && (
-                  <Icon name={action.icon} className="h-4 w-4 shrink-0 text-neutral-400" />
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-neutral-100">{action.title}</span>
-                  <span className="block truncate text-xs text-neutral-500">
-                    {action.description}
+            {hits.map((entry, i) => {
+              const title = entry.type === "action" ? entry.action.title : entry.extra.title;
+              const description =
+                entry.type === "action" ? entry.action.description : entry.extra.description;
+              const category =
+                entry.type === "action" ? entry.action.category : entry.extra.category;
+              return (
+                <li
+                  key={entry.id}
+                  id={`${listId}-${entry.id}`}
+                  role="option"
+                  aria-selected={i === activeIndex}
+                  data-action={entry.type === "action" ? entry.action.id : entry.extra.actionId}
+                  onMouseMove={() => {
+                    setActive(i);
+                  }}
+                  onClick={() => {
+                    pickEntry(entry);
+                  }}
+                  className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm ${i === activeIndex ? "bg-sky-900/60" : ""}`}
+                >
+                  {entry.type === "action" && entry.action.icon && (
+                    <Icon name={entry.action.icon} className="h-4 w-4 shrink-0 text-neutral-400" />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-neutral-100">{title}</span>
+                    <span className="block truncate text-xs text-neutral-500">{description}</span>
                   </span>
-                </span>
-                <span className="shrink-0 text-xs text-neutral-500">{action.category}</span>
-                {action.shortcut && (
-                  <kbd className="shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-xs text-neutral-300">
-                    {formatShortcut(action.shortcut, mac)}
-                  </kbd>
-                )}
-              </li>
-            ))}
+                  <span className="shrink-0 text-xs text-neutral-500">{category}</span>
+                  {entry.type === "action" && entry.action.shortcut && (
+                    <kbd className="shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-xs text-neutral-300">
+                      {formatShortcut(entry.action.shortcut, mac)}
+                    </kbd>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </>
       ) : (

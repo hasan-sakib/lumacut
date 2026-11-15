@@ -2,6 +2,13 @@ import { DropdownMenu } from "radix-ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { createProject } from "../api/projects.ts";
+import { deleteSavedTemplate, listSavedTemplates, type SavedTemplate } from "../api/templates.ts";
+import { CreateStrip } from "../components/templates/CreateStrip.tsx";
+import { Checklist } from "../components/onboarding/Checklist.tsx";
+import { galleryItems } from "../components/templates/TemplateGallery.tsx";
+import { newId } from "../lib/ids.ts";
+import { usePrefsStore } from "../stores/prefs.ts";
+import { instantiateTemplate } from "@lumacut/templates";
 import { libraryActions, type LibraryContext, type LibraryServices } from "../actions/library.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
@@ -58,6 +65,15 @@ export function LibraryPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
+  const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([]);
+  const [templateBusy, setTemplateBusy] = useState<string | null>(null);
+  const savedRef = useRef<SavedTemplate[]>([]);
+  useEffect(() => {
+    savedRef.current = savedTemplates;
+  }, [savedTemplates]);
+  useEffect(() => {
+    listSavedTemplates().then(setSavedTemplates, () => undefined);
+  }, []);
   const uploadInput = useRef<HTMLInputElement>(null);
   const resumeInput = useRef<HTMLInputElement>(null);
 
@@ -90,6 +106,39 @@ export function LibraryPage() {
           void navigate(`/project/${await createProject("Untitled project")}`);
         } catch (e) {
           setNotice(e instanceof Error ? e.message : "Couldn't create the project.");
+        }
+      },
+      async createVideo(width, height) {
+        try {
+          void navigate(
+            `/project/${await createProject("Untitled video", "video", { width, height })}`,
+          );
+        } catch (e) {
+          setNotice(e instanceof Error ? e.message : "Couldn't create the project.");
+        }
+      },
+      async useTemplate(key) {
+        setTemplateBusy(key);
+        try {
+          const item = galleryItems(savedRef.current).find((i) => i.key === key);
+          if (item === undefined) throw new Error("That template doesn't exist.");
+          const doc = instantiateTemplate(item.build(), key, newId);
+          const id = await createProject(item.name, "video", { doc });
+          usePrefsStore.getState().setMode("simple");
+          usePrefsStore.getState().completeStep("template");
+          void navigate(`/project/${id}`, { state: { fromTemplate: true } });
+        } catch (e) {
+          setNotice(e instanceof Error ? e.message : "Couldn't start from that template.");
+        } finally {
+          setTemplateBusy(null);
+        }
+      },
+      async deleteTemplate(id) {
+        try {
+          await deleteSavedTemplate(id);
+          setSavedTemplates((list) => list.filter((t) => t.id !== id));
+        } catch (e) {
+          setNotice(e instanceof Error ? e.message : "Couldn't remove the template.");
         }
       },
       async createPhoto({ width, height, assetId }) {
@@ -237,6 +286,8 @@ export function LibraryPage() {
       </header>
 
       <main className="px-6 py-6">
+        <Checklist />
+        <CreateStrip ctx={ctx} saved={savedTemplates} busy={templateBusy} />
         <ProjectsStrip />
         {notice && (
           <p

@@ -1,3 +1,4 @@
+import { editingActions } from "../../actions/editing.ts";
 import { useMemo } from "react";
 import { fitAspect } from "../../photo/crop.ts";
 import type { BrushSettings, Selection } from "../../photo/types.ts";
@@ -124,7 +125,13 @@ export function ToolOptions(props: ToolOptionsProps) {
             />
           </label>
         )}
-        <button type="button" className={BUTTON} onMouseDown={press} onClick={call("paint.clear")}>
+        <button
+          title={editingActions.get("paint.clear").description}
+          type="button"
+          className={BUTTON}
+          onMouseDown={press}
+          onClick={call("paint.clear")}
+        >
           Clear layer
         </button>
       </>
@@ -139,6 +146,11 @@ export function ToolOptions(props: ToolOptionsProps) {
               key={mode}
               type="button"
               aria-pressed={photo.maskMode === mode}
+              title={
+                mode === "reveal"
+                  ? "The mask brush shows the layer where you paint"
+                  : "The mask brush hides the layer where you paint"
+              }
               onMouseDown={press}
               onClick={() => {
                 photo.setMaskMode(mode);
@@ -187,6 +199,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           px
         </label>
         <button
+          title={editingActions.get("marquee.invert").description}
           type="button"
           className={BUTTON}
           disabled={!has}
@@ -196,6 +209,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           Invert
         </button>
         <button
+          title={editingActions.get("marquee.toMask").description}
           type="button"
           className={BUTTON}
           disabled={!has || !props.hasLayer}
@@ -205,6 +219,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           To mask
         </button>
         <button
+          title={editingActions.get("marquee.toMask").description}
           type="button"
           className={BUTTON}
           disabled={!has || !props.hasLayer}
@@ -214,6 +229,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           Cut out
         </button>
         <button
+          title={editingActions.get("canvas.cropToSelection").description}
           type="button"
           className={BUTTON}
           disabled={!has}
@@ -223,6 +239,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           Crop to selection
         </button>
         <button
+          title={editingActions.get("marquee.selectAll").description}
           type="button"
           className={BUTTON}
           onMouseDown={press}
@@ -231,6 +248,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           Select all
         </button>
         <button
+          title={editingActions.get("marquee.clear").description}
           type="button"
           className={BUTTON}
           disabled={!has}
@@ -321,6 +339,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           Apply straighten
         </button>
         <button
+          title={editingActions.get("canvas.rotateLeft").description}
           type="button"
           className={BUTTON}
           onMouseDown={press}
@@ -329,6 +348,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           ⟲ 90°
         </button>
         <button
+          title={editingActions.get("canvas.rotateRight").description}
           type="button"
           className={BUTTON}
           onMouseDown={press}
@@ -337,6 +357,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           ⟳ 90°
         </button>
         <button
+          title={editingActions.get("canvas.flip").description}
           type="button"
           className={BUTTON}
           onMouseDown={press}
@@ -345,6 +366,7 @@ export function ToolOptions(props: ToolOptionsProps) {
           Flip ↔
         </button>
         <button
+          title={editingActions.get("canvas.flip").description}
           type="button"
           className={BUTTON}
           onMouseDown={press}

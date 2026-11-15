@@ -78,6 +78,9 @@ importers:
       '@lumacut/schema':
         specifier: workspace:^
         version: link:../../packages/schema
+      '@lumacut/templates':
+        specifier: workspace:^
+        version: link:../../packages/templates
       idb-keyval:
         specifier: ^6.3.0
         version: 6.3.0
@@ -200,6 +203,15 @@ importers:
       fast-check:
         specifier: ^4.10.2
         version: 4.10.2
+
+  packages/templates:
+    dependencies:
+      '@lumacut/ops':
+        specifier: workspace:^
+        version: link:../ops
+      '@lumacut/schema':
+        specifier: workspace:^
+        version: link:../schema
 
 packages:
 
