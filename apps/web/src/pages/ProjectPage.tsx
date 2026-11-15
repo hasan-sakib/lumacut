@@ -4,12 +4,14 @@ import { Link, useLocation, useParams } from "react-router";
 import { editingActions } from "../actions/editing.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
-import { Icon } from "../components/Icon.tsx";
 import { GraphEditor } from "../components/graph/GraphEditor.tsx";
 import { MixerPanel } from "../components/mixer/MixerPanel.tsx";
 import { Tour } from "../components/onboarding/Tour.tsx";
 import { WorkspaceMenu } from "../components/simple/WorkspaceMenu.tsx";
 import { Browser } from "../components/browser/Browser.tsx";
+import { MediaTab } from "../components/browser/MediaTab.tsx";
+import { ResizeHandle } from "../components/ResizeHandle.tsx";
+import { dockBounds, panelSizes, sideBounds, useWindowSize } from "../editor/panel-sizes.ts";
 import {
   KIND_LABEL,
   allItems,
@@ -27,7 +29,14 @@ import { projectSlots } from "@lumacut/templates";
 import { CanvasPanel } from "../components/photo/CanvasPanel.tsx";
 import { ExportDialog } from "../components/export/ExportDialog.tsx";
 import { ExportsPanel } from "../components/export/ExportsPanel.tsx";
-import { useExportEvents } from "../editor/useExportEvents.ts";
+import { useEditorEvents } from "../editor/useEditorEvents.ts";
+import { importAccept, useMediaImport } from "../editor/useMediaImport.ts";
+import { ImportDropZone } from "../components/browser/ImportDropZone.tsx";
+import { Icon } from "../components/Icon.tsx";
+import { droppedFiles } from "../lib/files.ts";
+import { useUploadsStore } from "../stores/uploads.ts";
+import { formatShortcut } from "@lumacut/actions";
+import { isMacPlatform } from "../lib/format.ts";
 import { deleteServerExport } from "../export/server.ts";
 import { FiltersPanel } from "../components/photo/FiltersPanel.tsx";
 import { LayersPanel } from "../components/photo/LayersPanel.tsx";
@@ -163,6 +172,13 @@ export function ProjectPage() {
         : simple
           ? "media"
           : "inspector");
+  const windowSize = useWindowSize();
+  const storedSizes = usePrefsStore((s) => s.panelSizes);
+  const setPanelSize = usePrefsStore((s) => s.setPanelSize);
+  const sizes = panelSizes(storedSizes, windowSize.width, windowSize.height);
+  const importInput = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const uploads = useUploadsStore((s) => s.entries);
   const layoutRef = useRef({ tab: "inspector" });
   useEffect(() => {
     layoutRef.current.tab = tab;
@@ -231,6 +247,10 @@ export function ProjectPage() {
       showTab: (next: string) => {
         setTab(next as PanelTab);
       },
+      importMedia: () => {
+        importInput.current?.click();
+      },
+      cancelImport: (uploadKey: string) => useUploadsStore.getState().cancel(uploadKey),
       applyWorkspace: (layout: { sideTab: string; bottom: "timeline" | "graph" | "mixer" }) => {
         setTab(layout.sideTab as PanelTab);
         useEditorStore.getState().setBottomPanel(layout.bottom);
@@ -245,7 +265,7 @@ export function ProjectPage() {
     [togglePlay, seek, resetLoudness],
   );
   const host = useEditingHost(ui);
-  useExportEvents(project?.kind === "photo" ? null : (project?.id ?? null));
+  useEditorEvents(project?.kind === "photo" ? null : (project?.id ?? null));
   useShortcuts(editingActions, host.ctx, host.runAction);
 
   useEffect(() => {
@@ -368,6 +388,14 @@ export function ProjectPage() {
     });
   }, [composition, project, editor.selectedClipIds]);
   const library = assetOrder.map((id) => assets[id]).filter((a) => a?.status === "ready");
+  const processing = assetOrder
+    .map((id) => assets[id])
+    .filter((a) => a !== undefined)
+    .filter((a) => a.status === "queued" || a.status === "processing");
+  const { importFiles } = useMediaImport({ kind: project?.kind, run, onNotice: setNotice });
+  const importKeys = editingActions.get("media.import").shortcut;
+  const importShortcut =
+    importKeys === undefined ? null : formatShortcut(importKeys, isMacPlatform());
 
   // --- Photo workspace ------------------------------------------------------------------------
   const selectedSingle = selectedInfos.length === 1 ? selectedInfos[0] : undefined;
@@ -414,7 +442,23 @@ export function ProjectPage() {
   }, [editor.canvasTool, flushMask]);
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
+    <div
+      className="flex h-screen flex-col bg-neutral-950 text-neutral-100"
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(false);
+        void droppedFiles(e.dataTransfer).then(importFiles);
+      }}
+    >
       <header className="flex flex-wrap items-center gap-3 border-b border-neutral-800 px-4 py-2">
         <Link to="/" className="text-sm text-sky-400 hover:underline">
           ← Library
@@ -530,7 +574,7 @@ export function ProjectPage() {
               })}
             </nav>
           )}
-          <div className="flex min-h-0 flex-1 gap-3 p-3">
+          <div className="flex min-h-0 flex-1 p-3">
             <section
               aria-label="Preview"
               data-tour="preview"
@@ -563,6 +607,14 @@ export function ProjectPage() {
                       onRun={host.runAction}
                     />
                     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-neutral-800">
+                      {!hasClips && (
+                        <ImportDropZone
+                          photo={photoMode}
+                          dragging={dragging}
+                          shortcut={importShortcut}
+                          onImport={() => void run("media.import")}
+                        />
+                      )}
                       <PhotoStage
                         project={project}
                         composition={composition}
@@ -579,6 +631,14 @@ export function ProjectPage() {
               {!photoMode && (
                 <div className="relative min-h-0 flex-1 rounded-lg bg-black">
                   <div ref={attachStage} data-testid="preview" className="absolute inset-0" />
+                  {!hasClips && (
+                    <ImportDropZone
+                      photo={photoMode}
+                      dragging={dragging}
+                      shortcut={importShortcut}
+                      onImport={() => void run("media.import")}
+                    />
+                  )}
                   <PreviewOverlay
                     project={project}
                     composition={composition}
@@ -606,9 +666,23 @@ export function ProjectPage() {
               )}
             </section>
 
+            <ResizeHandle
+              label="Side panel"
+              orientation="vertical"
+              grow={-1}
+              value={sizes.side}
+              {...sideBounds(windowSize.width)}
+              onChange={(px) => {
+                setPanelSize("side", px);
+              }}
+              onReset={() => {
+                setPanelSize("side", null);
+              }}
+            />
             <aside
               aria-label="Side panel"
-              className="flex w-80 shrink-0 flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60"
+              style={{ width: sizes.side }}
+              className="flex shrink-0 flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60"
             >
               <div
                 role="tablist"
@@ -740,40 +814,15 @@ export function ProjectPage() {
                   />
                 )}
                 {tab === "media" && (
-                  <section aria-label="Add media" className="p-3">
-                    <h2 className="mb-2 text-sm font-semibold">
-                      {photoMode ? "Add an image as a new layer" : "Add media at the playhead"}
-                    </h2>
-                    {library.length === 0 ? (
-                      <p className="text-xs text-neutral-500">
-                        No ready assets. Upload some in the library.
-                      </p>
-                    ) : (
-                      <ul className="flex flex-col gap-1">
-                        {library.map((asset) =>
-                          asset === undefined ? null : (
-                            <li key={asset.id} className="flex items-center gap-2 text-xs">
-                              <Icon name={asset.kind ?? "file"} />
-                              <span className="min-w-0 flex-1 truncate">{asset.name}</span>
-                              <button
-                                type="button"
-                                aria-label={`Add ${asset.name} at the playhead`}
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                }}
-                                onClick={() =>
-                                  void run("timeline.addAssetAtPlayhead", { asset: asset.id })
-                                }
-                                className="rounded bg-sky-600 px-2 py-0.5 text-white hover:bg-sky-500"
-                              >
-                                Add
-                              </button>
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                    )}
-                  </section>
+                  <MediaTab
+                    assets={library.filter((a) => a !== undefined).filter((a) => a.kind !== "lut")}
+                    uploads={Object.values(uploads)}
+                    processing={processing}
+                    onImport={() => void run("media.import")}
+                    onCancel={(upload) => void run("media.cancelImport", { upload })}
+                    photoMode={photoMode}
+                    onAdd={(assetId) => void run("timeline.addAssetAtPlayhead", { asset: assetId })}
+                  />
                 )}
                 {tab === "exports" && (
                   <ExportsPanel
@@ -813,6 +862,19 @@ export function ProjectPage() {
 
           {!photoMode && (
             <>
+              <ResizeHandle
+                label="Timeline"
+                orientation="horizontal"
+                grow={-1}
+                value={sizes.dock}
+                {...dockBounds(windowSize.height)}
+                onChange={(px) => {
+                  setPanelSize("dock", px);
+                }}
+                onReset={() => {
+                  setPanelSize("dock", null);
+                }}
+              />
               <Toolbar
                 simple={simple}
                 ctx={host.ctx}
@@ -854,7 +916,10 @@ export function ProjectPage() {
                 </div>
               )}
               {!simple && editor.bottomPanel === "mixer" ? (
-                <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+                <div
+                  style={{ height: sizes.dock }}
+                  className="shrink-0 border-t border-neutral-800"
+                >
                   <MixerPanel
                     composition={composition}
                     ctx={host.ctx}
@@ -867,7 +932,10 @@ export function ProjectPage() {
                   />
                 </div>
               ) : !simple && editor.bottomPanel === "graph" ? (
-                <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+                <div
+                  style={{ height: sizes.dock }}
+                  className="shrink-0 border-t border-neutral-800"
+                >
                   <GraphEditor
                     clip={selectedInfos.length === 1 ? selectedInfos[0]?.clip : undefined}
                     playheadUs={editor.playheadUs}
@@ -881,7 +949,10 @@ export function ProjectPage() {
                   ctx={host.ctx}
                   onRun={(id) => void run(id)}
                 >
-                  <div className="h-[38vh] min-h-48 shrink-0 border-t border-neutral-800">
+                  <div
+                    style={{ height: sizes.dock }}
+                    className="shrink-0 border-t border-neutral-800"
+                  >
                     <Timeline
                       project={project}
                       composition={composition}
@@ -915,6 +986,28 @@ export function ProjectPage() {
         </>
       )}
 
+      {dragging && hasClips && (
+        <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-sky-950/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-sky-400 bg-neutral-900 px-12 py-10 shadow-2xl">
+            <Icon name="upload" className="h-10 w-10 text-sky-400" />
+            <p className="text-lg font-semibold">Drop to import</p>
+          </div>
+        </div>
+      )}
+      <input
+        ref={importInput}
+        type="file"
+        multiple
+        hidden
+        accept={importAccept(project?.kind)}
+        data-testid="import-input"
+        aria-hidden="true"
+        onChange={(e) => {
+          const files = Array.from(e.currentTarget.files ?? [], (file) => ({ file }));
+          e.currentTarget.value = "";
+          importFiles(files);
+        }}
+      />
       <CommandPalette
         extras={paletteExtras}
         registry={editingActions}

@@ -26,7 +26,8 @@ export interface UploadEntry {
 
 interface UploadsState {
   entries: Record<string, UploadEntry>;
-  start: (files: PickedFile[]) => void;
+  /** Starts uploading each file; returns their keys in `entries`, in the same order. */
+  start: (files: PickedFile[]) => string[];
   /** Resume an upload left `uploading` on the server (e.g. after a refresh). */
   resume: (
     assetId: string,
@@ -130,9 +131,11 @@ export const useUploadsStore = create<UploadsState>()((set, get) => {
     entries: {},
 
     start(files) {
+      const keys: string[] = [];
       for (const picked of files) {
         localKeys += 1;
         const key = `local-${String(localKeys)}`;
+        keys.push(key);
         set((s) => ({
           entries: {
             ...s.entries,
@@ -149,6 +152,7 @@ export const useUploadsStore = create<UploadsState>()((set, get) => {
         }));
         void run(key, picked);
       }
+      return keys;
     },
 
     async resume(assetId, pick) {

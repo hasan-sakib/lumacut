@@ -27,6 +27,7 @@ import {
   type ClipboardData,
 } from "../timeline/clipboard.ts";
 import { roundToFrame } from "../timeline/geometry.ts";
+import { mainTrack } from "../timeline/magnetic.ts";
 
 /** What the export actions need from the page. */
 export interface ExportServices {
@@ -108,6 +109,13 @@ export interface EditingServices {
   audio?: AudioServices;
   /** Video, GIF and MP3 exports (in this browser or on the server). */
   exports?: ExportServices;
+  /** Importing files from the computer into the library and the project. */
+  media?: {
+    /** Opens the file picker (videos / audio / images, or images only in a photo project). */
+    import: () => void;
+    /** Stops an upload in progress. */
+    cancel: (uploadKey: string) => Promise<void>;
+  };
   /** Saving the project as a template, and onboarding progress. */
   templates?: {
     save: (
@@ -124,7 +132,13 @@ export interface EditingServices {
       id: string;
       sideTab: string;
       bottom: "timeline" | "graph" | "mixer";
+      side?: number | null;
+      dock?: number | null;
     }) => void;
+    /** Make the side panel wider / narrower or the bottom dock taller / shorter, by `px`. */
+    resize?: (panel: "side" | "dock", px: number) => void;
+    /** Put both panels back to their default sizes. */
+    resetSizes?: () => void;
     current: () => { sideTab: string; bottom: "timeline" | "graph" | "mixer" };
     save: (name: string) => void;
     remove: (id: string) => void;
@@ -133,6 +147,8 @@ export interface EditingServices {
       name: string;
       sideTab: string;
       bottom: "timeline" | "graph" | "mixer";
+      side?: number | null;
+      dock?: number | null;
     }[];
     tour: () => void;
   };
@@ -605,6 +621,10 @@ editingActions.register({
   icon: "upload",
   argsSchema: z.object({
     asset: z.string().describe("Name (or part of it) of a ready asset in the library, or its id"),
+    at: z
+      .enum(["playhead", "end"])
+      .optional()
+      .describe("Where: at the playhead (default), or after the last clip on the main track"),
   }),
   when: (ctx) => activeComposition(ctx) !== undefined,
   run: (ctx, args): Op[] => {
@@ -616,7 +636,11 @@ editingActions.register({
     const asset = found.asset;
     const ops: Op[] = [];
     if (!project.assets.some((a) => a.id === asset.id)) ops.push({ type: "addAsset", asset });
-    const start = ctx.playheadUs;
+    // "end": pictures and videos queue up on the main track; sound and photo layers don't.
+    const queued = args.at === "end" && asset.kind !== "audio" && project.kind !== "photo";
+    const start = queued
+      ? Math.max(0, ...(mainTrack(comp)?.clips.map(endOf) ?? []))
+      : ctx.playheadUs;
     const added: string[] = [];
 
     if (asset.kind !== "audio") {

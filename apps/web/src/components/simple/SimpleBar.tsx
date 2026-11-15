@@ -18,13 +18,13 @@ interface BigButton {
 }
 
 const BUTTONS: BigButton[] = [
-  { action: "panel.showMedia", label: "Add media", icon: "upload" },
+  { action: "media.import", label: "Add media", icon: "upload" },
   { action: "clip.split", label: "Split", icon: "split" },
   { action: "text.add", label: "Text", icon: "text" },
   { action: "panel.showEffects", label: "Effects", icon: "effect" },
   { action: "panel.showStickers", label: "Stickers", icon: "shape" },
   { action: "panel.showText", label: "Captions", icon: "text" },
-  { action: "panel.showMedia", label: "Audio", icon: "audio" },
+  { action: "panel.showMedia", label: "Library", icon: "folder" },
   { action: "export.open", label: "Export", icon: "download" },
 ];
 

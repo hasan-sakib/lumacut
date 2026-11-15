@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { PanelName, StoredPanelSizes } from "../editor/panel-sizes.ts";
 
 /** Which editor layout: Simple (CapCut-like) or Pro. A view choice only: projects don't change. */
 export type EditorMode = "simple" | "pro";
@@ -14,6 +15,9 @@ export interface WorkspaceLayout {
   sideTab: string;
   /** The bottom dock: timeline, graph editor or mixer. */
   bottom: "timeline" | "graph" | "mixer";
+  /** Panel sizes saved with the arrangement (px; null or missing = the default). */
+  side?: number | null;
+  dock?: number | null;
 }
 
 /** Light, dark, or whatever the operating system is set to. */
@@ -26,7 +30,11 @@ interface Prefs {
   recents: BrowserKey[];
   workspace: string;
   savedWorkspaces: WorkspaceLayout[];
+  /** The editor's side panel width and bottom dock height (px; null = the default). */
+  panelSizes: StoredPanelSizes;
   onboarding: { tourDone: boolean; steps: Record<string, boolean> };
+  setPanelSize: (panel: PanelName, px: number | null) => void;
+  setPanelSizes: (sizes: StoredPanelSizes) => void;
   setMode: (mode: EditorMode) => void;
   setTheme: (theme: ThemeChoice) => void;
   toggleFavourite: (key: BrowserKey) => void;
@@ -43,7 +51,14 @@ const KEY = "lumacut.prefs.v1";
 
 type Stored = Pick<
   Prefs,
-  "mode" | "theme" | "favourites" | "recents" | "workspace" | "savedWorkspaces" | "onboarding"
+  | "mode"
+  | "theme"
+  | "favourites"
+  | "recents"
+  | "workspace"
+  | "savedWorkspaces"
+  | "panelSizes"
+  | "onboarding"
 >;
 
 const DEFAULTS: Stored = {
@@ -53,6 +68,7 @@ const DEFAULTS: Stored = {
   recents: [],
   workspace: "edit",
   savedWorkspaces: [],
+  panelSizes: { side: null, dock: null },
   onboarding: { tourDone: false, steps: {} },
 };
 
@@ -68,10 +84,20 @@ function load(): Stored {
 
 function persist(state: Stored): void {
   try {
-    const { mode, theme, favourites, recents, workspace, savedWorkspaces, onboarding } = state;
+    const { mode, theme, favourites, recents, workspace, savedWorkspaces, panelSizes, onboarding } =
+      state;
     globalThis.localStorage.setItem(
       KEY,
-      JSON.stringify({ mode, theme, favourites, recents, workspace, savedWorkspaces, onboarding }),
+      JSON.stringify({
+        mode,
+        theme,
+        favourites,
+        recents,
+        workspace,
+        savedWorkspaces,
+        panelSizes,
+        onboarding,
+      }),
     );
   } catch {
     // Private mode or storage full: preferences just don't survive a reload.
@@ -88,6 +114,12 @@ export const usePrefsStore = create<Prefs>()((set, get) => {
     ...load(),
     setMode: (mode) => {
       update({ mode });
+    },
+    setPanelSize: (panel, px) => {
+      update({ panelSizes: { ...get().panelSizes, [panel]: px } });
+    },
+    setPanelSizes: (panelSizes) => {
+      update({ panelSizes });
     },
     setTheme: (theme) => {
       update({ theme });

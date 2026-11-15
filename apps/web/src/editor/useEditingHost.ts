@@ -21,12 +21,14 @@ import "../actions/templates.ts";
 import "../actions/text.ts";
 import "../actions/transitions.ts";
 import "../actions/workspaces.ts";
+import "../actions/media.ts";
 import "../actions/keyframes.ts";
 import { renderMix } from "@lumacut/engine";
 import { createApiAssetResolver } from "../engine/resolver.ts";
 import { newId } from "../lib/ids.ts";
 import { useAudioStore } from "../stores/audio.ts";
 import { usePrefsStore } from "../stores/prefs.ts";
+import { panelSizes } from "./panel-sizes.ts";
 import { saveTemplate } from "../api/templates.ts";
 import { packMainTrackOps } from "../timeline/magnetic.ts";
 import { useExportsStore } from "../stores/exports.ts";
@@ -40,6 +42,9 @@ import { useEditorStore } from "../stores/editor.ts";
 import { projectStore, useProjectStore } from "../stores/project.ts";
 
 export interface EditingUi {
+  /** Opens the file picker to import media, and stops an import in progress. */
+  importMedia?: () => void;
+  cancelImport?: (uploadKey: string) => Promise<void>;
   openPalette: () => void;
   showShortcuts: () => void;
   openExport?: () => void;
@@ -97,6 +102,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
     showTab,
     applyWorkspace,
     currentLayout,
+    importMedia,
+    cancelImport,
     togglePlay,
     seek,
   } = ui;
@@ -137,13 +144,30 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       workspace: {
         apply: (layout) => {
           applyWorkspace?.(layout);
-          usePrefsStore.getState().setWorkspace(layout.id);
+          const prefs = usePrefsStore.getState();
+          prefs.setWorkspace(layout.id);
+          // A saved arrangement brings its sizes back; a built-in one uses the defaults.
+          prefs.setPanelSizes({ side: layout.side ?? null, dock: layout.dock ?? null });
+        },
+        resize: (panel, px) => {
+          const prefs = usePrefsStore.getState();
+          const now = panelSizes(prefs.panelSizes, window.innerWidth, window.innerHeight);
+          const next = panelSizes(
+            { ...prefs.panelSizes, [panel]: now[panel] + px },
+            window.innerWidth,
+            window.innerHeight,
+          );
+          prefs.setPanelSize(panel, next[panel]);
+        },
+        resetSizes: () => {
+          usePrefsStore.getState().setPanelSizes({ side: null, dock: null });
         },
         current: () => currentLayout?.() ?? { sideTab: "inspector", bottom: "timeline" },
         save: (name) => {
           const now = currentLayout?.() ?? { sideTab: "inspector", bottom: "timeline" as const };
           const id = `saved-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-          usePrefsStore.getState().saveWorkspace({ id, name, ...now });
+          const { side, dock } = usePrefsStore.getState().panelSizes;
+          usePrefsStore.getState().saveWorkspace({ id, name, ...now, side, dock });
         },
         remove: (id) => {
           usePrefsStore.getState().deleteWorkspace(id);
@@ -153,6 +177,9 @@ export function useEditingHost(ui: EditingUi): EditingHost {
           usePrefsStore.getState().resetTour();
         },
       },
+      ...(importMedia === undefined || cancelImport === undefined
+        ? {}
+        : { media: { import: importMedia, cancel: cancelImport } }),
       exports: {
         inBrowser: async (compositionId, settings) => {
           const current = projectStore.getState().project;
@@ -290,6 +317,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       showTab,
       applyWorkspace,
       currentLayout,
+      importMedia,
+      cancelImport,
       togglePlay,
       seek,
     ],

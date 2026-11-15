@@ -1,5 +1,6 @@
 import { ActionError } from "@lumacut/actions";
 import * as z from "zod";
+import { PANEL_STEP } from "../editor/panel-sizes.ts";
 import { activeComposition, editingActions, type EditingContext } from "./editing.ts";
 
 /** The built-in workspaces (SPEC §5.4): which side panel and which bottom dock. */
@@ -123,6 +124,70 @@ editingActions.register({
     if (ws === undefined || found === undefined)
       throw new ActionError(`There is no saved workspace “${args.name}”.`);
     ws.remove(found.id);
+    return undefined;
+  },
+});
+
+const SIZE_ACTIONS = [
+  {
+    id: "panel.widerSide",
+    title: "Make the side panel wider",
+    panel: "side",
+    px: PANEL_STEP,
+    keywords: ["bigger", "larger", "expand", "width"],
+  },
+  {
+    id: "panel.narrowerSide",
+    title: "Make the side panel narrower",
+    panel: "side",
+    px: -PANEL_STEP,
+    keywords: ["smaller", "shrink", "width"],
+  },
+  {
+    id: "panel.tallerDock",
+    title: "Make the timeline taller",
+    panel: "dock",
+    px: PANEL_STEP,
+    keywords: ["bigger", "larger", "expand", "height", "graph editor", "mixer"],
+  },
+  {
+    id: "panel.shorterDock",
+    title: "Make the timeline shorter",
+    panel: "dock",
+    px: -PANEL_STEP,
+    keywords: ["smaller", "shrink", "height", "graph editor", "mixer"],
+  },
+] as const;
+
+for (const a of SIZE_ACTIONS) {
+  editingActions.register({
+    id: a.id,
+    title: a.title,
+    description:
+      a.panel === "side"
+        ? "Resize the side panel (Inspector, Media, Effects…). You can also drag its left edge."
+        : "Resize the bottom panel (timeline, graph editor, mixer). You can also drag its top edge.",
+    keywords: ["panel", "resize", "size", "layout", ...a.keywords],
+    category: "Workspaces",
+    when: (ctx) =>
+      ctx.services.workspace?.resize !== undefined &&
+      (a.panel === "side" || ctx.project?.kind !== "photo"),
+    run: (ctx) => {
+      ctx.services.workspace?.resize?.(a.panel, a.px);
+      return undefined;
+    },
+  });
+}
+
+editingActions.register({
+  id: "panel.resetSizes",
+  title: "Reset panel sizes",
+  description: "Put the side panel and the timeline back to their default sizes.",
+  keywords: ["panel", "resize", "default", "layout", "restore"],
+  category: "Workspaces",
+  when: (ctx) => ctx.services.workspace?.resetSizes !== undefined,
+  run: (ctx) => {
+    ctx.services.workspace?.resetSizes?.();
     return undefined;
   },
 });

@@ -95,6 +95,30 @@ Built at the owner's request: light / dark / system theme, sidebar layout, logo,
 - **Tests that are now stale:** `e2e/library.spec.ts` ("Search library" is now "Search media", header buttons moved), `actions/library.test.ts` (action id lists), `App.test.tsx` (stack status is inside a collapsed "System status" on the login page).
 - **Gaps:** no project rename (no API for it), no project thumbnails (the list API has none), light theme not applied to the editor.
 
+### Editor: effect cards, media cards, resizable panels (2026-11-15, outside the milestone list, not verified)
+
+Built at the owner's request. Static checks only; loaded once in Docker and screenshotted (no test suites run).
+
+- **Effect cards:** `components/browser/ItemCard.tsx` replaces the text rows in `Browser.tsx` (auto-fill grid, so a wider panel shows more columns). Pictures come from `browser/thumbnails.ts`: the engine draws a built-in sample scene (`browser/sample-scene.ts`, shapes + text, no media) with the effect or look on an adjustment layer, and transitions halfway between two colour clips. Motion presets and audio effects show an icon tile. `templates/thumbnails.ts` gained `projectThumbnail(key, build, width, atUs)`; one shared engine and queue draw everything. A picture that fails leaves the icon tile (`data-picture="failed"`).
+- **Seen once at runtime:** 40 effects, 14 transitions and 8 looks draw. This is the first time the effect shaders, adjustment layers, LUT looks and transitions ran outside unit tests.
+- **Bug fixed (no test written, by the owner's order):** the Vignette shader declared `uniform float uSize`, clashing with the engine's `uniform vec2 uSize` in `effect-common.glsl`, so it never compiled. Renamed to `uRadius`. Needs a golden / compile test for every effect in the verification pass.
+- **Media tab:** `components/browser/MediaTab.tsx`, cards with `AssetThumbnail` (poster / scrub / waveform), duration badge and a + button. LUT assets are no longer listed there.
+- **Resizable panels:** `components/ResizeHandle.tsx` (drag, arrow keys, double-click or Home to reset) on the side panel's left edge and above the timeline toolbar. `editor/panel-sizes.ts` holds bounds and clamping; sizes are `prefs.panelSizes` (per browser) and are saved with workspaces (`WorkspaceLayout.side/dock`); built-in workspaces reset to the defaults. Actions: `panel.widerSide`, `panel.narrowerSide`, `panel.tallerDock`, `panel.shorterDock`, `panel.resetSizes` (no shortcuts).
+- **To test later:** every picture draws on SwiftShader; hover preview and apply from a card; favourites / recents as cards; resize by drag and keyboard, clamping on a small window, sizes restored by a saved workspace; media cards with real video, image and audio assets (only the empty state was looked at); timeline behaviour while the dock is dragged.
+- **Gaps:** motion presets have no animated preview on the card; the preview and photo tool panels are not separately resizable (they take the space left over).
+
+### Import media inside the editor (2026-11-15, outside the milestone list, not verified)
+
+Built at the owner's request (a new project had no way to bring files in). Static checks only; tried once in Docker with sample files (no test suites run).
+
+- **Actions:** `media.import` (Mod+I) and `media.cancelImport {upload}` in `actions/media.ts`; `services.media` comes from the page through `EditingUi.importMedia / cancelImport`. `timeline.addAssetAtPlayhead` gained `at: "playhead" | "end"`; `"end"` starts pictures and videos after the last clip on the main track (audio and photo layers still use the playhead).
+- **Flow:** `editor/useMediaImport.ts` starts uploads (`useUploadsStore.start` now returns the keys), remembers the ones started in this editor and, in the order chosen, adds each asset once it is ready **and** its media details have arrived (the `ready` event comes before the details are fetched). One undo step per file. Failed or cancelled files are skipped; an upload interrupted by a refresh is not auto-added.
+- **Live asset state in the editor:** `editor/useEditorEvents.ts` replaces `useExportEvents.ts`: one SSE connection for asset and export events (photo projects get it too). `lib/asset-events.ts` is shared with the start screen.
+- **UI:** `components/browser/ImportDropZone.tsx` over the empty preview / photo stage; Import button and uploading / processing cards in `MediaTab.tsx`; drop files anywhere on the editor; hidden `import-input` (accept: images only in a photo project, video + audio + images otherwise). Simple mode's "Add media" now imports; its "Audio" button became "Library" (opens the Media tab).
+- **Seen once at runtime:** video + image + mp3 imported into a new 16:9 project (video with linked audio on the main track, image after it, music on a second audio track); a PNG imported into a new photo project became Layer 1. This was also the first run of upload → worker → renditions against the M4–M9 editor.
+- **To test later:** order with a slow first file, cancel mid-upload, a file that fails processing, refresh mid-upload, drag and drop (and the refusal message for a non-image dropped on a photo project), undo per file, importing while a clip is selected, the same file imported twice, Mod+I in every browser (it is "italic" inside text fields).
+- **Gaps:** no folder import, no import from a URL; the drop zone hides as soon as the project has any clip (import then lives in the Media tab, Mod+I and drag and drop).
+
 Next: **M10** (AI analysis pipeline). Plan it and wait for approval; the owner wants M10 and later built whole, not split.
 
 Getting started in a new session:

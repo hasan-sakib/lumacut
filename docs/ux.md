@@ -45,3 +45,13 @@ The start screen (`/`) is a shell: a sidebar (logo, New project, Home / Projects
 - **New project** opens one chooser: a video in a shape (9:16, 16:9, 1:1, 4:5), a photo (blank, or from one of your images), or a template.
 - **Projects** are cards (kind, name, last edited) with search, a kind filter, sort and a ⋯ menu (Open, Delete with confirmation).
 - **Theme** is Light, Dark or System, a per-browser preference. Components are written against the dark `neutral` scale; the light theme remaps that scale in `index.css` rather than restyling each component. The editor is always dark.
+
+## Editor panels
+
+- **Browser cards:** effects, transitions and looks are small cards with a picture drawn by the engine on a built-in sample scene (transitions are caught halfway); motion presets and audio effects use an icon tile. Hover previews on the selected clip, click applies, the star in the corner is the favourite.
+- **Media tab:** library assets as cards (poster, thumbnail or waveform) with a + button that adds at the playhead (or as a layer in a photo project).
+- **Resizing:** drag the edge left of the side panel or the edge above the timeline toolbar; arrow keys nudge a focused edge; double-click (or Home) resets. Sizes are per browser, clamped so the preview always stays visible, and saved with a workspace. The same is available from the palette (`panel.widerSide`, `panel.tallerDock`, …, `panel.resetSizes`).
+
+## Importing in the editor
+
+`media.import` (Mod+I, the Media tab's Import button, Simple mode's "Add media", the empty project's drop zone, or dropping files on the editor) uploads files to the library and puts each one into the project when it is ready: pictures and videos queue up at the end of the main track (a video's sound on a linked audio track), music goes on an audio track at the playhead, and in a photo project each image becomes a new layer. Photo projects accept images only. Files being uploaded or processed show as progress cards at the top of the Media tab, with a cancel button while uploading.

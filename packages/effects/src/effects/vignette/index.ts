@@ -19,7 +19,7 @@ export const vignetteEffect = defineEffect({
       shader: vignette,
       uniforms: (p) => ({
         uAmount: p.num("amount"),
-        uSize: p.num("size"),
+        uRadius: p.num("size"),
         uSoftness: p.num("softness"),
         uRoundness: p.num("roundness"),
       }),

@@ -25,8 +25,9 @@ import { UploadsPanel } from "../components/library/UploadsPanel.tsx";
 import { galleryItems, TemplateGallery } from "../components/templates/TemplateGallery.tsx";
 import { droppedFiles, pickFiles, pickWithInput } from "../lib/files.ts";
 import { newId } from "../lib/ids.ts";
+import { applyAssetMessage } from "../lib/asset-events.ts";
 import { connectSse } from "../lib/sse.ts";
-import { useAssetsStore, type AssetStateEvent } from "../stores/assets.ts";
+import { useAssetsStore } from "../stores/assets.ts";
 import { useAuthStore } from "../stores/auth.ts";
 import { usePrefsStore } from "../stores/prefs.ts";
 import { useUiStore } from "../stores/ui.ts";
@@ -73,14 +74,7 @@ function useAssetEvents() {
         if (!first) void assets.load();
         first = false;
       },
-      onMessage: (message) => {
-        const store = useAssetsStore.getState();
-        if (message.event === "snapshot") {
-          for (const e of JSON.parse(message.data) as AssetStateEvent[]) store.applyEvent(e);
-        } else if (message.event === "asset") {
-          store.applyEvent(JSON.parse(message.data) as AssetStateEvent);
-        }
-      },
+      onMessage: applyAssetMessage,
     });
     return () => {
       connection.close();
