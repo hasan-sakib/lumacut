@@ -110,25 +110,38 @@ interface TemplateGalleryProps {
   /** Remove one of your own templates. */
   onDelete?: (item: GalleryItem) => void;
   busy?: string | null;
+  /** Search words from outside (the page's search box); hides the gallery's own search field. */
+  query?: string;
+  /** Show only the first few cards, without the filter row (the Home preview). */
+  limit?: number;
 }
 
 /** Every template, by category and shape, searchable, each drawn live by the engine. */
-export function TemplateGallery({ saved, onUse, onDelete, busy }: TemplateGalleryProps) {
+export function TemplateGallery({
+  saved,
+  onUse,
+  onDelete,
+  busy,
+  query: outerQuery,
+  limit,
+}: TemplateGalleryProps) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("all");
   const [aspect, setAspect] = useState<(typeof ASPECTS)[number]>("all");
-  const [query, setQuery] = useState("");
+  const [ownQuery, setQuery] = useState("");
+  const query = outerQuery ?? ownQuery;
   const items = useMemo(() => {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-    return galleryItems(saved).filter((i) => {
+    const all = galleryItems(saved).filter((i) => {
       if (tab !== "all" && i.category !== tab) return false;
       if (aspect !== "all" && i.aspect !== aspect) return false;
       const hay = [i.name, i.description, i.category, ...i.keywords].join(" ").toLowerCase();
       return words.every((w) => hay.includes(w));
     });
-  }, [saved, tab, aspect, query]);
+    return limit === undefined ? all : all.slice(0, limit);
+  }, [saved, tab, aspect, query, limit]);
   return (
     <section aria-label="Templates" className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
+      <div className={limit === undefined ? "flex flex-wrap items-center gap-2 text-xs" : "hidden"}>
         <div role="tablist" aria-label="Template categories" className="flex flex-wrap gap-1">
           {TABS.map((t) => (
             <button
@@ -139,7 +152,7 @@ export function TemplateGallery({ saved, onUse, onDelete, busy }: TemplateGaller
               onClick={() => {
                 setTab(t);
               }}
-              className={`rounded-full px-3 py-1 ${tab === t ? "bg-sky-600 text-white" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"}`}
+              className={`h-8 rounded-full px-3.5 font-medium transition ${tab === t ? "bg-sky-600 text-white" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"}`}
             >
               {t === "all" ? "All" : t === "mine" ? "Mine" : CATEGORY_LABEL[t]}
             </button>
@@ -151,7 +164,7 @@ export function TemplateGallery({ saved, onUse, onDelete, busy }: TemplateGaller
           onChange={(e) => {
             setAspect(e.target.value as (typeof ASPECTS)[number]);
           }}
-          className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-neutral-200"
+          className="ml-auto h-8 rounded-lg border border-neutral-800 bg-neutral-900 px-2 text-neutral-200 outline-none focus:border-sky-500"
         >
           {ASPECTS.map((a) => (
             <option key={a} value={a}>
@@ -161,17 +174,18 @@ export function TemplateGallery({ saved, onUse, onDelete, busy }: TemplateGaller
         </select>
         <input
           type="search"
+          hidden={outerQuery !== undefined}
           aria-label="Search templates"
           placeholder="Search templates…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
           }}
-          className="min-w-40 flex-1 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-neutral-100"
+          className="h-8 min-w-40 flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 text-neutral-100 outline-none focus:border-sky-500"
         />
       </div>
       {items.length === 0 && <p className="text-xs text-neutral-500">No template matches.</p>}
-      <ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] items-end gap-4">
         {items.map((item) => (
           <li key={item.key} data-testid="template-card" className="flex flex-col gap-1">
             <button
@@ -182,7 +196,7 @@ export function TemplateGallery({ saved, onUse, onDelete, busy }: TemplateGaller
               onClick={() => {
                 onUse(item);
               }}
-              className="rounded-md ring-sky-500 hover:ring-2 focus-visible:ring-2 disabled:opacity-50"
+              className="overflow-hidden rounded-lg border border-neutral-800 shadow-sm ring-sky-500 transition hover:-translate-y-0.5 hover:shadow-md hover:ring-2 focus-visible:ring-2 disabled:opacity-50"
             >
               <Thumbnail item={item} />
             </button>

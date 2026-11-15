@@ -5,6 +5,7 @@ import { AuthPage } from "./pages/AuthPage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
 import { ProjectPage } from "./pages/ProjectPage.tsx";
 import { useAuthStore } from "./stores/auth.ts";
+import { useThemeSync } from "./theme/useThemeSync.ts";
 
 // The developer player bench carries the whole engine; load it only when someone opens /dev/player.
 const PlayerPage = lazy(() =>
@@ -23,6 +24,7 @@ function GuestOnly({ children }: { children: ReactNode }) {
 }
 
 export function AppRoutes() {
+  useThemeSync();
   return (
     <Routes>
       <Route

@@ -16,14 +16,19 @@ export interface WorkspaceLayout {
   bottom: "timeline" | "graph" | "mixer";
 }
 
+/** Light, dark, or whatever the operating system is set to. */
+export type ThemeChoice = "light" | "dark" | "system";
+
 interface Prefs {
   mode: EditorMode;
+  theme: ThemeChoice;
   favourites: BrowserKey[];
   recents: BrowserKey[];
   workspace: string;
   savedWorkspaces: WorkspaceLayout[];
   onboarding: { tourDone: boolean; steps: Record<string, boolean> };
   setMode: (mode: EditorMode) => void;
+  setTheme: (theme: ThemeChoice) => void;
   toggleFavourite: (key: BrowserKey) => void;
   noteUse: (key: BrowserKey) => void;
   setWorkspace: (id: string) => void;
@@ -38,11 +43,12 @@ const KEY = "lumacut.prefs.v1";
 
 type Stored = Pick<
   Prefs,
-  "mode" | "favourites" | "recents" | "workspace" | "savedWorkspaces" | "onboarding"
+  "mode" | "theme" | "favourites" | "recents" | "workspace" | "savedWorkspaces" | "onboarding"
 >;
 
 const DEFAULTS: Stored = {
   mode: "pro",
+  theme: "system",
   favourites: [],
   recents: [],
   workspace: "edit",
@@ -62,10 +68,10 @@ function load(): Stored {
 
 function persist(state: Stored): void {
   try {
-    const { mode, favourites, recents, workspace, savedWorkspaces, onboarding } = state;
+    const { mode, theme, favourites, recents, workspace, savedWorkspaces, onboarding } = state;
     globalThis.localStorage.setItem(
       KEY,
-      JSON.stringify({ mode, favourites, recents, workspace, savedWorkspaces, onboarding }),
+      JSON.stringify({ mode, theme, favourites, recents, workspace, savedWorkspaces, onboarding }),
     );
   } catch {
     // Private mode or storage full: preferences just don't survive a reload.
@@ -82,6 +88,9 @@ export const usePrefsStore = create<Prefs>()((set, get) => {
     ...load(),
     setMode: (mode) => {
       update({ mode });
+    },
+    setTheme: (theme) => {
+      update({ theme });
     },
     toggleFavourite: (key) => {
       const favourites = get().favourites.includes(key)

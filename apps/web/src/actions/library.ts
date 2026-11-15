@@ -1,7 +1,11 @@
 import { ActionRegistry } from "@lumacut/actions";
 import * as z from "zod";
 import type { AssetOut } from "../api/client.ts";
+import type { ThemeChoice } from "../stores/prefs.ts";
 import type { ViewMode } from "../stores/ui.ts";
+
+/** The start screen's sections (sidebar). */
+export type HomeSection = "home" | "projects" | "templates" | "media";
 
 /** Side effects the library actions need; provided by the library page. */
 export interface LibraryServices {
@@ -19,6 +23,18 @@ export interface LibraryServices {
   useTemplate?: (key: string) => Promise<void>;
   /** Remove one of your saved templates. */
   deleteTemplate?: (id: string) => Promise<void>;
+  /** Open the "New project" chooser (video shapes, photo, template). */
+  chooseNewProject?: () => void;
+  /** Show one of the start screen's sections. */
+  showSection?: (section: HomeSection) => void;
+  /** Open an existing project in the editor. */
+  openProject?: (projectId: string) => void;
+  /** Ask for confirmation, then delete a project. */
+  askDeleteProject?: (projectId: string) => void;
+  /** Light, dark or follow the system. */
+  setTheme?: (theme: ThemeChoice) => void;
+  /** Flip between light and dark. */
+  toggleTheme?: () => void;
   focusSearch: () => void;
   setView: (view: ViewMode) => void;
   askDelete: (assetId: string) => void;
@@ -57,14 +73,15 @@ libraryActions.register({
 libraryActions.register({
   id: "project.new",
   title: "New project",
-  description: "Create an empty video project and open the editor.",
-  keywords: ["create", "start", "edit", "video", "composition"],
+  description: "Start a new video, photo or template project.",
+  keywords: ["create", "start", "edit", "video", "photo", "template", "composition"],
   category: "Project",
   icon: "plus",
   shortcut: "Mod+Shift+N",
   when: () => true,
   run: (ctx) => {
-    void ctx.services.createProject();
+    if (ctx.services.chooseNewProject !== undefined) ctx.services.chooseNewProject();
+    else void ctx.services.createProject();
     return undefined;
   },
 });
@@ -118,8 +135,8 @@ libraryActions.register({
 
 libraryActions.register({
   id: "library.search",
-  title: "Search library",
-  description: "Find assets by name.",
+  title: "Search",
+  description: "Find projects, templates or media by name.",
   keywords: ["find", "filter", "look up"],
   category: "Library",
   icon: "search",
@@ -287,6 +304,139 @@ libraryActions.register({
   when: (ctx) => ctx.services.deleteTemplate !== undefined,
   run: (ctx, args) => {
     void ctx.services.deleteTemplate?.(args.template.replace(/^saved:/, ""));
+    return undefined;
+  },
+});
+
+const projectArgs = z.object({ project: z.string().describe("Project id") });
+
+libraryActions.register({
+  id: "project.open",
+  title: "Open project",
+  description: "Open this project in the editor.",
+  keywords: ["open", "existing", "continue", "edit", "resume"],
+  category: "Project",
+  icon: "folder",
+  argsSchema: projectArgs,
+  when: (ctx) => ctx.services.openProject !== undefined,
+  run: (ctx, args) => {
+    ctx.services.openProject?.(args.project);
+    return undefined;
+  },
+});
+
+libraryActions.register({
+  id: "project.delete",
+  title: "Delete project",
+  description:
+    "Delete this project permanently, after you confirm. Your media stays in the library.",
+  keywords: ["remove", "trash", "discard"],
+  category: "Project",
+  icon: "trash",
+  argsSchema: projectArgs,
+  when: (ctx) => ctx.services.askDeleteProject !== undefined,
+  run: (ctx, args) => {
+    ctx.services.askDeleteProject?.(args.project);
+    return undefined;
+  },
+});
+
+const SECTIONS: {
+  section: HomeSection;
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  keywords: string[];
+}[] = [
+  {
+    section: "home",
+    id: "home.showHome",
+    title: "Home",
+    description: "Start something new and pick up recent projects.",
+    icon: "home",
+    keywords: ["start", "dashboard", "overview"],
+  },
+  {
+    section: "projects",
+    id: "home.showProjects",
+    title: "Projects",
+    description: "All of your projects: open, search, sort or delete them.",
+    icon: "folder",
+    keywords: ["existing", "open", "my projects", "recent"],
+  },
+  {
+    section: "templates",
+    id: "home.showTemplates",
+    title: "Templates",
+    description: "Start from a reel, intro, lower third, slideshow or quote card.",
+    icon: "template",
+    keywords: ["gallery", "presets", "starter"],
+  },
+  {
+    section: "media",
+    id: "home.showMedia",
+    title: "Media",
+    description: "Your uploaded videos, audio and images.",
+    icon: "image",
+    keywords: ["library", "assets", "files", "uploads"],
+  },
+];
+
+for (const s of SECTIONS) {
+  libraryActions.register({
+    id: s.id,
+    title: s.title,
+    description: s.description,
+    keywords: s.keywords,
+    category: "Go to",
+    icon: s.icon,
+    when: (ctx) => ctx.services.showSection !== undefined,
+    run: (ctx) => {
+      ctx.services.showSection?.(s.section);
+      return undefined;
+    },
+  });
+}
+
+const THEMES: { theme: ThemeChoice; title: string; description: string; icon: string }[] = [
+  { theme: "light", title: "Light theme", description: "Use the light appearance.", icon: "sun" },
+  { theme: "dark", title: "Dark theme", description: "Use the dark appearance.", icon: "moon" },
+  {
+    theme: "system",
+    title: "System theme",
+    description: "Follow your device's light or dark setting.",
+    icon: "monitor",
+  },
+];
+
+for (const t of THEMES) {
+  libraryActions.register({
+    id: `theme.${t.theme}`,
+    title: t.title,
+    description: `${t.description} The editor itself always stays dark.`,
+    keywords: ["appearance", "mode", "color scheme", "night", "day"],
+    category: "Appearance",
+    icon: t.icon,
+    when: (ctx) => ctx.services.setTheme !== undefined,
+    run: (ctx) => {
+      ctx.services.setTheme?.(t.theme);
+      return undefined;
+    },
+  });
+}
+
+libraryActions.register({
+  id: "theme.toggle",
+  title: "Switch light / dark",
+  description: "Flip between the light and dark appearance.",
+  keywords: ["appearance", "theme", "night", "day", "color scheme"],
+  category: "Appearance",
+  icon: "moon",
+  shortcut: "Alt+T",
+  when: (ctx) => ctx.services.toggleTheme !== undefined,
+  run: (ctx) => {
+    ctx.services.toggleTheme?.();
     return undefined;
   },
 });

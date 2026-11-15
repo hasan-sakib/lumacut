@@ -3,7 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Lumacut</title>
+    <script>
+      // Set the theme before first paint (no flash). The editor is always dark.
+      (function () {
+        var theme = "system";
+        try {
+          var stored = JSON.parse(localStorage.getItem("lumacut.prefs.v1") || "{}");
+          if (stored.theme === "light" || stored.theme === "dark") theme = stored.theme;
+        } catch (e) {}
+        var path = location.pathname;
+        if (path.indexOf("/project/") === 0 || path.indexOf("/dev/") === 0) theme = "dark";
+        if (theme === "system") {
+          theme =
+            window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body class="bg-neutral-950 text-neutral-100">
     <div id="root"></div>

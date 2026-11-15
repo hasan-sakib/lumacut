@@ -83,6 +83,18 @@ Verified earlier in this milestone (these have tests, and passed when written): 
 
 **Verification record, M2 + M3 (2026-11-07)**: `make check` green; `make test-engine` and `make smoke-render` green; `make perf` on the GPU (Apple M2, Metal via installed Chrome) passed every gate (60.0 fps, p95 render 4.0 ms, 0% frames never shown, frames opened = closed, 0.47 MB memory growth over 20 s + 2000 seeks; SwiftShader floor 8.2 fps); `make test-stack`: integration 26 passed / 1 skipped, e2e 16 of 18 on a loaded machine and the 2 failures (`player.spec.ts`, `resume.spec.ts`) passed alone with `--workers=1` (CPU contention; run with `--workers=2` or on a quiet machine); the M3 acceptance e2e passed. Not run: `make test-samples` (~25 min, M1 pipeline) and a manual browser pass. Cross-backend finding: the compositor is bit-identical on SwiftShader and the GPU for stills; video differs only through the decoder (SSIM ≈ 0.998), so golden images must use still-image inputs.
 
+### Start screen redesign (2026-11-15, outside the milestone list, not verified)
+
+Built at the owner's request: light / dark / system theme, sidebar layout, logo, icon-based New project and existing-project cards. Static checks only; the page was loaded once in Docker and screenshotted in both themes (no test suites run).
+
+- **Theme:** `prefs.theme` (`light | dark | system`, default system). `index.css` remaps the `neutral` scale (and the red / amber / emerald / sky tints) under `:root[data-theme="light"]`, so existing components follow without restyling. `index.html` sets `data-theme` before first paint; `theme/useThemeSync.ts` keeps it in step. **The editor (`/project/*`) and `/dev/*` are forced dark.**
+- **Layout:** `components/home/` (Sidebar, TopBar, HomeView, ProjectsView, ProjectCard, NewProjectDialog, ProjectDeleteDialog, ThemeSwitch, useProjects, shapes). Sections Home / Projects / Templates / Media switch in place on `/`. `Logo.tsx` + `public/favicon.svg`. Inter is now the UI font (bundled file).
+- **Actions added:** `project.open`, `project.delete`, `home.show{Home,Projects,Templates,Media}`, `theme.{light,dark,system}`, `theme.toggle` (Alt+T). `project.new` now opens the chooser (falls back to an empty project when no chooser service exists).
+- **Removed:** `ProjectsStrip.tsx`, `CreateStrip.tsx` (folded into Home and the dialog).
+- **To test later:** theme switch, System mode following the OS, no flash on load, editor staying dark and the theme returning on the way back; sidebar rail under 1024 px; every New project path; project search / kind filter / sort / delete; search from Home jumping to Projects; "From one of your images" flow; light-mode contrast of the asset grid, table, uploads panel and status badges with real media (only the empty library was looked at).
+- **Tests that are now stale:** `e2e/library.spec.ts` ("Search library" is now "Search media", header buttons moved), `actions/library.test.ts` (action id lists), `App.test.tsx` (stack status is inside a collapsed "System status" on the login page).
+- **Gaps:** no project rename (no API for it), no project thumbnails (the list API has none), light theme not applied to the editor.
+
 Next: **M10** (AI analysis pipeline). Plan it and wait for approval; the owner wants M10 and later built whole, not split.
 
 Getting started in a new session:

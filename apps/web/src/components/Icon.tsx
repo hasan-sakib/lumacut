@@ -67,6 +67,19 @@ const PATHS: Record<string, string> = {
   lock: "M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3",
   eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
   file: "M6 3h8l4 4v14H6zM14 3v4h4",
+  home: "M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10",
+  folder: "M3 6h6l2 2h10v11H3z",
+  template: "M4 4h16v6H4zM4 14h7v6H4zM15 14h5M15 18h5",
+  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+  moon: "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
+  monitor: "M3 4h18v12H3zM8 20h8M12 16v4",
+  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
+  sort: "M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3",
+  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.5 3.6-6 8-6s8 2.5 8 6",
+  check: "M5 12l5 5 9-10",
+  reel: "M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM10.5 9.5v5l4-2.5z",
+  chevronRight: "M9 6l6 6-6 6",
+  arrowRight: "M5 12h14m0 0-5-5m5 5-5 5",
 };
 
 export function Icon({ name, className = "h-4 w-4" }: { name: string; className?: string }) {
