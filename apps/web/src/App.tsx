@@ -2,6 +2,7 @@ import { Tooltip } from "radix-ui";
 import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { AuthPage } from "./pages/AuthPage.tsx";
+import { LandingPage } from "./pages/LandingPage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
 import { ProjectPage } from "./pages/ProjectPage.tsx";
 import { useAuthStore } from "./stores/auth.ts";
@@ -16,6 +17,13 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const status = useAuthStore((s) => s.status);
   if (status === "unknown") return <p className="p-10 text-neutral-400">Loading…</p>;
   return status === "authenticated" ? children : <Navigate to="/login" replace />;
+}
+
+/** `/`: the start screen when signed in, the public landing page otherwise. */
+function Home() {
+  const status = useAuthStore((s) => s.status);
+  if (status === "unknown") return <p className="p-10 text-neutral-400">Loading…</p>;
+  return status === "authenticated" ? <LibraryPage /> : <LandingPage />;
 }
 
 function GuestOnly({ children }: { children: ReactNode }) {
@@ -43,14 +51,7 @@ export function AppRoutes() {
           </GuestOnly>
         }
       />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <LibraryPage />
-          </RequireAuth>
-        }
-      />
+      <Route path="/" element={<Home />} />
       <Route
         path="/project/:projectId"
         element={

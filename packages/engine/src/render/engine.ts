@@ -800,8 +800,13 @@ export class Engine {
    */
   async #resolveText(context: RenderContext, clip: Clip, tUs: number): Promise<LayerSource | null> {
     context.usedClips.add(clip.id);
+    // The text at this moment: animated properties (an animator's range sweeping across the
+    // letters, a typewriter reveal) are evaluated first, as they are for shapes.
+    const animated = resolveClipProps(clip, tUs).clip;
     const data =
-      clip.type === "caption" ? captionTextAt(clip, tUs - clip.startUs) : (clip.text ?? null);
+      animated.type === "caption"
+        ? captionTextAt(animated, tUs - clip.startUs)
+        : (animated.text ?? null);
     if (data === null) {
       if (clip.type === "text" && clip.text === undefined) {
         context.diagnostics.add({

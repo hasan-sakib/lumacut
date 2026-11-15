@@ -129,6 +129,20 @@ Built at the owner's request. Static checks only; tried once in Docker (no test 
 - **Bug fixed (no test written, by the owner's order):** built-in look ids (`builtin:noir`…) broke the schema's `Id` pattern, so **any project with a built-in look failed to save** (422 `invalid_project`, since M4/M6). `LutRef.lutId` is now `LutId` = an asset id or `builtin:<slug>`; `make gen-schema` regenerated the JSON Schema and Pydantic models (drift check clean); API image rebuilt. Needs a test (save a project with each built-in look) in the verification pass.
 - **To test later:** undo per action, several looks stacked, locked layers (buttons disabled), multi-select (`effect.remove` removes that effect from every selected layer), hover preview never changes the selection, video projects saving with looks after the schema fix.
 
+### Public landing page (2026-11-16, outside the milestone list, not verified)
+
+Built at the owner's request. Static checks only; loaded once in Docker at 1440 px (light and dark) and 390 px (no test suites run).
+
+- **Route:** `/` is now `Home` in `App.tsx`: the start screen when signed in, `pages/LandingPage.tsx` when signed out (no redirect to `/login`). Protected routes still redirect.
+- **Page:** `components/landing/` (`Navbar` with section highlight + mobile menu + skip link, `Hero`, `EditorMock`, `ToolTabs`, `TemplateShowcase`, `EffectShowcase`, `Sections` = Steps / FeatureGrid / ComingNext / Faq / CallToAction / Footer, `content.ts` for all copy, `useActiveSection.ts`). Light and dark. Smooth anchor scrolling (off when the OS asks for reduced motion). Meta description and theme-color in `index.html`.
+- **Content rules:** counts come from `TEMPLATES`, `EFFECTS`, `TRANSITIONS`, `BUILTIN_LUTS`, `MOTION_PRESETS`; no testimonials, logos, user numbers or prices; AI (M10–M12) only under "Coming next: Not available yet".
+- **Pictures:** templates and effects are drawn live by the engine. `Thumbnail` (TemplateGallery) is exported and takes a `variant`; `landing/demo.ts` fills empty media slots with gradient effects and draws at 60 % of the length (landing only; the in-app gallery still shows grey slots). The hero's editor window is a drawing, with a real template frame as its preview.
+- **Deviation from the plan:** the showcases are not lazy chunks. The whole app is already one bundle (LibraryPage and ProjectPage are static imports), so splitting only the landing sections would save nothing; pictures still draw lazily as they scroll into view. Code-splitting the editor from the landing page is worth doing in M13 (performance pass).
+- **Bug fixed (no test written, by the owner's order):** text clips were drawn from their static `clip.text`, so **animated text properties never played** (every text reveal preset: typewriter, fade up, words in, text out; a typewriter title stayed invisible). `Engine.#resolveText` now reads the animated clip (`resolveClipProps`), as shapes do. Needs an engine test (animator range keyframes change the raster) in the verification pass. Worker images rebuilt so server export has it (and the earlier Vignette fix).
+- **To test later:** navbar highlight while scrolling, mobile menu, every anchor, FAQ keyboard use, both themes, no-WebGL fallback, `/` after login and after logout, Lighthouse (performance, accessibility).
+- **Stale tests:** e2e that expect `/` → `/login` when signed out (`smoke.spec.ts`, `helpers.ts` flows), `App.test.tsx`.
+- **Gaps:** no pricing, legal or contact pages; no real product screenshots or video; the landing page ships in the same bundle as the editor.
+
 Next: **M10** (AI analysis pipeline). Plan it and wait for approval; the owner wants M10 and later built whole, not split.
 
 Getting started in a new session:

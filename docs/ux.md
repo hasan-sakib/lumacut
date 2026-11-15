@@ -59,3 +59,7 @@ The start screen (`/`) is a shell: a sidebar (logo, New project, Home / Projects
 ## Photo filters
 
 The photo editor's Filters tab lists what is **applied** first (each look layer and each effect on the selected layer, with on/off and remove, plus "Remove all"), then **looks** and **effects** as picture cards. Hover a card to see it on the photo; click to add it. A card that is already applied shows ✓ and a ✕ to remove it. Looks are adjustment layers over the whole photo; effects go on the selected layer.
+
+## Landing page
+
+Signed-out visitors see the landing page at `/`: a sticky navbar (section links, theme switch, Log in, Get started), a hero with a drawing of the editor, "Three tools, one project" tabs, live template and effect showcases, three steps, a feature grid, a clearly labelled "Coming next" block for AI, an FAQ and a final call to action. All copy lives in `components/landing/content.ts`; numbers are counted from the product, and nothing on the page is invented (no testimonials, customers or prices).

@@ -18,6 +18,12 @@
   color-scheme: dark;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 /*
  * Light theme. The app's components are written against the dark `neutral` scale (950 = page,
  * 900 = card, 800/700 = borders, 100–400 = text), so the light theme remaps that scale instead of

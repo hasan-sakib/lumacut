@@ -7,7 +7,7 @@ import {
 } from "@lumacut/templates";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SavedTemplate } from "../../api/templates.ts";
-import { templateThumbnail } from "../../templates/thumbnails.ts";
+import { projectThumbnail, templateThumbnail } from "../../templates/thumbnails.ts";
 
 /** One card in the gallery: a built-in template or one you saved. */
 export interface GalleryItem {
@@ -53,7 +53,19 @@ const TABS: (TemplateCategory | "mine" | "all")[] = [
   "mine",
 ];
 
-function Thumbnail({ item }: { item: GalleryItem }) {
+/** A different drawing of a template: its own cache key, a change to the project, and a moment. */
+export interface ThumbnailVariant {
+  key: string;
+  prepare: (project: Project) => Project;
+  /** When to draw, as a fraction of the template's length (0..1). */
+  at: number;
+}
+
+/**
+ * A template's picture, drawn by the engine when the card scrolls into view. With `variant` (keep
+ * it a module constant), the project is changed first and drawn at another moment.
+ */
+export function Thumbnail({ item, variant }: { item: GalleryItem; variant?: ThumbnailVariant }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -67,11 +79,23 @@ function Thumbnail({ item }: { item: GalleryItem }) {
       let project: Project;
       try {
         project = item.build();
+        if (variant !== undefined) project = variant.prepare(project);
       } catch {
         setFailed(true);
         return;
       }
-      templateThumbnail(item.key, project).then(
+      const drawn = project;
+      const main = drawn.compositions.find((c) => c.id === drawn.mainCompositionId);
+      const pending =
+        variant === undefined
+          ? templateThumbnail(item.key, drawn)
+          : projectThumbnail(
+              `${variant.key}:${item.key}`,
+              () => drawn,
+              480,
+              Math.round((main?.durationUs ?? 0) * variant.at),
+            );
+      pending.then(
         (u) => {
           if (!cancelled) setUrl(u);
         },
@@ -85,7 +109,7 @@ function Thumbnail({ item }: { item: GalleryItem }) {
       cancelled = true;
       observer.disconnect();
     };
-  }, [item]);
+  }, [item, variant]);
   const [w, h] = item.aspect.split(":").map(Number);
   return (
     <div
