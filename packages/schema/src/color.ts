@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { Id, Rgb, Vec2 } from "./primitives.ts";
+import { Rgb, Vec2 } from "./primitives.ts";
 import { named } from "./registry.ts";
 
 export const CurvePoints = named(
@@ -50,13 +50,21 @@ export const HslAdjustments = named(
 );
 export type HslAdjustments = z.infer<typeof HslAdjustments>;
 
+/** A `lut` asset's id, or one of the engine's built-in looks (`builtin:teal-orange`). */
+export const LutId = named(
+  "LutId",
+  z.string().regex(/^(?:[A-Za-z0-9_-]{1,64}|builtin:[a-z0-9-]{1,48})$/),
+  "A `lut` asset id ([A-Za-z0-9_-], 1-64 chars), or a built-in look: `builtin:` + a lowercase slug.",
+);
+export type LutId = z.infer<typeof LutId>;
+
 export const LutRef = named(
   "LutRef",
   z.strictObject({
-    lutId: Id,
+    lutId: LutId,
     intensity: z.number().min(0).max(1),
   }),
-  "3D LUT (.cube) applied at the end of the grade; lutId references a `lut` asset.",
+  "3D LUT applied at the end of the grade; lutId is a `lut` asset or a built-in look.",
 );
 export type LutRef = z.infer<typeof LutRef>;
 

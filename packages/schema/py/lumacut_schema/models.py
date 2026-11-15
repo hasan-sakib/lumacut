@@ -393,11 +393,16 @@ class HslAdjustments(BaseModel):
     magenta: HslBand
 
 
+type LutId = Annotated[
+    StrictStr, Field(pattern="^(?:[A-Za-z0-9_-]{1,64}|builtin:[a-z0-9-]{1,48})$")
+]
+
+
 class LutRef(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    lutId: Id
+    lutId: LutId
     intensity: Annotated[StrictFloat, Field(ge=0.0, le=1.0)]
 
 

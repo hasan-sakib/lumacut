@@ -15,7 +15,7 @@ interface ItemCardProps {
 }
 
 /** The card's picture: the engine's drawing of the item, or its icon tile. */
-function Picture({ item }: { item: BrowserItem }) {
+export function Picture({ item }: { item: BrowserItem }) {
   const [ref, inView] = useInView<HTMLDivElement>();
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);

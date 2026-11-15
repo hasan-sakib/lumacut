@@ -55,3 +55,7 @@ The start screen (`/`) is a shell: a sidebar (logo, New project, Home / Projects
 ## Importing in the editor
 
 `media.import` (Mod+I, the Media tab's Import button, Simple mode's "Add media", the empty project's drop zone, or dropping files on the editor) uploads files to the library and puts each one into the project when it is ready: pictures and videos queue up at the end of the main track (a video's sound on a linked audio track), music goes on an audio track at the playhead, and in a photo project each image becomes a new layer. Photo projects accept images only. Files being uploaded or processed show as progress cards at the top of the Media tab, with a cancel button while uploading.
+
+## Photo filters
+
+The photo editor's Filters tab lists what is **applied** first (each look layer and each effect on the selected layer, with on/off and remove, plus "Remove all"), then **looks** and **effects** as picture cards. Hover a card to see it on the photo; click to add it. A card that is already applied shows ✓ and a ✕ to remove it. Looks are adjustment layers over the whole photo; effects go on the selected layer.

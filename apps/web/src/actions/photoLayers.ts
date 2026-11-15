@@ -2,16 +2,14 @@ import { ActionError } from "@lumacut/actions";
 import { BUILTIN_LUTS } from "@lumacut/engine/color";
 import {
   BlendMode,
-  createClip,
   createTrack,
-  neutralColor,
   type Clip,
   type Composition,
   type Op,
   type Track,
 } from "@lumacut/schema";
 import * as z from "zod";
-import { addLayerOps } from "../photo/layers.ts";
+import { lookLayerOps } from "../photo/layers.ts";
 import {
   DEFAULT_IMAGE_US,
   activeComposition,
@@ -438,28 +436,61 @@ editingActions.register({
   run: (ctx, args): Op[] => {
     const comp = activeComposition(ctx);
     if (comp === undefined) throw new ActionError("Open a composition first.");
-    const info = BUILTIN_LUTS.find((l) => l.id === args.look);
     const clipId = ctx.services.newId();
     ctx.services.editor.selectClips([clipId]);
-    return addLayerOps(
-      comp,
-      createClip({
-        id: clipId,
-        type: "adjustment",
-        startUs: 0,
-        inUs: 0,
-        // A photo has one frame; on a video the look covers the whole composition.
-        outUs:
-          ctx.project?.kind === "photo"
-            ? DEFAULT_IMAGE_US
-            : Math.max(DEFAULT_IMAGE_US, comp.durationUs),
-        color: {
-          ...neutralColor(),
-          lut: { lutId: args.look, intensity: (args.intensity ?? 100) / 100 },
-        },
-      }),
-      ctx.services.newId(),
-      info === undefined ? "Look" : `Look: ${info.name}`,
+    return lookLayerOps(comp, {
+      lookId: args.look,
+      photo: ctx.project?.kind === "photo",
+      minUs: DEFAULT_IMAGE_US,
+      clipId,
+      trackId: ctx.services.newId(),
+      intensity: (args.intensity ?? 100) / 100,
+    });
+  },
+});
+
+editingActions.register({
+  id: "filters.removeAll",
+  icon: "trash",
+  title: "Remove all filters",
+  description:
+    "Take every look off the picture (their adjustment layers) and every effect off the selected layers, in one undo step. Locked layers are left alone.",
+  keywords: ["filters", "looks", "effects", "clear", "remove all", "reset", "original"],
+  category: "Effects",
+  when: (ctx) => {
+    const comp = activeComposition(ctx);
+    if (comp === undefined) return false;
+    const selected = new Set(ctx.selectedClipIds);
+    return comp.tracks.some(
+      (t) =>
+        !t.locked &&
+        t.clips.some(
+          (c) =>
+            (c.type === "adjustment" && c.color.lut !== undefined) ||
+            (selected.has(c.id) && c.effects.length > 0),
+        ),
     );
+  },
+  run: (ctx): Op[] => {
+    const comp = activeComposition(ctx);
+    if (comp === undefined) throw new ActionError("Open a composition first.");
+    const selected = new Set(ctx.selectedClipIds);
+    const looks = comp.tracks.filter(
+      (t) => !t.locked && t.clips.some((c) => c.type === "adjustment" && c.color.lut !== undefined),
+    );
+    const lookIds = new Set(looks.map((t) => t.id));
+    const effects = comp.tracks
+      .filter((t) => !t.locked && !lookIds.has(t.id) && t.kind === "visual")
+      .flatMap((t) => t.clips.filter((c) => selected.has(c.id)))
+      .flatMap((clip) =>
+        clip.effects.map((e): Op => ({ type: "removeEffect", clipId: clip.id, effectId: e.id })),
+      );
+    if (looks.some((t) => t.clips.some((c) => selected.has(c.id)))) {
+      ctx.services.editor.selectClips([]);
+    }
+    return [
+      ...effects,
+      ...looks.map((t): Op => ({ type: "removeTrack", compositionId: comp.id, trackId: t.id })),
+    ];
   },
 });

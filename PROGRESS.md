@@ -119,6 +119,16 @@ Built at the owner's request (a new project had no way to bring files in). Stati
 - **To test later:** order with a slow first file, cancel mid-upload, a file that fails processing, refresh mid-upload, drag and drop (and the refusal message for a non-image dropped on a photo project), undo per file, importing while a clip is selected, the same file imported twice, Mod+I in every browser (it is "italic" inside text fields).
 - **Gaps:** no folder import, no import from a URL; the drop zone hides as soon as the project has any clip (import then lives in the Media tab, Mod+I and drag and drop).
 
+### Photo Filters tab as cards (2026-11-16, outside the milestone list, not verified)
+
+Built at the owner's request. Static checks only; tried once in Docker (no test suites run).
+
+- **Panel:** `components/photo/FiltersPanel.tsx` rewritten: search, **Applied** list (`AppliedFilters.tsx`: each look layer and each effect of the selected layer, with eye = on/off and trash = remove, "Remove all"), then Looks and Effects as picture cards (`FilterCard.tsx`, pictures from `browser/thumbnails.ts` via the now-exported `Picture` in `ItemCard.tsx`). Applied cards show ✓ and a corner ✕; clicking an applied look selects its layer instead of adding a copy. `components/effects/EffectsBrowser.tsx` removed (nothing else used it).
+- **Actions:** removing / hiding a look reuses `layer.delete {trackId}` / `layer.toggleHidden {trackId}` (the planned `look.remove` / `look.toggle` would have duplicated them); effects use `effect.add / remove / toggle`. New `filters.removeAll` (looks + effects of the selected layer, one undo step, locked layers left alone).
+- **Hover preview:** `layer.addLook`'s ops moved into a pure `lookLayerOps` (`photo/layers.ts`) so hovering a look previews it without changing the selection; ProjectPage's `previewOps` shows ops on a copy of the project.
+- **Bug fixed (no test written, by the owner's order):** built-in look ids (`builtin:noir`…) broke the schema's `Id` pattern, so **any project with a built-in look failed to save** (422 `invalid_project`, since M4/M6). `LutRef.lutId` is now `LutId` = an asset id or `builtin:<slug>`; `make gen-schema` regenerated the JSON Schema and Pydantic models (drift check clean); API image rebuilt. Needs a test (save a project with each built-in look) in the verification pass.
+- **To test later:** undo per action, several looks stacked, locked layers (buttons disabled), multi-select (`effect.remove` removes that effect from every selected layer), hover preview never changes the selection, video projects saving with looks after the schema fix.
+
 Next: **M10** (AI analysis pipeline). Plan it and wait for approval; the owner wants M10 and later built whole, not split.
 
 Getting started in a new session:

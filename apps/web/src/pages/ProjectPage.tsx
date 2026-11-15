@@ -1,7 +1,7 @@
 import type { Op, Project } from "@lumacut/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
-import { editingActions } from "../actions/editing.ts";
+import { DEFAULT_IMAGE_US, editingActions } from "../actions/editing.ts";
 import { useShortcuts } from "../actions/useShortcuts.ts";
 import { ActionButton } from "../components/ActionButton.tsx";
 import { GraphEditor } from "../components/graph/GraphEditor.tsx";
@@ -339,6 +339,25 @@ export function ProjectPage() {
     },
     [host.ctx, playing],
   );
+  /** Shows ops (a look, an effect) on a copy of the project, for the Filters cards' hover. */
+  const previewOps = useCallback(
+    (ops: Op[] | null) => {
+      previewRequest.current += 1;
+      const current = projectStore.getState().project;
+      if (ops === null || current === null || playing) {
+        setPreviewProject(null);
+        return;
+      }
+      try {
+        let next = current;
+        for (const op of ops) next = applyOp(next, op).project;
+        setPreviewProject(next, current);
+      } catch {
+        setPreviewProject(null);
+      }
+    },
+    [playing],
+  );
   const gestures = useRef(0);
   const commit = useCallback((op: Op, label: string) => {
     gestures.current += 1;
@@ -387,6 +406,11 @@ export function ProjectPage() {
           ];
     });
   }, [composition, project, editor.selectedClipIds]);
+  const filterTargets = useMemo(
+    () =>
+      selectedInfos.filter((i) => i.track?.kind === "visual" && !i.track.locked).map((i) => i.clip),
+    [selectedInfos],
+  );
   const library = assetOrder.map((id) => assets[id]).filter((a) => a?.status === "ready");
   const processing = assetOrder
     .map((id) => assets[id])
@@ -751,8 +775,14 @@ export function ProjectPage() {
                 )}
                 {tab === "filters" && (
                   <FiltersPanel
-                    canAdd={selectedInfos.some((i) => i.track?.kind === "visual")}
+                    composition={composition}
+                    targets={filterTargets}
+                    frameUs={DEFAULT_IMAGE_US}
                     run={run}
+                    onPreview={previewOps}
+                    onSelect={(clipId) => {
+                      editor.selectClips([clipId]);
+                    }}
                   />
                 )}
                 {tab === "canvas" && photoMode && (

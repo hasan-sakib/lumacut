@@ -1050,11 +1050,15 @@
       ],
       "additionalProperties": false
     },
+    "LutId": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z0-9_-]{1,64}|builtin:[a-z0-9-]{1,48})$"
+    },
     "LutRef": {
       "type": "object",
       "properties": {
         "lutId": {
-          "$ref": "#/$defs/Id"
+          "$ref": "#/$defs/LutId"
         },
         "intensity": {
           "type": "number",
