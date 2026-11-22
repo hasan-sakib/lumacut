@@ -8,6 +8,7 @@ export const innerGlowEffect = defineEffect({
   id: "innerGlow",
   name: "Inner glow",
   category: "Utility",
+  appliesTo: "clip",
   description: "A soft glow just inside the edges of the shape.",
   keywords: ["inner glow", "glow", "edge light", "rim"],
   params: [

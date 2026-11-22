@@ -49,16 +49,23 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="relative hidden w-[44%] max-w-2xl flex-col justify-between overflow-hidden bg-linear-to-br from-sky-600 via-indigo-600 to-violet-700 p-12 text-white lg:flex">
-        <Logo markClassName="h-10 w-10" className="[&>span]:text-2xl" />
-        <div>
+      <aside className="relative hidden w-[44%] max-w-2xl flex-col justify-between overflow-hidden bg-[#07070c] p-12 text-white lg:flex">
+        {/* Soft glows in the logo's colours (violet, orange, blue, teal); the logo is made for black. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <span className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-violet-600/30 blur-3xl" />
+          <span className="absolute right-[-6rem] top-1/3 h-72 w-72 rounded-full bg-orange-500/20 blur-3xl" />
+          <span className="absolute -bottom-24 left-1/4 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl" />
+          <span className="absolute bottom-10 right-10 h-40 w-40 rounded-full bg-teal-400/15 blur-3xl" />
+        </div>
+        <Logo size="lg" tone="onDark" className="relative" />
+        <div className="relative">
           <p className="max-w-md text-4xl font-bold leading-tight tracking-tight">
             Video, motion graphics and photo editing in one studio.
           </p>
           <ul className="mt-10 flex flex-col gap-5">
             {POINTS.map((p) => (
               <li key={p.title} className="flex items-start gap-4">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/15">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 ring-1 ring-white/10">
                   <Icon name={p.icon} className="h-5 w-5" />
                 </span>
                 <span>
@@ -69,7 +76,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
             ))}
           </ul>
         </div>
-        <p className="text-xs text-white/60">
+        <p className="relative text-xs text-white/60">
           Runs in your browser. Your projects save as you work.
         </p>
       </aside>
@@ -80,7 +87,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
         </div>
         <header className="text-center lg:hidden">
           <h1>
-            <Logo markClassName="h-10 w-10" className="[&>span]:text-2xl" />
+            <Logo size="lg" />
           </h1>
           <p className="mt-2 text-sm text-neutral-400">
             Video, motion graphics and photo editing in one studio.

@@ -48,6 +48,12 @@ export interface EffectDefinition {
   /** Extra words for search ("blur", "soften"…). */
   keywords: readonly string[];
   params: readonly ParamDef[];
+  /**
+   * Where the editor puts the effect when you add it: `"layer"` (default) on its own adjustment
+   * layer over everything below; `"clip"` on the selected clip itself, for effects that work from
+   * the clip's own shape or colours (keying, shadows, outlines…).
+   */
+  appliesTo?: "clip" | "layer";
   /** Layer pixels the picture can grow by on every side (blur, glow, shadow…). Default 0. */
   expand?: (params: Params) => number;
   /** Shader passes in order; each reads the previous pass (`uSrc`) and the effect's input (`uOrig`). */

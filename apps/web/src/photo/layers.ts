@@ -1,12 +1,4 @@
-import { BUILTIN_LUTS } from "@lumacut/engine/color";
-import {
-  createClip,
-  createTrack,
-  neutralColor,
-  type Clip,
-  type Composition,
-  type Op,
-} from "@lumacut/schema";
+import { createTrack, type Clip, type Composition, type Op } from "@lumacut/schema";
 
 /** "Paint 3": the next free number for a layer name starting with `base`. */
 export function nextLayerName(comp: Composition, base: string): string {
@@ -42,38 +34,4 @@ export function addLayerOps(
 /** The track a clip is on. */
 export function trackOfClip(comp: Composition, clipId: string) {
   return comp.tracks.find((t) => t.clips.some((c) => c.id === clipId));
-}
-
-/**
- * Ops that add one built-in look as an adjustment layer over everything: a photo's single frame,
- * or a video's whole length (at least `minUs`). `clipId` and `trackId` are the new layer's ids.
- */
-export function lookLayerOps(
-  comp: Composition,
-  options: {
-    lookId: string;
-    photo: boolean;
-    minUs: number;
-    clipId: string;
-    trackId: string;
-    intensity?: number;
-  },
-): Op[] {
-  const info = BUILTIN_LUTS.find((l) => l.id === options.lookId);
-  return addLayerOps(
-    comp,
-    createClip({
-      id: options.clipId,
-      type: "adjustment",
-      startUs: 0,
-      inUs: 0,
-      outUs: options.photo ? options.minUs : Math.max(options.minUs, comp.durationUs),
-      color: {
-        ...neutralColor(),
-        lut: { lutId: options.lookId, intensity: options.intensity ?? 1 },
-      },
-    }),
-    options.trackId,
-    info === undefined ? "Look" : `Look: ${info.name}`,
-  );
 }

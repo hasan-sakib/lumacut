@@ -1,39 +1,54 @@
-import { useId } from "react";
+const SIZES = {
+  sm: { word: "h-6", mark: "h-7 w-7" },
+  md: { word: "h-8", mark: "h-8 w-8" },
+  lg: { word: "h-11", mark: "h-10 w-10" },
+} as const;
 
 interface LogoProps {
-  /** "mark": the icon only; "full": icon + wordmark. */
-  variant?: "mark" | "full";
-  /** Tailwind size classes for the mark. */
-  markClassName?: string;
+  /** "full": the Lumacut wordmark; "mark": the film-strip "L" alone (square). */
+  variant?: "full" | "mark";
+  size?: keyof typeof SIZES;
+  /**
+   * "auto": follows the theme (white letters on dark, ink letters on light); "onDark": always the
+   * white-letter version, for logos sitting on a dark or coloured panel whatever the theme.
+   */
+  tone?: "auto" | "onDark";
   className?: string;
 }
 
-/** The Lumacut mark: a play triangle with a cut through it, on a sky-to-indigo tile. */
-export function Logo({ variant = "full", markClassName = "h-8 w-8", className = "" }: LogoProps) {
-  const id = useId();
+/**
+ * The Lumacut logo (artwork in docs/brand, files built by scripts/brand/make_logo_assets.py).
+ * The wordmark exists in two versions; CSS in index.css shows the one that fits the theme.
+ */
+export function Logo({ variant = "full", size = "md", tone = "auto", className = "" }: LogoProps) {
+  const sizes = SIZES[size];
+  if (variant === "mark") {
+    return (
+      <img
+        src="/brand/lumacut-mark.png"
+        alt="Lumacut"
+        draggable={false}
+        className={`${sizes.mark} shrink-0 object-contain ${className}`}
+      />
+    );
+  }
+  const common = `${sizes.word} w-auto shrink-0 select-none`;
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <svg viewBox="0 0 32 32" className={`shrink-0 ${markClassName}`} aria-hidden="true">
-        <defs>
-          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
-            <stop offset="0" stopColor="#38bdf8" />
-            <stop offset="1" stopColor="#6366f1" />
-          </linearGradient>
-        </defs>
-        <rect width="32" height="32" rx="8" fill={`url(#${id})`} />
-        <path d="M12 8.5v15l12-7.5z" fill="#fff" />
-        <path
-          d="M7 25.5 24.5 6"
-          stroke={`url(#${id})`}
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          fill="none"
+    <span className={`inline-flex items-center ${className}`}>
+      <img
+        src="/brand/lumacut-wordmark-dark.png"
+        alt="Lumacut"
+        draggable={false}
+        className={`${common} ${tone === "auto" ? "lc-logo-for-dark" : ""}`}
+      />
+      {tone === "auto" && (
+        <img
+          src="/brand/lumacut-wordmark-light.png"
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className={`${common} lc-logo-for-light`}
         />
-      </svg>
-      {variant === "full" ? (
-        <span className="text-lg font-bold tracking-tight">Lumacut</span>
-      ) : (
-        <span className="sr-only">Lumacut</span>
       )}
     </span>
   );

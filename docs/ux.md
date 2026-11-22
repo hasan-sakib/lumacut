@@ -40,7 +40,7 @@ the generated sections (effects, transition, text, masks, matte, audio effects, 
 
 ## Start screen and theme
 
-The start screen (`/`) is a shell: a sidebar (logo, New project, Home / Projects / Templates / Media, theme, account), a top bar (section title, search for the current section, section buttons) and the section's content. Sections switch in place; every nav item, the theme buttons and the project menu run registry actions (`home.show*`, `theme.*`, `project.open`, `project.delete`, `project.new`).
+The start screen (`/`) is a shell: a sidebar (logo, New project, Home / Projects / Templates / Media, theme, account), a top bar (section title, search for the current section, section buttons; Home shows only its title, with no search box or Upload button, and `/` there opens Projects with its search focused) and the section's content. Sections switch in place; every nav item, the theme buttons and the project menu run registry actions (`home.show*`, `theme.*`, `project.open`, `project.delete`, `project.new`).
 
 - **New project** opens one chooser: a video in a shape (9:16, 16:9, 1:1, 4:5), a photo (blank, or from one of your images), or a template.
 - **Projects** are cards (kind, name, last edited) with search, a kind filter, sort and a ⋯ menu (Open, Delete with confirmation).
@@ -58,8 +58,18 @@ The start screen (`/`) is a shell: a sidebar (logo, New project, Home / Projects
 
 ## Photo filters
 
-The photo editor's Filters tab lists what is **applied** first (each look layer and each effect on the selected layer, with on/off and remove, plus "Remove all"), then **looks** and **effects** as picture cards. Hover a card to see it on the photo; click to add it. A card that is already applied shows ✓ and a ✕ to remove it. Looks are adjustment layers over the whole photo; effects go on the selected layer.
+The photo editor's Filters tab lists what is **applied** first (each look layer and each effect on the selected layer, with on/off and remove, plus "Remove all"), then **looks** and **effects** as picture cards. Hover a card to see it on the photo; click to add it. A card that is already applied shows ✓ and a ✕ to remove it. Each look and effect is added as its own filter layer (see below); clicking an applied card selects its layer.
+
+## Filters on their own layers
+
+Every look and effect, in both editors (Filters tab, Effects tab cards, palette, AI), is added as its own **filter layer**: a new track holding one adjustment clip that carries just that look or effect, named after it ("Look: Noir", "Gaussian blur"). It goes directly above the topmost selected clip (on top when nothing is selected). In a video it spans the selected clips, or 5 s from the playhead when nothing is selected; in a photo it covers the frame. The new layer is selected so its settings open in the Inspector / Properties. A filter layer changes everything below it; hide, trim, reorder or delete it like any layer.
+
+Exceptions stay on the clip itself: motion presets, and effects that work from the clip's own shape or colours (Chroma key, Luma key, Drop shadow, Stroke, Outer glow, Inner glow, Fill; `appliesTo: "clip"` in their definitions). Their cards are greyed out until a clip is selected. `effect.addToClip` (palette) puts any effect on the selected clips instead of a layer; per-clip looks remain in the Inspector's colour section. Hover previews never change the selection.
 
 ## Landing page
 
 Signed-out visitors see the landing page at `/`: a sticky navbar (section links, theme switch, Log in, Get started), a hero with a drawing of the editor, "Three tools, one project" tabs, live template and effect showcases, three steps, a feature grid, a clearly labelled "Coming next" block for AI, an FAQ and a final call to action. All copy lives in `components/landing/content.ts`; numbers are counted from the product, and nothing on the page is invented (no testimonials, customers or prices).
+
+## Logo
+
+The brand artwork lives in `docs/brand/lumacut-logo.png`; `scripts/brand/make_logo_assets.py` builds the transparent wordmarks (one for dark backgrounds, one with ink letters for light), the film-strip “L” mark and the favicons into `apps/web/public`. Use `components/Logo.tsx` everywhere: `variant="mark"` where space is square or tight, `tone="onDark"` on panels that are dark in both themes.

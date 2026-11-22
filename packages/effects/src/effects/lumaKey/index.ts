@@ -6,6 +6,7 @@ export const lumaKeyEffect = defineEffect({
   id: "lumaKey",
   name: "Luma key",
   category: "Keying",
+  appliesTo: "clip",
   description: "Make the darkest or brightest parts transparent.",
   keywords: ["key", "luma", "brightness key", "matte", "remove black", "remove white"],
   params: [

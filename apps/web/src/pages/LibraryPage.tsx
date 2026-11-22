@@ -201,8 +201,16 @@ export function LibraryPage() {
         usePrefsStore.getState().setTheme(currentTheme() === "light" ? "dark" : "light");
       },
       focusSearch() {
-        searchRef.current?.focus();
-        searchRef.current?.select();
+        if (searchRef.current === null) {
+          // Home has no search box: "/" opens Projects and focuses its search.
+          setSection("projects");
+          requestAnimationFrame(() => {
+            searchRef.current?.focus();
+          });
+          return;
+        }
+        searchRef.current.focus();
+        searchRef.current.select();
       },
       setView,
       askDelete,
@@ -254,13 +262,6 @@ export function LibraryPage() {
     void libraryActions.execute(actionId, ctx, args);
   };
   const meta = SECTION[section];
-  const searchValue = section === "home" ? "" : queries[section];
-  const onSearch = (value: string) => {
-    // Searching from Home looks through your projects.
-    const target = section === "home" ? "projects" : section;
-    if (section === "home" && value !== "") setSection("projects");
-    setQueries((q) => ({ ...q, [target]: value }));
-  };
   const gallery = (limit?: number) => (
     <TemplateGallery
       saved={savedTemplates}
@@ -300,10 +301,12 @@ export function LibraryPage() {
         <TopBar
           title={meta.title}
           subtitle={meta.subtitle}
-          search={searchValue}
-          searchLabel={meta.search}
+          search={section === "home" ? "" : queries[section]}
+          searchLabel={section === "home" ? null : meta.search}
           searchRef={searchRef}
-          onSearch={onSearch}
+          onSearch={(value) => {
+            if (section !== "home") setQueries((q) => ({ ...q, [section]: value }));
+          }}
         >
           {section === "media" && (
             <>
@@ -320,11 +323,13 @@ export function LibraryPage() {
               />
             </>
           )}
-          <ActionButton
-            action={libraryActions.get("library.upload")}
-            ctx={ctx}
-            className="h-9 border border-neutral-700 bg-neutral-900 text-neutral-100 hover:bg-neutral-800"
-          />
+          {section !== "home" && (
+            <ActionButton
+              action={libraryActions.get("library.upload")}
+              ctx={ctx}
+              className="h-9 border border-neutral-700 bg-neutral-900 text-neutral-100 hover:bg-neutral-800"
+            />
+          )}
         </TopBar>
 
         <main className="flex-1 overflow-y-auto">

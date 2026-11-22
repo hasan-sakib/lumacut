@@ -22,7 +22,7 @@ const STEPS: Step[] = [
   {
     target: "preview",
     title: "Hover to preview",
-    body: "In the Effects tab, hover an effect, preset or look to see it on the selected clip; click to keep it.",
+    body: "In the Effects tab, hover an effect, preset or look to see it in the preview; click to keep it. Looks and effects go on their own layer above the selected clip.",
   },
   {
     target: "palette",

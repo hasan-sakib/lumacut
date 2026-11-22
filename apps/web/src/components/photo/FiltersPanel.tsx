@@ -1,16 +1,21 @@
 import type { Clip, Composition, Op } from "@lumacut/schema";
 import { useMemo, useRef, useState } from "react";
 import { allItems, searchItems, type BrowserItem } from "../../browser/items.ts";
+import {
+  effectAppliesToClip,
+  filterLayerClip,
+  filterLayerOps,
+  type FilterContent,
+} from "../../editor/filter-layers.ts";
 import { addEffectOps } from "../../inspector/effect-ops.ts";
-import { layerEffects, lookLayers, type AppliedFilter } from "../../photo/filters.ts";
-import { lookLayerOps } from "../../photo/layers.ts";
+import { filterLayers, layerEffects, type AppliedFilter } from "../../photo/filters.ts";
 import { Icon } from "../Icon.tsx";
 import { AppliedFilters } from "./AppliedFilters.tsx";
 import { FilterCard } from "./FilterCard.tsx";
 
 interface FiltersPanelProps {
   composition: Composition;
-  /** The selected, unlocked picture layers' clips (where effects go). */
+  /** The selected, unlocked picture layers' clips (new filter layers go above them). */
   targets: readonly Clip[];
   /** How long a photo's single frame lasts (a look layer's length). */
   frameUs: number;
@@ -33,9 +38,10 @@ const previewId = () => {
 };
 
 /**
- * Filters for a photo: what is applied (each look and each effect of the selected layer, with on /
- * off and remove), then looks and effects as picture cards. Hover a card to see it on the photo,
- * click to add it.
+ * Filters for a photo: what is applied (every filter layer, and the selected layer's own effects,
+ * with on / off and remove), then looks and effects as picture cards. Hover a card to see it on the
+ * photo, click to add it: each filter is added as its own layer above the selected one (keying and
+ * shape effects go onto the selected layer itself).
  */
 export function FiltersPanel({
   composition,
@@ -47,12 +53,25 @@ export function FiltersPanel({
 }: FiltersPanelProps) {
   const [query, setQuery] = useState("");
   const hover = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const looks = useMemo(() => lookLayers(composition), [composition]);
-  const effects = useMemo(() => layerEffects(targets), [targets]);
-  const applied: AppliedFilter[] = [...looks, ...effects];
-  const appliedLook = new Map(looks.map((l) => [l.lookId, l]));
-  const appliedEffect = new Set(effects.map((e) => e.effectId));
-  const canAdd = targets.length > 0;
+  const layers = useMemo(() => filterLayers(composition), [composition]);
+  const own = useMemo(() => {
+    const filterClips = new Set(
+      composition.tracks.flatMap((t) => {
+        const clip = filterLayerClip(t);
+        return clip === undefined ? [] : [clip.id];
+      }),
+    );
+    return layerEffects(targets.filter((c) => !filterClips.has(c.id)));
+  }, [composition, targets]);
+  const applied: AppliedFilter[] = [...layers, ...own];
+  const appliedLook = new Map(
+    layers.flatMap((f) => (f.kind === "look" ? [[f.lookId, f] as const] : [])),
+  );
+  const appliedEffect = new Map(
+    applied.flatMap((f) => (f.kind === "effect" ? [[f.effectId, f] as const] : [])),
+  );
+  const hasSelection = targets.length > 0;
+  const selectedClipIds = useMemo(() => targets.map((c) => c.id), [targets]);
 
   const shown = useMemo(() => searchItems(ITEMS, query), [query]);
   const shownLooks = shown.filter((i) => i.kind === "look");
@@ -74,28 +93,33 @@ export function FiltersPanel({
   const startPreview = (item: BrowserItem) => {
     if (hover.current !== null) clearTimeout(hover.current);
     hover.current = setTimeout(() => {
-      const ops =
-        item.kind === "look"
-          ? lookLayerOps(composition, {
-              lookId: idOf(item),
-              photo: true,
-              minUs: frameUs,
-              clipId: previewId(),
-              trackId: previewId(),
-            })
-          : addEffectOps(targets, idOf(item), previewId);
-      onPreview(ops);
+      const id = idOf(item);
+      if (item.kind === "effect" && effectAppliesToClip(id)) {
+        onPreview(addEffectOps(targets, id, previewId));
+        return;
+      }
+      const filter: FilterContent = item.kind === "look" ? { lookId: id } : { effectId: id };
+      onPreview(
+        filterLayerOps(
+          composition,
+          filter,
+          { photo: true, selectedClipIds, playheadUs: 0, defaultUs: frameUs },
+          { clipId: previewId(), trackId: previewId(), effectId: previewId() },
+        ),
+      );
     }, HOVER_MS);
   };
 
   const remove = (f: AppliedFilter) => {
     endPreview();
-    if (f.kind === "look") void run("layer.delete", { trackId: f.trackId });
-    else void run("effect.remove", { effect: f.effectId });
+    const trackId = f.trackId;
+    if (trackId !== undefined) void run("layer.delete", { trackId });
+    else if (f.kind === "effect") void run("effect.remove", { effect: f.effectId });
   };
   const toggle = (f: AppliedFilter) => {
-    if (f.kind === "look") void run("layer.toggleHidden", { trackId: f.trackId });
-    else void run("effect.toggle", { effect: f.effectId });
+    const trackId = f.trackId;
+    if (trackId !== undefined) void run("layer.toggleHidden", { trackId });
+    else if (f.kind === "effect") void run("effect.toggle", { effect: f.effectId });
   };
 
   const lookCard = (item: BrowserItem) => {
@@ -113,7 +137,7 @@ export function FiltersPanel({
         onAdd={() => {
           endPreview();
           if (on !== undefined) onSelect(on.clipId);
-          else void run("layer.addLook", { look: idOf(item) });
+          else void run("color.applyLut", { look: idOf(item) });
         }}
         onRemove={() => {
           if (on !== undefined) remove(on);
@@ -122,24 +146,25 @@ export function FiltersPanel({
     );
   };
   const effectCard = (item: BrowserItem) => {
-    const on = appliedEffect.has(idOf(item));
+    const on = appliedEffect.get(idOf(item));
+    const available = hasSelection || !effectAppliesToClip(idOf(item));
     return (
       <FilterCard
         key={item.key}
         item={item}
-        available={canAdd}
-        applied={on}
+        available={available}
+        applied={on !== undefined}
         onHover={(inside) => {
-          if (inside && canAdd) startPreview(item);
+          if (inside && available) startPreview(item);
           else endPreview();
         }}
         onAdd={() => {
           endPreview();
-          if (!on) void run("effect.add", { effect: idOf(item) });
+          if (on?.trackId !== undefined) onSelect(on.clipId);
+          else if (on === undefined) void run("effect.add", { effect: idOf(item) });
         }}
         onRemove={() => {
-          endPreview();
-          void run("effect.remove", { effect: idOf(item) });
+          if (on !== undefined) remove(on);
         }}
       />
     );
@@ -207,7 +232,8 @@ export function FiltersPanel({
             Looks <span className="font-normal text-neutral-600">{shownLooks.length}</span>
           </h3>
           <p className="mb-2 text-neutral-500">
-            A look covers the whole photo. Lower its layer's opacity to soften it.
+            Each look is added as its own layer above the selected one. Lower its opacity to soften
+            it.
           </p>
           <ul className={GRID}>{shownLooks.map(lookCard)}</ul>
         </div>
@@ -218,9 +244,8 @@ export function FiltersPanel({
           <div>
             <h3 className={HEADING}>Effects</h3>
             <p className="text-neutral-500">
-              {canAdd
-                ? "Added to the selected layer. Adjust it in Properties."
-                : "Select a layer to add effects to it."}
+              Each effect is added as its own layer above the selected one; adjust it in Properties.
+              Keying, shadow, glow, outline and fill effects go onto the selected layer itself.
             </p>
           </div>
           {effectGroups.map(([category, list]) => (

@@ -131,7 +131,10 @@ export function Browser({ kinds, canApply, onApply, onPreview }: BrowserProps) {
           </button>
         ))}
       </div>
-      <p className="text-neutral-500">Hover to preview on the selected clip, click to apply.</p>
+      <p className="text-neutral-500">
+        Hover to preview, click to apply. Looks and effects are added as their own layer above the
+        selected clip.
+      </p>
       {query === "" && favouriteItems.length > 0 && (
         <div>
           <h3 className={HEADING}>Favourites</h3>

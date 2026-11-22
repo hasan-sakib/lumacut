@@ -1,8 +1,8 @@
-import { ActionError } from "@lumacut/actions";
 import { BUILTIN_LUTS } from "@lumacut/engine/color";
 import { neutralColor, type Op } from "@lumacut/schema";
 import * as z from "zod";
 import { placedClips } from "../timeline/clips.ts";
+import { addFilterLayer } from "./effects.ts";
 import { activeComposition, editingActions, type EditingContext } from "./editing.ts";
 
 /** The unlocked picture clips in the selection: what a colour action applies to. */
@@ -38,27 +38,34 @@ editingActions.register({
   id: "color.applyLut",
   title: "Apply a look",
   description:
-    "Apply a built-in colour look (LUT) to the selected clips: " +
+    "Add a built-in colour look (LUT) as its own adjustment layer, directly above the selected clips and as long as them (the whole photo in a photo; 5 s from the playhead when nothing is selected); it changes everything below it. Looks: " +
     BUILTIN_LUTS.map((b) => `${b.id} (${b.name})`).join(", ") +
-    ". Intensity is 0–100%.",
-  keywords: ["lut", "look", "filter", "preset", "grade", "teal", "orange", "noir", "sepia", "film"],
+    ". Intensity is 0–100%. Lower the layer's opacity to soften it.",
+  keywords: [
+    "lut",
+    "look",
+    "filter",
+    "preset",
+    "grade",
+    "teal",
+    "orange",
+    "noir",
+    "sepia",
+    "film",
+    "instagram",
+    "style",
+    "adjustment layer",
+  ],
   category: "Colour",
+  icon: "lut",
   argsSchema: z.object({
     look: z.enum(lutIds as [string, ...string[]]),
     intensity: z.number().min(0).max(100).optional(),
   }),
-  when: available,
+  when: (ctx) => activeComposition(ctx) !== undefined,
   run: (ctx, args): Op[] => {
     const { look, intensity } = args;
-    const targets = pictureTargets(ctx);
-    if (targets.length === 0) throw new ActionError("Select a picture clip first.");
-    return targets.map(({ clip }) => ({
-      type: "setProps",
-      clipId: clip.id,
-      props: {
-        color: { ...clip.color, lut: { lutId: look, intensity: (intensity ?? 100) / 100 } },
-      },
-    }));
+    return addFilterLayer(ctx, { lookId: look, intensity: (intensity ?? 100) / 100 });
   },
 });
 

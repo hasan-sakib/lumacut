@@ -18,6 +18,17 @@
   color-scheme: dark;
 }
 
+/* The logo has a version for dark backgrounds and one for light; show the one the theme needs. */
+.lc-logo-for-light {
+  display: none;
+}
+:root[data-theme="light"] .lc-logo-for-light {
+  display: block;
+}
+:root[data-theme="light"] .lc-logo-for-dark {
+  display: none;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;

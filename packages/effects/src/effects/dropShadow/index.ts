@@ -8,6 +8,7 @@ export const dropShadowEffect = defineEffect({
   id: "dropShadow",
   name: "Drop shadow",
   category: "Utility",
+  appliesTo: "clip",
   description: "Cast a soft shadow behind the shape of the picture.",
   keywords: ["shadow", "drop shadow", "depth", "lift", "cast"],
   params: [

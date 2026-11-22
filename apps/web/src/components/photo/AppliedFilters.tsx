@@ -44,7 +44,7 @@ export function AppliedFilters({
         {filters.map((f) => {
           const item = itemFor(f);
           const key = f.kind === "look" ? `look:${f.trackId}` : `fx:${f.clipId}:${f.instanceId}`;
-          const locked = f.kind === "look" && f.locked;
+          const locked = f.locked === true;
           return (
             <li
               key={key}
@@ -55,7 +55,7 @@ export function AppliedFilters({
             >
               <button
                 type="button"
-                title={f.kind === "look" ? "Select this look's layer" : "Select this layer"}
+                title={f.trackId === undefined ? "Select this layer" : "Select this filter's layer"}
                 aria-label={`Select ${f.name}`}
                 onClick={() => {
                   onSelect(f);
@@ -75,7 +75,11 @@ export function AppliedFilters({
                   {f.name}
                 </span>
                 <span className="block text-[10px] text-neutral-500">
-                  {f.kind === "look" ? "Look · whole photo" : `${f.category} · this layer`}
+                  {f.kind === "look"
+                    ? "Look · own layer"
+                    : f.trackId === undefined
+                      ? `${f.category} · on this layer`
+                      : `${f.category} · own layer`}
                   {f.enabled ? "" : " · off"}
                 </span>
               </span>

@@ -6,6 +6,7 @@ export const strokeEffect = defineEffect({
   id: "stroke",
   name: "Stroke",
   category: "Utility",
+  appliesTo: "clip",
   description: "Outline the shape of the picture.",
   keywords: ["stroke", "outline", "border", "edge", "sticker"],
   params: [

@@ -2,9 +2,19 @@ import { ActionError } from "@lumacut/actions";
 import { EFFECTS, effectById } from "@lumacut/effects";
 import type { Clip, Op } from "@lumacut/schema";
 import * as z from "zod";
+import {
+  effectAppliesToClip,
+  filterLayerOps,
+  type FilterContent,
+} from "../editor/filter-layers.ts";
 import { addEffectOps, moveEffectOp, setEffectEnabledOp } from "../inspector/effect-ops.ts";
 import { placedClips } from "../timeline/clips.ts";
-import { activeComposition, editingActions, type EditingContext } from "./editing.ts";
+import {
+  DEFAULT_IMAGE_US,
+  activeComposition,
+  editingActions,
+  type EditingContext,
+} from "./editing.ts";
 
 /** Unlocked picture-track clips (media, solids, adjustment layers…) in the selection. */
 function targets(ctx: EditingContext): Clip[] {
@@ -22,20 +32,84 @@ const EffectArg = z
   .enum(EFFECT_IDS)
   .describe("Effect id: " + EFFECTS.map((e) => `${e.id} (${e.name}, ${e.category})`).join("; "));
 
+/**
+ * Adds a filter (a look or an effect) on its own adjustment layer, directly above the selection
+ * (spanning it in a video), and selects the new layer so its settings show in the Inspector.
+ */
+export function addFilterLayer(ctx: EditingContext, filter: FilterContent): Op[] {
+  const comp = activeComposition(ctx);
+  if (comp === undefined) throw new ActionError("Open a composition first.");
+  const clipId = ctx.services.newId();
+  const ops = filterLayerOps(
+    comp,
+    filter,
+    {
+      photo: ctx.project?.kind === "photo",
+      selectedClipIds: ctx.selectedClipIds,
+      playheadUs: ctx.playheadUs,
+      defaultUs: DEFAULT_IMAGE_US,
+    },
+    { clipId, trackId: ctx.services.newId(), effectId: ctx.services.newId() },
+  );
+  ctx.services.editor.selectClips([clipId]);
+  return ops;
+}
+
+const CLIP_ONLY = EFFECTS.filter((e) => e.appliesTo === "clip")
+  .map((e) => e.name)
+  .join(", ");
+
+/** The effect on each selected clip itself; clip-only effects need a selection. */
+function addToClips(ctx: EditingContext, effect: string): Op[] {
+  const clips = targets(ctx);
+  if (clips.length === 0) {
+    const name = effectById(effect)?.name ?? effect;
+    throw new ActionError(`“${name}” works on a clip itself: select a clip first.`);
+  }
+  return addEffectOps(clips, effect, ctx.services.newId);
+}
+
 editingActions.register({
   id: "effect.add",
   title: "Add an effect",
   description:
-    "Apply a visual effect (blur, glow, vignette, chroma key, …) to the selected clips. Change its settings in the Inspector.",
-  keywords: ["effect", "filter", "fx", "blur", "glow", "stylize", "distort", "key", "add effect"],
+    "Add a visual effect (blur, glow, vignette, grain, …) as its own adjustment layer, directly above the selected clips and as long as them (5 s from the playhead when nothing is selected); it changes everything below it. " +
+    `Effects that work from a clip's own shape or colours (${CLIP_ONLY}) go onto the selected clips instead. Change its settings in the Inspector.`,
+  keywords: [
+    "effect",
+    "filter",
+    "fx",
+    "blur",
+    "glow",
+    "stylize",
+    "distort",
+    "key",
+    "add effect",
+    "adjustment layer",
+  ],
+  category: "Effects",
+  icon: "effect",
+  argsSchema: z.object({ effect: EffectArg }),
+  when: (ctx) => activeComposition(ctx) !== undefined,
+  run: (ctx, args): Op[] => {
+    const { effect } = args;
+    return effectAppliesToClip(effect)
+      ? addToClips(ctx, effect)
+      : addFilterLayer(ctx, { effectId: effect });
+  },
+});
+
+editingActions.register({
+  id: "effect.addToClip",
+  title: "Add an effect to the selected clips",
+  description:
+    "Put a visual effect on the selected clips themselves (not on a separate layer), so it changes only those clips. Change its settings in the Inspector.",
+  keywords: ["effect", "filter", "fx", "clip", "only this clip", "on the clip", "add effect"],
   category: "Effects",
   icon: "effect",
   argsSchema: z.object({ effect: EffectArg }),
   when: available,
-  run: (ctx, args): Op[] => {
-    const { effect } = args;
-    return addEffectOps(targets(ctx), effect, ctx.services.newId);
-  },
+  run: (ctx, args): Op[] => addToClips(ctx, args.effect),
 });
 
 /** Instances of an effect id on the selected clips. */

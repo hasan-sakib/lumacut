@@ -11,6 +11,7 @@ import { WorkspaceMenu } from "../components/simple/WorkspaceMenu.tsx";
 import { Browser } from "../components/browser/Browser.tsx";
 import { MediaTab } from "../components/browser/MediaTab.tsx";
 import { ResizeHandle } from "../components/ResizeHandle.tsx";
+import { effectAppliesToClip } from "../editor/filter-layers.ts";
 import { dockBounds, panelSizes, sideBounds, useWindowSize } from "../editor/panel-sizes.ts";
 import {
   KIND_LABEL,
@@ -33,6 +34,7 @@ import { useEditorEvents } from "../editor/useEditorEvents.ts";
 import { importAccept, useMediaImport } from "../editor/useMediaImport.ts";
 import { ImportDropZone } from "../components/browser/ImportDropZone.tsx";
 import { Icon } from "../components/Icon.tsx";
+import { Logo } from "../components/Logo.tsx";
 import { droppedFiles } from "../lib/files.ts";
 import { useUploadsStore } from "../stores/uploads.ts";
 import { formatShortcut } from "@lumacut/actions";
@@ -327,7 +329,15 @@ export function ProjectPage() {
         return;
       }
       try {
-        const result = await editingActions.execute(item.action.id, host.ctx, item.action.args);
+        // A preview must not change the selection (adding a filter layer selects it).
+        const ctx = {
+          ...host.ctx,
+          services: {
+            ...host.ctx.services,
+            editor: { ...host.ctx.services.editor, selectClips: () => undefined },
+          },
+        };
+        const result = await editingActions.execute(item.action.id, ctx, item.action.args);
         if (request !== previewRequest.current || result === undefined) return;
         const ops = Array.isArray(result) ? result : [result];
         let next = current;
@@ -484,8 +494,12 @@ export function ProjectPage() {
       }}
     >
       <header className="flex flex-wrap items-center gap-3 border-b border-neutral-800 px-4 py-2">
-        <Link to="/" className="text-sm text-sky-400 hover:underline">
-          ← Library
+        <Link
+          to="/"
+          title="Back to the library"
+          className="flex items-center gap-2 text-sm text-sky-400 hover:underline"
+        >
+          <Logo variant="mark" size="sm" />← Library
         </Link>
         <h1 className="truncate text-base font-semibold" data-testid="project-name">
           {project?.name ?? "Project"}
@@ -809,7 +823,13 @@ export function ProjectPage() {
                     </div>
                     <Browser
                       kinds={BROWSER_KINDS}
-                      canApply={(item) => editingActions.get(item.action.id).when(host.ctx)}
+                      canApply={(item) =>
+                        editingActions.get(item.action.id).when(host.ctx) &&
+                        // Keying and shape effects go onto a clip: they need one selected.
+                        (item.kind !== "effect" ||
+                          !effectAppliesToClip(item.key.slice("effect:".length)) ||
+                          editingActions.get("effect.addToClip").when(host.ctx))
+                      }
                       onApply={(item) => {
                         setPreviewProject(null);
                         void run(item.action.id, item.action.args);

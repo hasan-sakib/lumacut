@@ -6,6 +6,7 @@ export const fillEffect = defineEffect({
   id: "fill",
   name: "Fill",
   category: "Utility",
+  appliesTo: "clip",
   description: "Paint the shape of the picture with a flat colour.",
   keywords: ["fill", "colour", "solid", "tint", "silhouette", "flat"],
   params: [color("fillColor", "Colour", rgb("#ff3b6b")), percent("opacity", "Opacity", 1, 0, 1)],

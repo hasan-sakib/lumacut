@@ -80,8 +80,9 @@ picture). A layer with an animated transform blocks them with a message.
 `layer.moveTo` (drag), `layer.duplicate` (Mod+J), `layer.delete`, `layer.rename`,
 `layer.toggleHidden`, `layer.toggleLocked`, `layer.setOpacity`, `layer.setBlend`, `layer.group`
 (Mod+G: the `precompose` op, and the emptied layers go), `layer.ungroup` (Mod+Shift+G: only groups
-that were not moved, scaled, masked, faded or given effects), `layer.addLook` (a built-in LUT as an
-adjustment layer). Panel buttons are registry actions and take an optional `trackId`.
+that were not moved, scaled, masked, faded or given effects). Looks (`color.applyLut`) and effects
+(`effect.add`) are each added as their own filter layer (see docs/ux.md, "Filters on their own
+layers"). Panel buttons are registry actions and take an optional `trackId`.
 
 ## Export
 `export.image` (and the **Export…** window, `export.open`, Mod+Shift+E): PNG, JPEG or WebP, quality,

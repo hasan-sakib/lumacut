@@ -6,6 +6,7 @@ export const chromaKeyEffect = defineEffect({
   id: "chromaKey",
   name: "Chroma key",
   category: "Keying",
+  appliesTo: "clip",
   description: "Remove a colour (green screen) and clean up the colour spilling onto the subject.",
   keywords: ["key", "green screen", "chroma", "blue screen", "remove background", "matte"],
   params: [

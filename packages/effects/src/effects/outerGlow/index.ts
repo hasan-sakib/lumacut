@@ -7,6 +7,7 @@ export const outerGlowEffect = defineEffect({
   id: "outerGlow",
   name: "Outer glow",
   category: "Utility",
+  appliesTo: "clip",
   description: "A soft glow around the outside of the shape.",
   keywords: ["outer glow", "glow", "halo", "aura", "neon"],
   params: [

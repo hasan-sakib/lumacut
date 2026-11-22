@@ -1,5 +1,4 @@
 import { ActionError } from "@lumacut/actions";
-import { BUILTIN_LUTS } from "@lumacut/engine/color";
 import {
   BlendMode,
   createTrack,
@@ -9,15 +8,8 @@ import {
   type Track,
 } from "@lumacut/schema";
 import * as z from "zod";
-import { lookLayerOps } from "../photo/layers.ts";
-import {
-  DEFAULT_IMAGE_US,
-  activeComposition,
-  editingActions,
-  type EditingContext,
-} from "./editing.ts";
-
-const LOOK_IDS = BUILTIN_LUTS.map((l) => l.id) as [string, ...string[]];
+import { filterLayerClip } from "../editor/filter-layers.ts";
+import { activeComposition, editingActions, type EditingContext } from "./editing.ts";
 
 /** The layers an action acts on: the one named by `trackId`, else the layers of the selected clips. */
 function layersOf(ctx: EditingContext, trackId?: string): Track[] {
@@ -421,40 +413,11 @@ editingActions.register({
 });
 
 editingActions.register({
-  id: "layer.addLook",
-  icon: "lut",
-  title: "Add a look as an adjustment layer",
-  description:
-    "Add an adjustment layer carrying one of the built-in colour looks, over everything below it. Lower its opacity to soften the look.",
-  keywords: ["look", "filter", "preset", "lut", "grade", "instagram", "style", "photo"],
-  category: "Layers",
-  argsSchema: z.object({
-    look: z.enum(LOOK_IDS),
-    intensity: z.number().min(0).max(100).optional(),
-  }),
-  when: (ctx) => activeComposition(ctx) !== undefined,
-  run: (ctx, args): Op[] => {
-    const comp = activeComposition(ctx);
-    if (comp === undefined) throw new ActionError("Open a composition first.");
-    const clipId = ctx.services.newId();
-    ctx.services.editor.selectClips([clipId]);
-    return lookLayerOps(comp, {
-      lookId: args.look,
-      photo: ctx.project?.kind === "photo",
-      minUs: DEFAULT_IMAGE_US,
-      clipId,
-      trackId: ctx.services.newId(),
-      intensity: (args.intensity ?? 100) / 100,
-    });
-  },
-});
-
-editingActions.register({
   id: "filters.removeAll",
   icon: "trash",
   title: "Remove all filters",
   description:
-    "Take every look off the picture (their adjustment layers) and every effect off the selected layers, in one undo step. Locked layers are left alone.",
+    "Delete every filter layer (each look and effect added as its own layer) and take every effect off the selected layers, in one undo step. Locked layers are left alone.",
   keywords: ["filters", "looks", "effects", "clear", "remove all", "reset", "original"],
   category: "Effects",
   when: (ctx) => {
@@ -464,11 +427,12 @@ editingActions.register({
     return comp.tracks.some(
       (t) =>
         !t.locked &&
-        t.clips.some(
-          (c) =>
-            (c.type === "adjustment" && c.color.lut !== undefined) ||
-            (selected.has(c.id) && c.effects.length > 0),
-        ),
+        (filterLayerClip(t) !== undefined ||
+          t.clips.some(
+            (c) =>
+              (c.type === "adjustment" && c.color.lut !== undefined) ||
+              (selected.has(c.id) && c.effects.length > 0),
+          )),
     );
   },
   run: (ctx): Op[] => {
@@ -476,7 +440,10 @@ editingActions.register({
     if (comp === undefined) throw new ActionError("Open a composition first.");
     const selected = new Set(ctx.selectedClipIds);
     const looks = comp.tracks.filter(
-      (t) => !t.locked && t.clips.some((c) => c.type === "adjustment" && c.color.lut !== undefined),
+      (t) =>
+        !t.locked &&
+        (filterLayerClip(t) !== undefined ||
+          t.clips.some((c) => c.type === "adjustment" && c.color.lut !== undefined)),
     );
     const lookIds = new Set(looks.map((t) => t.id));
     const effects = comp.tracks
