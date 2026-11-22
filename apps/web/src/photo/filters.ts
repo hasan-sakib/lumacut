@@ -36,7 +36,11 @@ export type AppliedFilter = AppliedLook | AppliedEffect;
  * Every filter layer in the composition (a look or one effect on its own adjustment layer), top
  * layer first, plus any other adjustment layer carrying a look.
  */
-export function filterLayers(comp: Composition): AppliedFilter[] {
+export function filterLayers(
+  comp: Composition,
+  /** Names of your own LUTs, by id (built-in looks name themselves). */
+  lutNames: ReadonlyMap<string, string> = new Map(),
+): AppliedFilter[] {
   return [...comp.tracks].reverse().flatMap((track): AppliedFilter[] => {
     const filter = filterLayerClip(track);
     const effect = filter?.effects[0];
@@ -66,7 +70,7 @@ export function filterLayers(comp: Composition): AppliedFilter[] {
           trackId: track.id,
           clipId: clip.id,
           lookId,
-          name: info?.name ?? "Look",
+          name: info?.name ?? lutNames.get(lookId) ?? "Look",
           enabled: !track.hidden,
           locked: track.locked,
         },

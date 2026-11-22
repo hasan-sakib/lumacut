@@ -45,6 +45,8 @@ export interface EditingUi {
   /** Opens the file picker to import media, and stops an import in progress. */
   importMedia?: () => void;
   cancelImport?: (uploadKey: string) => Promise<void>;
+  /** Opens a `.cube`-only picker; the LUTs upload to the library. */
+  importLuts?: () => void;
   openPalette: () => void;
   showShortcuts: () => void;
   openExport?: () => void;
@@ -104,6 +106,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
     currentLayout,
     importMedia,
     cancelImport,
+    importLuts,
     togglePlay,
     seek,
   } = ui;
@@ -118,8 +121,8 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       redo: () => {
         projectStore.getState().redo();
       },
-      resolveAsset: (query) =>
-        resolveAssetQuery(Object.values(useAssetsStore.getState().byId), query),
+      resolveAsset: (query, want) =>
+        resolveAssetQuery(Object.values(useAssetsStore.getState().byId), query, want),
       clipboard: {
         setClips: (data) => {
           useEditorStore.getState().setClipboard(data);
@@ -177,9 +180,9 @@ export function useEditingHost(ui: EditingUi): EditingHost {
           usePrefsStore.getState().resetTour();
         },
       },
-      ...(importMedia === undefined || cancelImport === undefined
+      ...(importMedia === undefined || cancelImport === undefined || importLuts === undefined
         ? {}
-        : { media: { import: importMedia, cancel: cancelImport } }),
+        : { media: { import: importMedia, cancel: cancelImport, importLuts } }),
       exports: {
         inBrowser: async (compositionId, settings) => {
           const current = projectStore.getState().project;
@@ -319,6 +322,7 @@ export function useEditingHost(ui: EditingUi): EditingHost {
       currentLayout,
       importMedia,
       cancelImport,
+      importLuts,
       togglePlay,
       seek,
     ],

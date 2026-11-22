@@ -1,5 +1,5 @@
 import { AUDIO_EFFECTS, EFFECTS, TRANSITIONS } from "@lumacut/effects";
-import { BUILTIN_LUTS } from "@lumacut/engine/color";
+import { BUILTIN_LUTS, LOOK_GROUPS } from "@lumacut/engine/color";
 import { MOTION_PRESETS } from "@lumacut/ops";
 import { TEMPLATES, CATEGORY_LABEL } from "@lumacut/templates";
 
@@ -71,16 +71,18 @@ export function allItems(): BrowserItem[] {
       action: { id: "preset.apply", args: { preset: p.id } },
       previewable: true,
     })),
-    ...BUILTIN_LUTS.map((l) => ({
-      key: `look:${l.id}`,
-      kind: "look" as const,
-      name: l.name,
-      description: l.description,
-      category: "Looks",
-      keywords: ["look", "lut", "filter", "grade"],
-      action: { id: "color.applyLut", args: { look: l.id } },
-      previewable: true,
-    })),
+    ...[...BUILTIN_LUTS]
+      .sort((a, b) => LOOK_GROUPS.indexOf(a.group) - LOOK_GROUPS.indexOf(b.group))
+      .map((l) => ({
+        key: `look:${l.id}`,
+        kind: "look" as const,
+        name: l.name,
+        description: l.description,
+        category: l.group,
+        keywords: ["look", "lut", "filter", "grade", l.group.toLowerCase()],
+        action: { id: "color.applyLut", args: { look: l.id } },
+        previewable: true,
+      })),
     ...TEMPLATES.map((t) => ({
       key: `template:${t.id}`,
       kind: "template" as const,
@@ -92,6 +94,36 @@ export function allItems(): BrowserItem[] {
       previewable: false,
     })),
   ];
+}
+
+/** A `.cube` file's name without the extension ("Teal grade.cube" → "Teal grade"). */
+export const lutName = (fileName: string): string => fileName.replace(/\.cube$/i, "");
+
+/** The category your own LUTs show under. */
+export const YOUR_LUTS = "Your LUTs";
+
+/** Your own `.cube` look-up tables (in the project or the library) as look cards. */
+export function lutItems(luts: readonly { id: string; name: string }[]): BrowserItem[] {
+  return luts.map((l) => ({
+    key: `look:${l.id}`,
+    kind: "look",
+    name: lutName(l.name),
+    description: "Your .cube look-up table, added as its own layer.",
+    category: YOUR_LUTS,
+    keywords: ["look", "lut", "cube", "filter", "grade", "mine", "my", l.name],
+    action: { id: "color.applyLut", args: { look: l.id } },
+    previewable: true,
+  }));
+}
+
+/** `items` with your LUT cards placed just before the built-in looks. */
+export function withLutItems(
+  items: readonly BrowserItem[],
+  luts: readonly BrowserItem[],
+): BrowserItem[] {
+  if (luts.length === 0) return [...items];
+  const at = items.findIndex((i) => i.kind === "look");
+  return at < 0 ? [...items, ...luts] : [...items.slice(0, at), ...luts, ...items.slice(at)];
 }
 
 /** Items whose name, category, description or keywords contain every word typed. */

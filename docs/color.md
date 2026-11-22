@@ -32,8 +32,8 @@ can't overshoot or invert tones between points. Each is sampled to 256 entries; 
 the identity line, the three hue/luma curves to the flat 0.5 line.
 
 ## LUTs
-`LutRef.lutId` is either `builtin:<name>` (eight looks generated from formulas in
-`color/builtin-luts.ts`: no files, no licence) or the id of an asset of kind `lut` (a `.cube` file
+`LutRef.lutId` is either `builtin:<name>` (twenty looks in four groups — Cinematic, Film, Black &
+white, Colour & mood — generated from formulas in `color/builtin-luts.ts`: no files, no licence) or the id of an asset of kind `lut` (a `.cube` file
 uploaded to the library; the worker validates it and keeps the file as the `lut` rendition, the
 engine downloads and parses it with `parseCube`). 1D tables are expanded to a 33³ cube. Tables are
 expected to take display-referred (sRGB-encoded) input in `DOMAIN_MIN`..`DOMAIN_MAX`; log-input

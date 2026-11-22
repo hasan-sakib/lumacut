@@ -1,7 +1,9 @@
+import { ActionError } from "@lumacut/actions";
 import { BUILTIN_LUTS } from "@lumacut/engine/color";
 import { neutralColor, type Op } from "@lumacut/schema";
 import * as z from "zod";
 import { placedClips } from "../timeline/clips.ts";
+import { lutName } from "../browser/items.ts";
 import { addFilterLayer } from "./effects.ts";
 import { activeComposition, editingActions, type EditingContext } from "./editing.ts";
 
@@ -32,26 +34,29 @@ editingActions.register({
     })),
 });
 
-const lutIds = BUILTIN_LUTS.map((b) => b.id);
+const lutIds = new Set(BUILTIN_LUTS.map((b) => b.id));
 
 editingActions.register({
   id: "color.applyLut",
   title: "Apply a look",
   description:
-    "Add a built-in colour look (LUT) as its own adjustment layer, directly above the selected clips and as long as them (the whole photo in a photo; 5 s from the playhead when nothing is selected); it changes everything below it. Looks: " +
-    BUILTIN_LUTS.map((b) => `${b.id} (${b.name})`).join(", ") +
-    ". Intensity is 0–100%. Lower the layer's opacity to soften it.",
+    "Add a colour look (LUT) as its own adjustment layer, directly above the selected clips and as long as them (the whole photo in a photo; 5 s from the playhead when nothing is selected); it changes everything below it. Use a built-in look: " +
+    BUILTIN_LUTS.map((b) => `${b.id} (${b.name}, ${b.group})`).join(", ") +
+    "; or one of your own .cube files by its name or id (one only in the library is added to the project). Intensity is 0–100%. Lower the layer's opacity to soften it.",
   keywords: [
     "lut",
     "look",
     "filter",
     "preset",
     "grade",
+    "cube",
     "teal",
     "orange",
     "noir",
     "sepia",
     "film",
+    "cinematic",
+    "black and white",
     "instagram",
     "style",
     "adjustment layer",
@@ -59,13 +64,48 @@ editingActions.register({
   category: "Colour",
   icon: "lut",
   argsSchema: z.object({
-    look: z.enum(lutIds as [string, ...string[]]),
+    look: z
+      .string()
+      .min(1)
+      .describe("A built-in look id (builtin:…), or the name or id of one of your .cube LUTs"),
     intensity: z.number().min(0).max(100).optional(),
   }),
   when: (ctx) => activeComposition(ctx) !== undefined,
   run: (ctx, args): Op[] => {
     const { look, intensity } = args;
-    return addFilterLayer(ctx, { lookId: look, intensity: (intensity ?? 100) / 100 });
+    const amount = (intensity ?? 100) / 100;
+    if (lutIds.has(look)) return addFilterLayer(ctx, { lookId: look, intensity: amount });
+    if (look.startsWith("builtin:")) throw new ActionError(`There is no built-in look “${look}”.`);
+    const project = ctx.project;
+    if (project === null) throw new ActionError("Open a project first.");
+    // One already in the project, else a ready one in the library (by id or name).
+    const inProject = project.assets.find((a) => a.kind === "lut" && a.id === look);
+    const found =
+      inProject === undefined ? ctx.services.resolveAsset(look, "lut") : { asset: inProject };
+    if ("error" in found) throw new ActionError(found.error);
+    const asset = found.asset;
+    const ops: Op[] = project.assets.some((a) => a.id === asset.id)
+      ? []
+      : [{ type: "addAsset", asset }];
+    return [
+      ...ops,
+      ...addFilterLayer(ctx, { lookId: asset.id, intensity: amount, name: lutName(asset.name) }),
+    ];
+  },
+});
+
+editingActions.register({
+  id: "lut.import",
+  title: "Import a LUT (.cube)",
+  description:
+    "Choose .cube look-up tables from your computer. They upload to your library and appear as cards under Your LUTs in the looks, ready to apply as a layer.",
+  keywords: ["lut", "cube", "import", "upload", "look", "grade", "my looks", "resolve", "premiere"],
+  category: "Colour",
+  icon: "upload",
+  when: (ctx) => ctx.services.media !== undefined,
+  run: (ctx) => {
+    ctx.services.media?.importLuts();
+    return undefined;
   },
 });
 

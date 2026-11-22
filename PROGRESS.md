@@ -197,6 +197,17 @@ Owner asked for Framer Motion scroll animations and transitions. Added **`motion
 - **Checked in the app:** cards hidden before their section scrolls in and visible after; chip switch reflows and new cards fade in (~0.4 s); tab switch; FAQ height animation; progress line; reduced motion (no transforms); phone; no page errors except the session check failing while the API container was down.
 - **To test later:** feel on real devices (60/120 Hz, low-end phones); anchor jumps from the navbar into unrevealed sections; Safari 3D tilt of the editor picture; the lazy landing chunk on a slow network (Loading… fallback); the signed-in start screen not fetching the landing chunk (couldn't sign in: API stopped).
 
+### Your own LUTs as picture cards, and 20 built-in looks (2026-11-22, not verified)
+
+Owner picked these two of the suggested LUT improvements (skipped: tetrahedral interpolation, `.3dl`/`.csp`). Static checks only; checked in the running app with headless Playwright (no test suites run).
+
+- **Built-in looks:** 8 → 20 in `packages/engine/src/color/builtin-luts.ts`, each with a `group` (`LOOK_GROUPS`: Cinematic, Film, Black & white, Colour & mood). New: Blockbuster, Moonlight, Golden hour, Slide film, Cross process, Super 8, Silver, Ink, Cyanotype, Pastel, Matte, Sunset — our own formulas, 17³ cubes, no files or licences. Existing ids unchanged.
+- **Your LUTs:** `lutItems` / `withLutItems` / `lutName` / `YOUR_LUTS` in `browser/items.ts` make look cards from the project's and library's ready `.cube` assets (pictures via the existing `itemThumbnail` → `lookSample(assetId)`; the thumbnail engine's API resolver fetches the file). Photo Filters tab: "Your LUTs" group with an Import .cube card, built-in looks under their groups, your LUT names in the Applied list (`filterLayers(comp, lutNames)`). Video Effects browser: `extra` items, groups shown as "Looks · …", and an "Import a LUT (.cube)" button.
+- **Actions:** `color.applyLut` takes a built-in id or your LUT's name / id (adds the asset to the project when it's only in the library; layer named "Look: <file name>"). New `lut.import` (service `media.importLuts`: hidden `.cube`-only input in `ProjectPage` → uploads store; nothing goes on the timeline). `resolveAssetQuery` / `services.resolveAsset` take `want: "media" | "lut"` (LUTs were always excluded before).
+- **Checked in the app:** Import card opens a `.cube`-only picker; the uploaded file appears as a picture card; clicking it adds a "Look: Purple haze" layer carrying that asset in a photo and in a video project; 20 grouped built-in cards in both editors; no page errors. The full Docker stack was started for this (it had been stopped).
+- **To test later:** hover preview of a library-only LUT; a malformed `.cube` (server error message, card fallback icon); removing an imported LUT asset that a layer still uses; AI calls to `color.applyLut` with a LUT name.
+- **Stale tests:** `actions/colour.test.ts` (fixed `look` enum, 8 looks), `lib/project-assets.test.ts` (`resolveAssetQuery` signature), anything counting 8 built-in looks or the browser's "Looks" category.
+
 Next: **M10** (AI analysis pipeline). Plan it and wait for approval; the owner wants M10 and later built whole, not split.
 
 Getting started in a new session:

@@ -60,6 +60,8 @@ The start screen (`/`) is a shell: a sidebar (logo, New project, Home / Projects
 
 The photo editor's Filters tab lists what is **applied** first (each look layer and each effect on the selected layer, with on/off and remove, plus "Remove all"), then **looks** and **effects** as picture cards. Hover a card to see it on the photo; click to add it. A card that is already applied shows ✓ and a ✕ to remove it. Each look and effect is added as its own filter layer (see below); clicking an applied card selects its layer.
 
+**Looks** come in groups: **Your LUTs** first (your own `.cube` files, from the project or the library, each drawn by the engine as a picture card, with an **Import .cube** card that uploads more to the library without touching the timeline), then the 20 built-in looks under Cinematic, Film, Black & white and Colour & mood. A LUT used from the library is added to the project automatically; its layer is named after the file. The video editor's Effects browser shows the same groups ("Looks · Your LUTs", …) and an **Import a LUT (.cube)** button (`lut.import`).
+
 ## Filters on their own layers
 
 Every look and effect, in both editors (Filters tab, Effects tab cards, palette, AI), is added as its own **filter layer**: a new track holding one adjustment clip that carries just that look or effect, named after it ("Look: Noir", "Gaussian blur"). It goes directly above the topmost selected clip (on top when nothing is selected). In a video it spans the selected clips, or 5 s from the playhead when nothing is selected; in a photo it covers the frame. The new layer is selected so its settings open in the Inspector / Properties. A filter layer changes everything below it; hide, trim, reorder or delete it like any layer.

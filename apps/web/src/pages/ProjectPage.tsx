@@ -16,6 +16,8 @@ import { dockBounds, panelSizes, sideBounds, useWindowSize } from "../editor/pan
 import {
   KIND_LABEL,
   allItems,
+  lutItems,
+  lutName,
   searchItems,
   type BrowserItem,
   type BrowserKind,
@@ -179,6 +181,7 @@ export function ProjectPage() {
   const setPanelSize = usePrefsStore((s) => s.setPanelSize);
   const sizes = panelSizes(storedSizes, windowSize.width, windowSize.height);
   const importInput = useRef<HTMLInputElement>(null);
+  const lutInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const uploads = useUploadsStore((s) => s.entries);
   const layoutRef = useRef({ tab: "inspector" });
@@ -253,6 +256,9 @@ export function ProjectPage() {
         importInput.current?.click();
       },
       cancelImport: (uploadKey: string) => useUploadsStore.getState().cancel(uploadKey),
+      importLuts: () => {
+        lutInput.current?.click();
+      },
       applyWorkspace: (layout: { sideTab: string; bottom: "timeline" | "graph" | "mixer" }) => {
         setTab(layout.sideTab as PanelTab);
         useEditorStore.getState().setBottomPanel(layout.bottom);
@@ -399,6 +405,12 @@ export function ProjectPage() {
     });
     return [...own, ...fromLibrary];
   }, [project, libraryById]);
+  // Your .cube files as look cards (Filters tab and the effect browser), and their names.
+  const lutCards = useMemo(() => lutItems(lutAssets), [lutAssets]);
+  const lutNames = useMemo(
+    () => new Map(lutAssets.map((l) => [l.id, lutName(l.name)])),
+    [lutAssets],
+  );
 
   const composition = project?.compositions.find((c) => c.id === compositionId);
   const selectedInfos = useMemo<ClipInfo[]>(() => {
@@ -797,6 +809,8 @@ export function ProjectPage() {
                     onSelect={(clipId) => {
                       editor.selectClips([clipId]);
                     }}
+                    luts={lutCards}
+                    lutNames={lutNames}
                   />
                 )}
                 {tab === "canvas" && photoMode && (
@@ -815,6 +829,12 @@ export function ProjectPage() {
                         className="text-xs text-neutral-300 hover:bg-neutral-800"
                       />
                       <ActionButton
+                        action={editingActions.get("lut.import")}
+                        ctx={host.ctx}
+                        onRun={host.runAction}
+                        className="text-xs text-neutral-300 hover:bg-neutral-800"
+                      />
+                      <ActionButton
                         action={editingActions.get("layer.addSolid")}
                         ctx={host.ctx}
                         onRun={host.runAction}
@@ -823,6 +843,7 @@ export function ProjectPage() {
                     </div>
                     <Browser
                       kinds={BROWSER_KINDS}
+                      extra={lutCards}
                       canApply={(item) =>
                         editingActions.get(item.action.id).when(host.ctx) &&
                         // Keying and shape effects go onto a clip: they need one selected.
@@ -1056,6 +1077,22 @@ export function ProjectPage() {
           const files = Array.from(e.currentTarget.files ?? [], (file) => ({ file }));
           e.currentTarget.value = "";
           importFiles(files);
+        }}
+      />
+      <input
+        ref={lutInput}
+        type="file"
+        multiple
+        hidden
+        accept=".cube"
+        aria-hidden="true"
+        onChange={(e) => {
+          const files = Array.from(e.currentTarget.files ?? [], (file) => ({ file }));
+          e.currentTarget.value = "";
+          const cubes = files.filter((f) => f.file.name.toLowerCase().endsWith(".cube"));
+          if (cubes.length < files.length)
+            setNotice("Only .cube look-up tables can be imported here.");
+          if (cubes.length > 0) useUploadsStore.getState().start(cubes);
         }}
       />
       <CommandPalette

@@ -31,14 +31,19 @@ export type AssetQueryResult = { asset: Asset } | { error: string };
  * Finds the ready library asset a person or the AI means: an exact id, an exact name, or a name
  * containing the text (case-insensitive). Several matches is an error naming them, never a guess.
  */
-export function resolveAssetQuery(assets: readonly AssetOut[], query: string): AssetQueryResult {
+export function resolveAssetQuery(
+  assets: readonly AssetOut[],
+  query: string,
+  /** `"lut"`: look only at `.cube` look-up tables; otherwise only at media that can be clips. */
+  want: "media" | "lut" = "media",
+): AssetQueryResult {
   const text = query.trim();
   if (text === "") return { error: "Say which asset to add (its name is enough)." };
   const lower = text.toLowerCase();
-  // Look-up tables are never placed as clips.
+  // Look-up tables are never placed as clips; asked for by themselves, only they count.
   const usable = assets.flatMap((a) => {
     const asset = toProjectAsset(a);
-    return asset === null || asset.kind === "lut" ? [] : [asset];
+    return asset === null || (asset.kind === "lut") !== (want === "lut") ? [] : [asset];
   });
   const byId = usable.find((a) => a.id === text);
   if (byId !== undefined) return { asset: byId };

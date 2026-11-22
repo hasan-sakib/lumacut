@@ -13,7 +13,14 @@ import { newEffectInstance } from "../inspector/effect-ops.ts";
 import { addLayerOps } from "../photo/layers.ts";
 
 /** What a filter layer carries: one built-in look, or one effect. */
-export type FilterContent = { lookId: string; intensity?: number } | { effectId: string };
+export type FilterContent =
+  | {
+      lookId: string;
+      intensity?: number;
+      /** Display name for a look that isn't built in (your own `.cube`). */
+      name?: string;
+    }
+  | { effectId: string };
 
 /** Where a new filter layer goes and how long it lasts. */
 export interface FilterPlacement {
@@ -40,8 +47,8 @@ export const effectAppliesToClip = (effectId: string): boolean =>
 /** "Look: Noir" or the effect's name. */
 export function filterName(filter: FilterContent): string {
   if ("lookId" in filter) {
-    const info = BUILTIN_LUTS.find((l) => l.id === filter.lookId);
-    return info === undefined ? "Look" : `Look: ${info.name}`;
+    const name = BUILTIN_LUTS.find((l) => l.id === filter.lookId)?.name ?? filter.name;
+    return name === undefined ? "Look" : `Look: ${name}`;
   }
   return effectById(filter.effectId)?.name ?? "Effect";
 }

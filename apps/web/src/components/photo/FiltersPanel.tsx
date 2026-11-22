@@ -1,6 +1,12 @@
 import type { Clip, Composition, Op } from "@lumacut/schema";
 import { useMemo, useRef, useState } from "react";
-import { allItems, searchItems, type BrowserItem } from "../../browser/items.ts";
+import {
+  YOUR_LUTS,
+  allItems,
+  searchItems,
+  withLutItems,
+  type BrowserItem,
+} from "../../browser/items.ts";
 import {
   effectAppliesToClip,
   filterLayerClip,
@@ -24,12 +30,19 @@ interface FiltersPanelProps {
   onPreview: (ops: Op[] | null) => void;
   /** Select a layer's clip (to edit a look's layer, or the layer an effect is on). */
   onSelect: (clipId: string) => void;
+  /** Your own `.cube` files as look cards. */
+  luts?: readonly BrowserItem[];
+  /** Your LUTs' names by id (for the Applied list). */
+  lutNames?: ReadonlyMap<string, string>;
 }
 
 const HOVER_MS = 150;
 const GRID = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2";
 const HEADING = "mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400";
 const ITEMS = allItems().filter((i) => i.kind === "look" || i.kind === "effect");
+const NO_LUTS: readonly BrowserItem[] = [];
+const NO_NAMES: ReadonlyMap<string, string> = new Map();
+const SUBHEADING = "mb-1.5 text-[11px] font-medium text-neutral-500";
 const idOf = (item: BrowserItem) => item.key.slice(item.key.indexOf(":") + 1);
 let previewIds = 0;
 const previewId = () => {
@@ -50,10 +63,13 @@ export function FiltersPanel({
   run,
   onPreview,
   onSelect,
+  luts = NO_LUTS,
+  lutNames = NO_NAMES,
 }: FiltersPanelProps) {
   const [query, setQuery] = useState("");
   const hover = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const layers = useMemo(() => filterLayers(composition), [composition]);
+  const items = useMemo(() => withLutItems(ITEMS, luts), [luts]);
+  const layers = useMemo(() => filterLayers(composition, lutNames), [composition, lutNames]);
   const own = useMemo(() => {
     const filterClips = new Set(
       composition.tracks.flatMap((t) => {
@@ -73,8 +89,18 @@ export function FiltersPanel({
   const hasSelection = targets.length > 0;
   const selectedClipIds = useMemo(() => targets.map((c) => c.id), [targets]);
 
-  const shown = useMemo(() => searchItems(ITEMS, query), [query]);
+  const shown = useMemo(() => searchItems(items, query), [items, query]);
   const shownLooks = shown.filter((i) => i.kind === "look");
+  const lookGroups = useMemo(() => {
+    const map = new Map<string, BrowserItem[]>();
+    for (const item of shown) {
+      if (item.kind !== "look") continue;
+      map.set(item.category, [...(map.get(item.category) ?? []), item]);
+    }
+    return [...map.entries()];
+  }, [shown]);
+  const yourLuts = lookGroups.find(([category]) => category === YOUR_LUTS)?.[1] ?? [];
+  const builtinLooks = lookGroups.filter(([category]) => category !== YOUR_LUTS);
   const effectGroups = useMemo(() => {
     const map = new Map<string, BrowserItem[]>();
     for (const item of shown) {
@@ -83,7 +109,7 @@ export function FiltersPanel({
     }
     return [...map.entries()];
   }, [shown]);
-  const byKey = useMemo(() => new Map(ITEMS.map((i) => [i.key, i])), []);
+  const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
 
   const endPreview = () => {
     if (hover.current !== null) clearTimeout(hover.current);
@@ -226,16 +252,49 @@ export function FiltersPanel({
         }}
       />
 
-      {shownLooks.length > 0 && (
-        <div>
-          <h3 className={HEADING}>
-            Looks <span className="font-normal text-neutral-600">{shownLooks.length}</span>
-          </h3>
-          <p className="mb-2 text-neutral-500">
-            Each look is added as its own layer above the selected one. Lower its opacity to soften
-            it.
-          </p>
-          <ul className={GRID}>{shownLooks.map(lookCard)}</ul>
+      {(shownLooks.length > 0 || query === "") && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <h3 className={HEADING}>
+              Looks <span className="font-normal text-neutral-600">{shownLooks.length}</span>
+            </h3>
+            <p className="text-neutral-500">
+              Each look is added as its own layer above the selected one. Lower its opacity to
+              soften it.
+            </p>
+          </div>
+          {(query === "" || yourLuts.length > 0) && (
+            <div>
+              <h4 className={SUBHEADING}>
+                {YOUR_LUTS} <span className="text-neutral-600">{yourLuts.length}</span>
+              </h4>
+              <ul className={GRID}>
+                {query === "" && (
+                  <li>
+                    <button
+                      type="button"
+                      title="Import a LUT (.cube): upload your own look-up table to use as a look"
+                      aria-label="Import a LUT (.cube)"
+                      onClick={() => void run("lut.import")}
+                      className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-neutral-600 text-neutral-400 transition hover:border-sky-500 hover:text-sky-300"
+                    >
+                      <Icon name="upload" className="h-4 w-4" />
+                      <span className="text-[11px] font-medium">Import .cube</span>
+                    </button>
+                  </li>
+                )}
+                {yourLuts.map(lookCard)}
+              </ul>
+            </div>
+          )}
+          {builtinLooks.map(([category, list]) => (
+            <div key={category}>
+              <h4 className={SUBHEADING}>
+                {category} <span className="text-neutral-600">{list.length}</span>
+              </h4>
+              <ul className={GRID}>{list.map(lookCard)}</ul>
+            </div>
+          ))}
         </div>
       )}
 
@@ -250,7 +309,7 @@ export function FiltersPanel({
           </div>
           {effectGroups.map(([category, list]) => (
             <div key={category}>
-              <h4 className="mb-1.5 text-[11px] font-medium text-neutral-500">
+              <h4 className={SUBHEADING}>
                 {category} <span className="text-neutral-600">{list.length}</span>
               </h4>
               <ul className={GRID}>{list.map(effectCard)}</ul>

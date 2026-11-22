@@ -94,7 +94,8 @@ export interface EditingServices {
   redo: () => void;
   /** A library asset as the project's `Asset`, or null when it isn't ready to use. */
   /** Finds a ready library asset by id or (part of) its name; an error message when none or several match. */
-  resolveAsset: (query: string) => { asset: Asset } | { error: string };
+  /** A ready library asset by id or (part of its) name: clip media, or `.cube` LUTs with `"lut"`. */
+  resolveAsset: (query: string, want?: "media" | "lut") => { asset: Asset } | { error: string };
   /** The editor's internal clipboard (clips, and a clip's look). */
   clipboard: {
     setClips: (data: ClipboardData | null) => void;
@@ -115,6 +116,8 @@ export interface EditingServices {
     import: () => void;
     /** Stops an upload in progress. */
     cancel: (uploadKey: string) => Promise<void>;
+    /** Opens a `.cube`-only picker; the files upload to the library (nothing goes on the timeline). */
+    importLuts: () => void;
   };
   /** Saving the project as a template, and onboarding progress. */
   templates?: {

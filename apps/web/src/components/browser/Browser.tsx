@@ -3,6 +3,7 @@ import {
   KIND_LABEL,
   allItems,
   searchItems,
+  withLutItems,
   type BrowserItem,
   type BrowserKind,
 } from "../../browser/items.ts";
@@ -18,9 +19,12 @@ interface BrowserProps {
   onApply: (item: BrowserItem) => void;
   /** Show it on the selected clip without committing; null ends the preview. */
   onPreview: (item: BrowserItem | null) => void;
+  /** Extra items (your own LUTs), shown before the built-in looks. */
+  extra?: readonly BrowserItem[];
 }
 
 const HOVER_MS = 150;
+const NONE: readonly BrowserItem[] = [];
 /** As many columns as fit: a wider side panel shows more cards per row. */
 const GRID = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2";
 const HEADING = "mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400";
@@ -29,7 +33,7 @@ const HEADING = "mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-n
  * Effects, transitions, audio effects, motion presets and looks in one searchable browser, with
  * favourites (☆) and recents, and a live preview on the selected clip while you hover an item.
  */
-export function Browser({ kinds, canApply, onApply, onPreview }: BrowserProps) {
+export function Browser({ kinds, canApply, onApply, onPreview, extra = NONE }: BrowserProps) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<BrowserKind | "all">("all");
   const favourites = usePrefsStore((s) => s.favourites);
@@ -37,7 +41,10 @@ export function Browser({ kinds, canApply, onApply, onPreview }: BrowserProps) {
   const toggleFavourite = usePrefsStore((s) => s.toggleFavourite);
   const noteUse = usePrefsStore((s) => s.noteUse);
   const hover = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const items = useMemo(() => allItems().filter((i) => kinds.includes(i.kind)), [kinds]);
+  const items = useMemo(
+    () => withLutItems(allItems(), extra).filter((i) => kinds.includes(i.kind)),
+    [kinds, extra],
+  );
   const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
   const shown = useMemo(
     () => searchItems(items, query).filter((i) => kind === "all" || i.kind === kind),
