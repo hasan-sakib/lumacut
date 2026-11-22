@@ -1,10 +1,6 @@
 import { Accordion } from "radix-ui";
-import { Link } from "react-router";
-import { usePrefsStore } from "../../stores/prefs.ts";
-import { ThemeSwitch } from "../home/ThemeSwitch.tsx";
 import { Icon } from "../Icon.tsx";
-import { Logo } from "../Logo.tsx";
-import { COMING, FAQ, FEATURES, SECTIONS, STEPS } from "./content.ts";
+import { COMING, FAQ, FEATURES, STEPS } from "./content.ts";
 import { Heading, SECTION } from "./Heading.tsx";
 
 /** Import → Edit → Export. */
@@ -113,93 +109,5 @@ export function Faq() {
         ))}
       </Accordion.Root>
     </section>
-  );
-}
-
-export function CallToAction() {
-  return (
-    <section aria-label="Get started" className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-sky-600 via-indigo-600 to-violet-700 px-6 py-14 text-center text-white lg:py-20">
-        <h2 className="mx-auto max-w-2xl text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-          Make your first video today
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-white/80">
-          Create an account, pick a template or import your footage, and export when it looks right.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/register"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-indigo-700 shadow-lg transition hover:bg-white/90"
-          >
-            Get started <Icon name="arrowRight" />
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex h-11 items-center rounded-xl border border-white/40 px-6 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Log in
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function Footer() {
-  const theme = usePrefsStore((s) => s.theme);
-  const setTheme = usePrefsStore((s) => s.setTheme);
-  return (
-    <footer className="border-t border-neutral-800">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-10 lg:flex-row lg:items-start lg:px-8">
-        <div className="max-w-xs">
-          <Logo />
-          <p className="mt-3 text-sm text-neutral-500">
-            Video, motion graphics and photo editing in one studio.
-          </p>
-        </div>
-        <nav aria-label="Footer" className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3">
-          <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Product
-            </h3>
-            <ul className="flex flex-col gap-2 text-sm">
-              {SECTIONS.map((s) => (
-                <li key={s.id}>
-                  <a href={`#${s.id}`} className="text-neutral-300 hover:text-sky-400">
-                    {s.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Account
-            </h3>
-            <ul className="flex flex-col gap-2 text-sm">
-              <li>
-                <Link to="/register" className="text-neutral-300 hover:text-sky-400">
-                  Create an account
-                </Link>
-              </li>
-              <li>
-                <Link to="/login" className="text-neutral-300 hover:text-sky-400">
-                  Log in
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Appearance
-            </h3>
-            <ThemeSwitch theme={theme} onPick={setTheme} />
-          </div>
-        </nav>
-      </div>
-      <p className="border-t border-neutral-800 px-5 py-5 text-center text-xs text-neutral-500">
-        © Lumacut
-      </p>
-    </footer>
   );
 }

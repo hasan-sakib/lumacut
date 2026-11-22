@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { Icon } from "../Icon.tsx";
 import { COUNTS } from "./content.ts";
 import { EditorMock } from "./EditorMock.tsx";
+import { LumacutScene } from "./LumacutScene.tsx";
 
 const FACTS = [
   "Runs in your browser",
@@ -10,7 +11,7 @@ const FACTS = [
   `${String(COUNTS.transitions)} transitions`,
 ];
 
-/** The first screen: what Lumacut is, the two ways in, and a picture of the editor. */
+/** The first screen: the doodle LUMACUT, what Lumacut is, the two ways in, and the editor. */
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden">
@@ -18,7 +19,8 @@ export function Hero() {
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 top-[-12rem] h-[34rem] w-[60rem] -translate-x-1/2 rounded-full bg-linear-to-br from-sky-500/25 via-indigo-500/20 to-fuchsia-500/10 blur-3xl"
       />
-      <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-16 text-center lg:px-8 lg:pt-24">
+      <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-4 text-center lg:px-8 lg:pt-8">
+        <LumacutScene className="mx-auto mb-6 max-w-6xl" />
         <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/70 px-3 py-1 text-xs font-medium text-neutral-300">
           <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
           Video · Motion graphics · Photo

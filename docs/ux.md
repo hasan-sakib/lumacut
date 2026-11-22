@@ -68,7 +68,13 @@ Exceptions stay on the clip itself: motion presets, and effects that work from t
 
 ## Landing page
 
-Signed-out visitors see the landing page at `/`: a sticky navbar (section links, theme switch, Log in, Get started), a hero with a drawing of the editor, "Three tools, one project" tabs, live template and effect showcases, three steps, a feature grid, a clearly labelled "Coming next" block for AI, an FAQ and a final call to action. All copy lives in `components/landing/content.ts`; numbers are counted from the product, and nothing on the page is invented (no testimonials, customers or prices).
+Signed-out visitors see the landing page at `/`: a sticky navbar (section links, theme switch, Log in, Get started), a hero with a drawing of the editor, "Three tools, one project" tabs, live template and effect showcases, three steps, a feature grid, a clearly labelled "Coming next" block for AI, an FAQ, and a doodle-style footer; the hero opens with the doodle LUMACUT. All copy lives in `components/landing/content.ts`; numbers are counted from the product, and nothing on the page is invented (no testimonials, customers or prices).
+
+### Doodle LUMACUT (top of the landing page)
+
+The hero opens with the doodle wordmark (`components/landing/LumacutScene.tsx` on `DoodleCrewScene` from `components/ui/doodle-crew-footer.tsx`): LUMACUT drawn after the logo as SVG letters (purple film-strip L with its ribbon foot, folded orange M, round a with a play button, cut blue C, teal U, slanted-top T with the sparkle; the logo's white letters use the ink colour, so they turn dark in light mode). A hand-drawn crew lives on it: Clap the clapperboard by the L (its clapper snaps), Pip the bird on the U, Reel the film reel at the M (film tail on the ground), Cami the film camera on top of the a (reels turning), Boo peeking over the C, Patch the cat by the T. The letters stamp in, the crew arrives and doodles (play, film, scissors, stars…) fall; eyes follow the pointer and blink, letters wobble on hover, clicking (or Enter on) a character makes it hop and say a line, doodles scatter and pop. Reduced motion shows the finished scene still. Below it: the pill, headline, buttons, facts and the editor picture as before.
+
+The footer (`components/landing/SiteFooter.tsx`, `DoodleCrewFooter` with `scene={false}`) keeps the doodle look without the scene: logo, blurb, Product / Tools / Account columns, "© Lumacut", Back to top. No legal or social links: none exist yet. The theme switch is in the navbar.
 
 ## Logo
 

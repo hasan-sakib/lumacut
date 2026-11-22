@@ -1,14 +1,8 @@
 import { EffectShowcase } from "../components/landing/EffectShowcase.tsx";
 import { Hero } from "../components/landing/Hero.tsx";
 import { Navbar } from "../components/landing/Navbar.tsx";
-import {
-  CallToAction,
-  ComingNext,
-  Faq,
-  FeatureGrid,
-  Footer,
-  Steps,
-} from "../components/landing/Sections.tsx";
+import { ComingNext, Faq, FeatureGrid, Steps } from "../components/landing/Sections.tsx";
+import { SiteFooter } from "../components/landing/SiteFooter.tsx";
 import { TemplateShowcase } from "../components/landing/TemplateShowcase.tsx";
 import { ToolTabs } from "../components/landing/ToolTabs.tsx";
 
@@ -26,9 +20,8 @@ export function LandingPage() {
         <FeatureGrid />
         <ComingNext />
         <Faq />
-        <CallToAction />
       </main>
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }
