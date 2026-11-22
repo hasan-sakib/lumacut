@@ -2,11 +2,15 @@ import { Tooltip } from "radix-ui";
 import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { AuthPage } from "./pages/AuthPage.tsx";
-import { LandingPage } from "./pages/LandingPage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
 import { ProjectPage } from "./pages/ProjectPage.tsx";
 import { useAuthStore } from "./stores/auth.ts";
 import { useThemeSync } from "./theme/useThemeSync.ts";
+
+// The public landing page (and Motion, its animation library) only loads for signed-out visitors.
+const LandingPage = lazy(() =>
+  import("./pages/LandingPage.tsx").then((m) => ({ default: m.LandingPage })),
+);
 
 // The developer player bench carries the whole engine; load it only when someone opens /dev/player.
 const PlayerPage = lazy(() =>
@@ -23,7 +27,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function Home() {
   const status = useAuthStore((s) => s.status);
   if (status === "unknown") return <p className="p-10 text-neutral-400">Loading…</p>;
-  return status === "authenticated" ? <LibraryPage /> : <LandingPage />;
+  if (status === "authenticated") return <LibraryPage />;
+  return (
+    <Suspense fallback={<p className="p-10 text-neutral-400">Loading…</p>}>
+      <LandingPage />
+    </Suspense>
+  );
 }
 
 function GuestOnly({ children }: { children: ReactNode }) {

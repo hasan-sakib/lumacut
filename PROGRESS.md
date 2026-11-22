@@ -187,6 +187,16 @@ Follow-up from the owner: put the doodle scene at the top, change some character
 - **Checked in the app:** dark, light, phone, reduced motion; Clap / Reel / Cami speak their lines; the footer has no scene; no page errors. The letters were compared with `docs/brand/lumacut-logo.png` (hand-drawn approximations, not traced).
 - **To test later:** the letter shapes at other widths; pointer gaze and doodle play by hand; keyboard focus on characters; Safari / Firefox rendering of the gradients and CSS transforms on SVG groups (clapper, reels).
 
+### Scroll animations on the landing page with Motion (2026-11-22, not verified)
+
+Owner asked for Framer Motion scroll animations and transitions. Added **`motion` 14.14.0 (MIT)**, the current name of Framer Motion (`motion/react`). Static checks only; checked in the running app with headless Playwright (no test suites run).
+
+- **Building blocks:** `components/landing/motion.tsx`: `MotionProvider` (`LazyMotion` + `domMax`, strict `m.*` components; `MotionConfig reducedMotion="user"`), shared easing and variants (`IN_VIEW`, `STAGGER`, `RISE`, `RISE_AT`, `HEADING_PART`, `EXIT`, `SLIDE`), `Reveal`, `ScrollProgress`.
+- **What moves:** scroll-progress line in the logo colours under the navbar; the navbar's current-section highlight slides between links; hero words rise in after the doodle letters; the doodle scene drifts up with parallax and fades as the hero scrolls away; the editor picture lands from a 3D tilt; every section heading rises in from a blur; tools tab pill slides and panels / bullet points animate in; template and effect cards cascade in and reflow smoothly when a chip changes (cards driven by the grid's own `useInView`, so cards added after the first reveal animate too); the steps rail fills with scroll; feature cards cascade and lift on hover; Coming next reveals; FAQ items cascade and answers open with a CSS height animation (`.lc-accordion-content` in `index.css`). Reduced motion: no movement, content fully visible.
+- **Bundle:** `LandingPage` is now a lazy route in `App.tsx`; Motion ships only in the `LandingPage` chunk (`/login` and the start screen load just the main bundle).
+- **Checked in the app:** cards hidden before their section scrolls in and visible after; chip switch reflows and new cards fade in (~0.4 s); tab switch; FAQ height animation; progress line; reduced motion (no transforms); phone; no page errors except the session check failing while the API container was down.
+- **To test later:** feel on real devices (60/120 Hz, low-end phones); anchor jumps from the navbar into unrevealed sections; Safari 3D tilt of the editor picture; the lazy landing chunk on a slow network (Loading… fallback); the signed-in start screen not fetching the landing chunk (couldn't sign in: API stopped).
+
 Next: **M10** (AI analysis pipeline). Plan it and wait for approval; the owner wants M10 and later built whole, not split.
 
 Getting started in a new session:
@@ -571,6 +581,7 @@ _M5 added no dependencies (Canvas 2D, OffscreenCanvas and the existing GL stack 
 | Package | Version | License | Where |
 |---|---|---|---|
 | react, react-dom | 19.3.1 | MIT | apps/web |
+| motion (formerly Framer Motion) | 14.14.0 | MIT | apps/web, landing page only (lazy chunk); added 2026-11-22 |
 | zod | 4.6.7 | MIT | packages/schema |
 | vite | 8.3.5 | MIT | apps/web (dev) |
 | @vitejs/plugin-react | 6.1.2 | MIT | apps/web (dev) |

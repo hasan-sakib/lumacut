@@ -1,3 +1,4 @@
+import { m } from "motion/react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { usePrefsStore } from "../../stores/prefs.ts";
@@ -5,6 +6,7 @@ import { ThemeSwitch } from "../home/ThemeSwitch.tsx";
 import { Icon } from "../Icon.tsx";
 import { Logo } from "../Logo.tsx";
 import { SECTIONS } from "./content.ts";
+import { SLIDE, ScrollProgress } from "./motion.tsx";
 import { useActiveSection, useScrolled } from "./useActiveSection.ts";
 
 const IDS = SECTIONS.map((s) => s.id);
@@ -40,13 +42,18 @@ export function Navbar() {
               key={s.id}
               href={`#${s.id}`}
               aria-current={active === s.id ? "true" : undefined}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                active === s.id
-                  ? "bg-sky-500/10 text-sky-400"
-                  : "text-neutral-400 hover:text-neutral-100"
+              className={`relative rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                active === s.id ? "text-sky-400" : "text-neutral-400 hover:text-neutral-100"
               }`}
             >
-              {s.label}
+              {active === s.id && (
+                <m.span
+                  layoutId="landing-nav-active"
+                  transition={SLIDE}
+                  className="absolute inset-0 rounded-md bg-sky-500/10"
+                />
+              )}
+              <span className="relative">{s.label}</span>
             </a>
           ))}
         </nav>
@@ -80,6 +87,7 @@ export function Navbar() {
           </button>
         </div>
       </div>
+      <ScrollProgress className="absolute inset-x-0 -bottom-px" />
       {open && (
         <div id="landing-menu" className="border-t border-neutral-800 px-5 pb-5 pt-3 lg:hidden">
           <nav aria-label="Sections" className="flex flex-col">

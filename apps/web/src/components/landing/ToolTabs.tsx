@@ -1,7 +1,10 @@
+import { m } from "motion/react";
 import { Tabs } from "radix-ui";
+import { useState } from "react";
 import { Icon } from "../Icon.tsx";
 import { TOOLS } from "./content.ts";
 import { Heading, SECTION } from "./Heading.tsx";
+import { EASE, RISE, Reveal, SLIDE, STAGGER } from "./motion.tsx";
 
 function VideoVisual() {
   const rows = [
@@ -93,6 +96,7 @@ const VISUAL = { video: VideoVisual, motion: MotionVisual, photo: PhotoVisual };
 
 /** "Three tools, one project": what each of the three editors does, as tabs. */
 export function ToolTabs() {
+  const [tab, setTab] = useState<string>("video");
   return (
     <section id="features" className={SECTION}>
       <Heading
@@ -100,53 +104,81 @@ export function ToolTabs() {
         title="Three tools, one project"
         text="Video, motion graphics and photos are all compositions drawn by the same engine, so what you learn in one works in the others."
       />
-      <Tabs.Root defaultValue="video">
-        <Tabs.List
-          aria-label="Tools"
-          className="mx-auto mb-8 flex w-fit gap-1 rounded-xl border border-neutral-800 bg-neutral-900 p-1"
+      <Reveal>
+        <Tabs.Root
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v);
+          }}
         >
-          {TOOLS.map((tool) => (
-            <Tabs.Trigger
-              key={tool.id}
-              value={tool.id}
-              className="inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-neutral-400 transition hover:text-neutral-100 data-[state=active]:bg-sky-600 data-[state=active]:text-white"
-            >
-              <Icon name={tool.icon} /> {tool.label}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
-        {TOOLS.map((tool) => {
-          const Visual = VISUAL[tool.id];
-          return (
-            <Tabs.Content
-              key={tool.id}
-              value={tool.id}
-              className="grid items-center gap-8 rounded-2xl border border-neutral-800 bg-neutral-900 p-6 outline-none lg:grid-cols-2 lg:gap-12 lg:p-10"
-            >
-              <div>
-                <h3 className="text-2xl font-bold tracking-tight">{tool.title}</h3>
-                <p className="mt-2 text-neutral-400">{tool.text}</p>
-                <ul className="mt-6 flex flex-col gap-3">
-                  {tool.points.map((point) => (
-                    <li key={point} className="flex items-start gap-3 text-sm text-neutral-200">
-                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sky-500/15 text-sky-400">
-                        <Icon name="check" className="h-3 w-3" />
-                      </span>
-                      {point}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div
-                aria-hidden="true"
-                className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
+          <Tabs.List
+            aria-label="Tools"
+            className="mx-auto mb-8 flex w-fit gap-1 rounded-xl border border-neutral-800 bg-neutral-900 p-1"
+          >
+            {TOOLS.map((tool) => (
+              <Tabs.Trigger
+                key={tool.id}
+                value={tool.id}
+                className="relative inline-flex h-9 items-center rounded-lg px-4 text-sm font-medium text-neutral-400 transition-colors hover:text-neutral-100 data-[state=active]:text-white"
               >
-                <Visual />
-              </div>
-            </Tabs.Content>
-          );
-        })}
-      </Tabs.Root>
+                {tab === tool.id && (
+                  <m.span
+                    layoutId="landing-tool-pill"
+                    transition={SLIDE}
+                    className="absolute inset-0 rounded-lg bg-sky-600 shadow-sm"
+                  />
+                )}
+                <span className="relative inline-flex items-center gap-2">
+                  <Icon name={tool.icon} /> {tool.label}
+                </span>
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+          {TOOLS.map((tool) => {
+            const Visual = VISUAL[tool.id];
+            return (
+              <Tabs.Content key={tool.id} value={tool.id} asChild>
+                <m.div
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: EASE }}
+                  className="grid items-center gap-8 rounded-2xl border border-neutral-800 bg-neutral-900 p-6 outline-none lg:grid-cols-2 lg:gap-12 lg:p-10"
+                >
+                  <div>
+                    <h3 className="text-2xl font-bold tracking-tight">{tool.title}</h3>
+                    <p className="mt-2 text-neutral-400">{tool.text}</p>
+                    <m.ul
+                      initial="hidden"
+                      animate="shown"
+                      variants={STAGGER}
+                      className="mt-6 flex flex-col gap-3"
+                    >
+                      {tool.points.map((point) => (
+                        <m.li
+                          key={point}
+                          variants={RISE}
+                          className="flex items-start gap-3 text-sm text-neutral-200"
+                        >
+                          <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sky-500/15 text-sky-400">
+                            <Icon name="check" className="h-3 w-3" />
+                          </span>
+                          {point}
+                        </m.li>
+                      ))}
+                    </m.ul>
+                  </div>
+                  <div
+                    aria-hidden="true"
+                    className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
+                  >
+                    <Visual />
+                  </div>
+                </m.div>
+              </Tabs.Content>
+            );
+          })}
+        </Tabs.Root>
+      </Reveal>
     </section>
   );
 }
